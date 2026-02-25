@@ -11,8 +11,8 @@
 
 ```
 bms-elsa/
-├── cmd/app/
-│   └── main.go                         # DI組み立て + Wails起動
+├── main.go                              # Wailsエントリポイント + DI組み立て
+├── app.go                               # App構造体（将来ハンドラーに分割）
 ├── internal/
 │   ├── domain/                         # ドメイン層（最内層・外部依存なし）
 │   │   ├── model/
