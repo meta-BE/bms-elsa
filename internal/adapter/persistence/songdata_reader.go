@@ -82,6 +82,11 @@ func (r *SongdataReader) ListSongs(ctx context.Context, opts model.ListOptions) 
 			sg.folder, sg.title, sg.artist, sg.genre,
 			sg.min_bpm, sg.max_bpm, sg.chart_count,
 			sm.release_year, sm.event_name,
+			EXISTS(
+				SELECT 1 FROM songdata.song ss
+				INNER JOIN main.chart_meta cm ON cm.md5 = ss.md5 AND cm.sha256 = ss.sha256
+				WHERE ss.folder = sg.folder
+			) AS has_ir_meta,
 			COUNT(*) OVER() AS total_count
 		FROM song_groups sg
 		LEFT JOIN main.song_meta sm ON sm.folder_hash = sg.folder
@@ -109,13 +114,13 @@ func (r *SongdataReader) ListSongs(ctx context.Context, opts model.ListOptions) 
 		var s model.Song
 		var releaseYear sql.NullInt64
 		var eventName sql.NullString
-		var chartCount int
 		var total int
 
 		if err := rows.Scan(
 			&s.FolderHash, &s.Title, &s.Artist, &s.Genre,
-			&s.MinBPM, &s.MaxBPM, &chartCount,
+			&s.MinBPM, &s.MaxBPM, &s.ChartCount,
 			&releaseYear, &eventName,
+			&s.HasIRMeta,
 			&total,
 		); err != nil {
 			return nil, 0, fmt.Errorf("ListSongs scan: %w", err)

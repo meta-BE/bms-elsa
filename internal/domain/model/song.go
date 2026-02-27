@@ -14,6 +14,9 @@ type Song struct {
 	// elsa.db メタデータ
 	ReleaseYear *int
 	EventName   *string
+	// 一覧表示用の集約フィールド（リポジトリが設定）
+	ChartCount int
+	HasIRMeta  bool
 }
 
 // Chart は譜面（個々のBMSファイル）
