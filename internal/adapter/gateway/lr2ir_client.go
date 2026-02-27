@@ -42,14 +42,28 @@ func NewLR2IRClientWithBaseURL(baseURL string) *LR2IRClient {
 	}
 }
 
+var _ port.IRClient = (*LR2IRClient)(nil)
+
 func (c *LR2IRClient) LookupByMD5(ctx context.Context, md5 string) (*port.IRResponse, error) {
 	c.mu.Lock()
+	var wait time.Duration
 	if !c.lastReq.IsZero() {
 		elapsed := time.Since(c.lastReq)
 		if elapsed < minRequestInterval {
-			time.Sleep(minRequestInterval - elapsed)
+			wait = minRequestInterval - elapsed
 		}
 	}
+	c.mu.Unlock()
+
+	if wait > 0 {
+		select {
+		case <-time.After(wait):
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}
+
+	c.mu.Lock()
 	c.lastReq = time.Now()
 	c.mu.Unlock()
 

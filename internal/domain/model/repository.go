@@ -30,4 +30,5 @@ type MetaRepository interface {
 	GetChartMeta(ctx context.Context, md5, sha256 string) (*ChartIRMeta, error)
 	UpsertChartMeta(ctx context.Context, meta ChartIRMeta) error
 	BulkUpsertChartMeta(ctx context.Context, metas []ChartIRMeta) error
+	UpdateWorkingURLs(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error
 }

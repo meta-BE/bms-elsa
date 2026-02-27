@@ -74,6 +74,12 @@ func (a *App) startup(ctx context.Context) {
 	a.IRHandler.SetContext(ctx)
 }
 
+func (a *App) shutdown(ctx context.Context) {
+	if a.db != nil {
+		a.db.Close()
+	}
+}
+
 // elsaDBPath はelsa.dbの保存パスを返す
 func elsaDBPath() string {
 	configDir, err := os.UserConfigDir()

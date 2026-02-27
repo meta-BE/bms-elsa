@@ -8,6 +8,8 @@ import (
 	"github.com/meta-BE/bms-elsa/internal/domain/model"
 )
 
+var _ model.SongRepository = (*SongdataReader)(nil)
+
 const defaultPageSize = 50
 
 // SongdataReader はsongdata.db（ATTACHされた）から楽曲を読み取る

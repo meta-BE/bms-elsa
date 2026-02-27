@@ -25,11 +25,12 @@ func (m *mockSongRepo) GetSongByFolder(ctx context.Context, folderHash string) (
 }
 
 type mockMetaRepo struct {
-	getSongMetaFunc       func(ctx context.Context, folderHash string) (*model.SongMeta, error)
-	upsertSongMetaFunc    func(ctx context.Context, meta model.SongMeta) error
-	getChartMetaFunc      func(ctx context.Context, md5, sha256 string) (*model.ChartIRMeta, error)
-	upsertChartMetaFunc   func(ctx context.Context, meta model.ChartIRMeta) error
+	getSongMetaFunc         func(ctx context.Context, folderHash string) (*model.SongMeta, error)
+	upsertSongMetaFunc      func(ctx context.Context, meta model.SongMeta) error
+	getChartMetaFunc        func(ctx context.Context, md5, sha256 string) (*model.ChartIRMeta, error)
+	upsertChartMetaFunc     func(ctx context.Context, meta model.ChartIRMeta) error
 	bulkUpsertChartMetaFunc func(ctx context.Context, metas []model.ChartIRMeta) error
+	updateWorkingURLsFunc   func(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error
 }
 
 func (m *mockMetaRepo) GetSongMeta(ctx context.Context, folderHash string) (*model.SongMeta, error) {
@@ -50,6 +51,10 @@ func (m *mockMetaRepo) UpsertChartMeta(ctx context.Context, meta model.ChartIRMe
 
 func (m *mockMetaRepo) BulkUpsertChartMeta(ctx context.Context, metas []model.ChartIRMeta) error {
 	return m.bulkUpsertChartMetaFunc(ctx, metas)
+}
+
+func (m *mockMetaRepo) UpdateWorkingURLs(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error {
+	return m.updateWorkingURLsFunc(ctx, md5, sha256, workingBodyURL, workingDiffURL)
 }
 
 type mockIRClient struct {
@@ -144,26 +149,34 @@ func TestUpdateSongMeta(t *testing.T) {
 }
 
 func TestUpdateChartMeta(t *testing.T) {
-	var calledMeta model.ChartIRMeta
+	var calledMD5, calledSHA256, calledBodyURL, calledDiffURL string
 	repo := &mockMetaRepo{
-		upsertChartMetaFunc: func(_ context.Context, meta model.ChartIRMeta) error {
-			calledMeta = meta
+		updateWorkingURLsFunc: func(_ context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error {
+			calledMD5 = md5
+			calledSHA256 = sha256
+			calledBodyURL = workingBodyURL
+			calledDiffURL = workingDiffURL
 			return nil
 		},
 	}
 
-	inputMeta := model.ChartIRMeta{MD5: "md5hash", SHA256: "sha256hash", Tags: []string{"tag1"}}
 	uc := usecase.NewUpdateChartMetaUseCase(repo)
-	err := uc.Execute(context.Background(), inputMeta)
+	err := uc.Execute(context.Background(), "md5hash", "sha256hash", "http://body.url", "http://diff.url")
 
 	if err != nil {
 		t.Fatalf("予期しないエラー: %v", err)
 	}
-	if calledMeta.MD5 != "md5hash" {
-		t.Errorf("calledMeta.MD5 = %q, want %q", calledMeta.MD5, "md5hash")
+	if calledMD5 != "md5hash" {
+		t.Errorf("calledMD5 = %q, want %q", calledMD5, "md5hash")
 	}
-	if calledMeta.SHA256 != "sha256hash" {
-		t.Errorf("calledMeta.SHA256 = %q, want %q", calledMeta.SHA256, "sha256hash")
+	if calledSHA256 != "sha256hash" {
+		t.Errorf("calledSHA256 = %q, want %q", calledSHA256, "sha256hash")
+	}
+	if calledBodyURL != "http://body.url" {
+		t.Errorf("calledBodyURL = %q, want %q", calledBodyURL, "http://body.url")
+	}
+	if calledDiffURL != "http://diff.url" {
+		t.Errorf("calledDiffURL = %q, want %q", calledDiffURL, "http://diff.url")
 	}
 }
 

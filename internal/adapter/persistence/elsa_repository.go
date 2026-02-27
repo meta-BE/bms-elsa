@@ -9,6 +9,8 @@ import (
 	"github.com/meta-BE/bms-elsa/internal/domain/model"
 )
 
+var _ model.MetaRepository = (*ElsaRepository)(nil)
+
 const timeLayout = "2006-01-02 15:04:05"
 
 type ElsaRepository struct {
@@ -103,12 +105,24 @@ func (r *ElsaRepository) UpsertChartMeta(ctx context.Context, meta model.ChartIR
 		   lr2ir_diff_url   = excluded.lr2ir_diff_url,
 		   lr2ir_notes      = excluded.lr2ir_notes,
 		   lr2ir_fetched_at = excluded.lr2ir_fetched_at,
-		   working_body_url = excluded.working_body_url,
-		   working_diff_url = excluded.working_diff_url,
+		   working_body_url = COALESCE(NULLIF(excluded.working_body_url, ''), chart_meta.working_body_url),
+		   working_diff_url = COALESCE(NULLIF(excluded.working_diff_url, ''), chart_meta.working_diff_url),
 		   updated_at       = datetime('now')`,
 		meta.MD5, meta.SHA256, tagsStr,
 		meta.LR2IRBodyURL, meta.LR2IRDiffURL, meta.LR2IRNotes,
 		fetchedAtStr, meta.WorkingBodyURL, meta.WorkingDiffURL,
+	)
+	return err
+}
+
+func (r *ElsaRepository) UpdateWorkingURLs(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE chart_meta SET
+			working_body_url = ?,
+			working_diff_url = ?,
+			updated_at = datetime('now')
+		 WHERE md5 = ? AND sha256 = ?`,
+		workingBodyURL, workingDiffURL, md5, sha256,
 	)
 	return err
 }
@@ -129,8 +143,8 @@ func (r *ElsaRepository) BulkUpsertChartMeta(ctx context.Context, metas []model.
 		   lr2ir_diff_url   = excluded.lr2ir_diff_url,
 		   lr2ir_notes      = excluded.lr2ir_notes,
 		   lr2ir_fetched_at = excluded.lr2ir_fetched_at,
-		   working_body_url = excluded.working_body_url,
-		   working_diff_url = excluded.working_diff_url,
+		   working_body_url = COALESCE(NULLIF(excluded.working_body_url, ''), chart_meta.working_body_url),
+		   working_diff_url = COALESCE(NULLIF(excluded.working_diff_url, ''), chart_meta.working_diff_url),
 		   updated_at       = datetime('now')`,
 	)
 	if err != nil {

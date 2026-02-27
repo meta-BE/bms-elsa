@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/meta-BE/bms-elsa/internal/app/dto"
-	"github.com/meta-BE/bms-elsa/internal/domain/model"
 	"github.com/meta-BE/bms-elsa/internal/usecase"
 )
 
@@ -42,11 +41,5 @@ func (h *IRHandler) LookupByMD5(md5, sha256 string) (*dto.ChartDTO, error) {
 }
 
 func (h *IRHandler) UpdateChartMeta(md5, sha256, workingBodyURL, workingDiffURL string) error {
-	meta := model.ChartIRMeta{
-		MD5:            md5,
-		SHA256:         sha256,
-		WorkingBodyURL: workingBodyURL,
-		WorkingDiffURL: workingDiffURL,
-	}
-	return h.updateChart.Execute(h.ctx, meta)
+	return h.updateChart.Execute(h.ctx, md5, sha256, workingBodyURL, workingDiffURL)
 }
