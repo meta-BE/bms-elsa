@@ -3,7 +3,9 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -80,6 +82,34 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 }
 
+// Config はアプリケーション設定
+type Config struct {
+	SongdataDBPath string `json:"songdataDBPath"`
+}
+
+// loadConfig は ~/.config/bms-elsa/config.json を読み込む。
+// ファイルが存在しない場合はゼロ値の Config を返す。
+func loadConfig() Config {
+	configDir, err := os.UserConfigDir()
+	if err != nil {
+		return Config{}
+	}
+	path := filepath.Join(configDir, "bms-elsa", "config.json")
+	f, err := os.Open(path)
+	if err != nil {
+		return Config{}
+	}
+	defer f.Close()
+
+	var cfg Config
+	data, err := io.ReadAll(f)
+	if err != nil {
+		return Config{}
+	}
+	json.Unmarshal(data, &cfg)
+	return cfg
+}
+
 // elsaDBPath はelsa.dbの保存パスを返す
 func elsaDBPath() string {
 	configDir, err := os.UserConfigDir()
@@ -92,8 +122,16 @@ func elsaDBPath() string {
 }
 
 // songdataDBPath はsongdata.dbのパスを返す。
-// 将来的にはユーザー設定から取得する。現在はデフォルト位置を検索。
+// 優先順位: config.json → ~/.beatoraja/ → ~/beatoraja/
 func songdataDBPath() string {
+	cfg := loadConfig()
+	if cfg.SongdataDBPath != "" {
+		if _, err := os.Stat(cfg.SongdataDBPath); err == nil {
+			return cfg.SongdataDBPath
+		}
+		fmt.Fprintf(os.Stderr, "config.json の songdataDBPath が見つかりません: %s\n", cfg.SongdataDBPath)
+	}
+
 	home, _ := os.UserHomeDir()
 	candidates := []string{
 		filepath.Join(home, ".beatoraja", "songdata.db"),
