@@ -10,34 +10,46 @@
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { writable } from 'svelte/store'
-  import { generateDummySongs, type Song } from './dummy'
+  import { onMount, createEventDispatcher } from 'svelte'
+  import { ListSongs } from '../wailsjs/go/app/SongHandler'
+  import type { dto } from '../wailsjs/go/models'
+
+  const dispatch = createEventDispatcher<{ select: string }>()
 
   const ROW_HEIGHT = 32
-  const SONG_COUNT = 5000
+  const PAGE_SIZE = 5000
 
-  const data = generateDummySongs(SONG_COUNT)
+  let data: dto.SongRowDTO[] = []
+  let totalCount = 0
+  let loading = true
 
-  const columns: ColumnDef<Song>[] = [
-    { accessorKey: 'title', header: 'Title', size: 280 },
-    { accessorKey: 'artist', header: 'Artist', size: 180 },
+  const columns: ColumnDef<dto.SongRowDTO>[] = [
+    { accessorKey: 'title', header: 'Title', size: 300 },
+    { accessorKey: 'artist', header: 'Artist', size: 200 },
     { accessorKey: 'genre', header: 'Genre', size: 140 },
-    { accessorKey: 'bpm', header: 'BPM', size: 70 },
-    { accessorKey: 'playLevel', header: 'Lv', size: 50 },
     {
-      accessorKey: 'difficulty',
-      header: 'Diff',
-      size: 80,
-      cell: (info) => {
-        const labels = ['', 'BEGINNER', 'NORMAL', 'HYPER', 'ANOTHER', 'INSANE']
-        return labels[info.getValue() as number] ?? ''
+      id: 'bpm',
+      header: 'BPM',
+      size: 100,
+      accessorFn: (row) => {
+        if (row.minBpm === row.maxBpm) return String(Math.round(row.minBpm))
+        return `${Math.round(row.minBpm)}-${Math.round(row.maxBpm)}`
       },
     },
-    { accessorKey: 'chartCount', header: 'Charts', size: 70 },
+    { accessorKey: 'eventName', header: 'Event', size: 140 },
+    { accessorKey: 'releaseYear', header: 'Year', size: 60 },
+    {
+      id: 'ir',
+      header: 'IR',
+      size: 40,
+      accessorFn: (row) => row.hasIrMeta ? '●' : '',
+    },
+    { accessorKey: 'chartCount', header: 'Charts', size: 60 },
   ]
 
   let sorting: SortingState = []
 
-  const options = writable<TableOptions<Song>>({
+  const options = writable<TableOptions<dto.SongRowDTO>>({
     data,
     columns,
     state: { sorting },
@@ -68,11 +80,29 @@
 
   $: virtualItems = $virtualizer.getVirtualItems()
   $: totalSize = $virtualizer.getTotalSize()
+
+  onMount(async () => {
+    try {
+      const result = await ListSongs(1, PAGE_SIZE, 'title', false, '')
+      data = result.songs || []
+      totalCount = result.totalCount
+    } catch (e) {
+      console.error('Failed to load songs:', e)
+      data = []
+    } finally {
+      loading = false
+    }
+    options.update((o) => ({ ...o, data }))
+  })
 </script>
 
 <div class="h-full flex flex-col bg-base-100 rounded-lg border border-base-300">
   <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between">
-    <span class="text-sm font-semibold">{rows.length.toLocaleString()} songs</span>
+    {#if loading}
+      <span class="text-sm font-semibold">Loading...</span>
+    {:else}
+      <span class="text-sm font-semibold">{totalCount.toLocaleString()} songs</span>
+    {/if}
   </div>
 
   <!-- ヘッダー（スクロールしない） -->
@@ -81,9 +111,12 @@
       <div class="flex">
         {#each headerGroup.headers as header}
           <div
+            role="columnheader"
+            tabindex="0"
             class="px-2 py-1.5 text-xs font-bold uppercase cursor-pointer select-none hover:bg-base-300 transition-colors truncate"
             style="width: {header.getSize()}px; min-width: {header.getSize()}px"
             on:click={header.column.getToggleSortingHandler()}
+            on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') header.column.getToggleSortingHandler()?.(e) }}
           >
             <span class="flex items-center gap-1">
               {#if !header.isPlaceholder}
@@ -108,25 +141,35 @@
     bind:this={scrollElement}
     class="flex-1 overflow-auto"
   >
-    <div style="height: {totalSize}px; position: relative;">
-      {#each virtualItems as virtualRow (virtualRow.index)}
-        {@const row = rows[virtualRow.index]}
-        <div
-          class="flex absolute w-full hover:bg-base-200 border-b border-base-300/50 items-center px-2"
-          style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
-        >
-          {#each row.getVisibleCells() as cell}
-            <div
-              class="px-2 text-sm truncate"
-              style="width: {cell.column.getSize()}px; min-width: {cell.column.getSize()}px"
-            >
-              <svelte:component
-                this={flexRender(cell.column.columnDef.cell, cell.getContext())}
-              />
-            </div>
-          {/each}
-        </div>
-      {/each}
-    </div>
+    {#if loading}
+      <div class="flex items-center justify-center h-32">
+        <span class="loading loading-spinner loading-md"></span>
+      </div>
+    {:else}
+      <div style="height: {totalSize}px; position: relative;">
+        {#each virtualItems as virtualRow (virtualRow.index)}
+          {@const row = rows[virtualRow.index]}
+          <div
+            role="row"
+            tabindex="0"
+            class="flex absolute w-full hover:bg-base-200 border-b border-base-300/50 items-center px-2 cursor-pointer"
+            style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
+            on:click={() => dispatch('select', row.original.folderHash)}
+            on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.original.folderHash) }}
+          >
+            {#each row.getVisibleCells() as cell}
+              <div
+                class="px-2 text-sm truncate"
+                style="width: {cell.column.getSize()}px; min-width: {cell.column.getSize()}px"
+              >
+                <svelte:component
+                  this={flexRender(cell.column.columnDef.cell, cell.getContext())}
+                />
+              </div>
+            {/each}
+          </div>
+        {/each}
+      </div>
+    {/if}
   </div>
 </div>
