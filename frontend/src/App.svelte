@@ -1,5 +1,6 @@
 <script lang="ts">
   import SongTable from './SongTable.svelte'
+  import SongDetail from './SongDetail.svelte'
 
   let selectedFolderHash: string | null = null
 
@@ -20,11 +21,8 @@
       <SongTable on:select={handleSelect} />
     </div>
     {#if selectedFolderHash}
-      <div class="w-96 overflow-auto">
-        <!-- SongDetail は Task 11 で追加予定 -->
-        <div class="p-4 bg-base-200 rounded-lg">
-          <p class="text-sm text-base-content/50">Selected: {selectedFolderHash}</p>
-        </div>
+      <div class="w-96 overflow-y-auto">
+        <SongDetail folderHash={selectedFolderHash} />
       </div>
     {/if}
   </div>
