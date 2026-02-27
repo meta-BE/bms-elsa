@@ -3,9 +3,39 @@
   import SongDetail from './SongDetail.svelte'
 
   let selectedFolderHash: string | null = null
+  let containerEl: HTMLDivElement
+  let dragging = false
+  let splitRatio = 0.6
 
   function handleSelect(e: CustomEvent<string>) {
     selectedFolderHash = e.detail
+  }
+
+  function handleDeselect() {
+    selectedFolderHash = null
+  }
+
+  function handleClose() {
+    selectedFolderHash = null
+  }
+
+  function onDragStart(e: MouseEvent) {
+    e.preventDefault()
+    dragging = true
+    window.addEventListener('mousemove', onDragMove)
+    window.addEventListener('mouseup', onDragEnd)
+  }
+
+  function onDragMove(e: MouseEvent) {
+    if (!dragging || !containerEl) return
+    const rect = containerEl.getBoundingClientRect()
+    splitRatio = Math.max(0.2, Math.min(0.8, (e.clientY - rect.top) / rect.height))
+  }
+
+  function onDragEnd() {
+    dragging = false
+    window.removeEventListener('mousemove', onDragMove)
+    window.removeEventListener('mouseup', onDragEnd)
   }
 </script>
 
@@ -16,13 +46,18 @@
     </div>
   </div>
 
-  <div class="flex-1 overflow-hidden p-4 flex gap-4">
-    <div class="flex-1 overflow-hidden">
-      <SongTable on:select={handleSelect} />
+  <div bind:this={containerEl} class="flex-1 overflow-hidden p-4 flex flex-col">
+    <div class="overflow-hidden" style="flex: {selectedFolderHash ? splitRatio : 1}">
+      <SongTable on:select={handleSelect} on:deselect={handleDeselect} />
     </div>
     {#if selectedFolderHash}
-      <div class="w-96 overflow-y-auto">
-        <SongDetail folderHash={selectedFolderHash} />
+      <div
+        class="h-1 shrink-0 cursor-row-resize bg-base-300 hover:bg-primary/30 transition-colors my-1 rounded"
+        on:mousedown={onDragStart}
+        role="separator"
+      ></div>
+      <div class="overflow-y-auto" style="flex: {1 - splitRatio}">
+        <SongDetail folderHash={selectedFolderHash} on:close={handleClose} />
       </div>
     {/if}
   </div>
