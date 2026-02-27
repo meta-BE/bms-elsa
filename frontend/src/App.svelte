@@ -51,10 +51,12 @@
       <SongTable on:select={handleSelect} on:deselect={handleDeselect} />
     </div>
     {#if selectedFolderHash}
+      <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
       <div
         class="h-1 shrink-0 cursor-row-resize bg-base-300 hover:bg-primary/30 transition-colors my-1 rounded"
         on:mousedown={onDragStart}
         role="separator"
+        tabindex="0"
       ></div>
       <div class="overflow-y-auto" style="flex: {1 - splitRatio}">
         <SongDetail folderHash={selectedFolderHash} on:close={handleClose} />

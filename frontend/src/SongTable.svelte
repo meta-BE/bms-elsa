@@ -140,7 +140,10 @@
   <div
     bind:this={scrollElement}
     class="flex-1 overflow-auto"
+    role="grid"
+    tabindex="-1"
     on:click={() => dispatch('deselect')}
+    on:keydown={(e) => { if (e.key === 'Escape') dispatch('deselect') }}
   >
     {#if loading}
       <div class="flex items-center justify-center h-32">
