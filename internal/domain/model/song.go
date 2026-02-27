@@ -1,0 +1,55 @@
+package model
+
+import "time"
+
+// Song は楽曲（フォルダ単位のグルーピング）
+type Song struct {
+	FolderHash string
+	Title      string // 代表譜面から取得
+	Artist     string
+	Genre      string
+	MinBPM     float64
+	MaxBPM     float64
+	Charts     []Chart
+	// elsa.db メタデータ
+	ReleaseYear *int
+	EventName   *string
+}
+
+// Chart は譜面（個々のBMSファイル）
+type Chart struct {
+	MD5        string
+	SHA256     string
+	Title      string
+	Artist     string
+	SubArtist  string
+	Genre      string
+	Mode       int
+	Difficulty int
+	Level      int
+	MinBPM     float64
+	MaxBPM     float64
+	Path       string
+	// elsa.db メタデータ
+	IRMeta *ChartIRMeta
+}
+
+// SongMeta は楽曲レベルの追加メタデータ
+type SongMeta struct {
+	FolderHash  string
+	ReleaseYear *int
+	EventName   *string
+}
+
+// ChartIRMeta はLR2IR + 動作URLメタデータ
+type ChartIRMeta struct {
+	MD5            string
+	SHA256         string
+	Tags           []string
+	LR2IRBodyURL   string
+	LR2IRDiffURL   string
+	LR2IRNotes     string
+	WorkingBodyURL string
+	WorkingDiffURL string
+	FetchedAt      *time.Time
+}
