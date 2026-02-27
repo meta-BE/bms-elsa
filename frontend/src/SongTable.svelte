@@ -14,7 +14,7 @@
   import { ListSongs } from '../wailsjs/go/app/SongHandler'
   import type { dto } from '../wailsjs/go/models'
 
-  const dispatch = createEventDispatcher<{ select: string }>()
+  const dispatch = createEventDispatcher<{ select: string; deselect: void }>()
 
   const ROW_HEIGHT = 32
   const PAGE_SIZE = 5000
@@ -140,6 +140,7 @@
   <div
     bind:this={scrollElement}
     class="flex-1 overflow-auto"
+    on:click={() => dispatch('deselect')}
   >
     {#if loading}
       <div class="flex items-center justify-center h-32">
@@ -154,8 +155,8 @@
             tabindex="0"
             class="flex absolute w-full hover:bg-base-200 border-b border-base-300/50 items-center px-2 cursor-pointer"
             style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
-            on:click={() => dispatch('select', row.original.folderHash)}
-            on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.original.folderHash) }}
+            on:click|stopPropagation={() => dispatch('select', row.original.folderHash)}
+            on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.original.folderHash) }}
           >
             {#each row.getVisibleCells() as cell}
               <div
