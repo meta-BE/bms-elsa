@@ -1,7 +1,10 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte'
   import { GetSongDetail, UpdateSongMeta } from '../wailsjs/go/app/SongHandler'
   import { LookupByMD5, UpdateChartMeta } from '../wailsjs/go/app/IRHandler'
   import type { dto } from '../wailsjs/go/models'
+
+  const dispatch = createEventDispatcher<{ close: void }>()
 
   export let folderHash: string
 
@@ -78,9 +81,17 @@
   <div class="flex flex-col gap-3">
     <!-- 楽曲ヘッダー -->
     <div class="bg-base-200 rounded-lg p-3">
-      <h2 class="text-lg font-bold">{detail.title}</h2>
-      <p class="text-sm text-base-content/70">{detail.artist}</p>
-      <p class="text-xs text-base-content/50">{detail.genre}</p>
+      <div class="flex justify-between items-start">
+        <div class="flex-1 min-w-0">
+          <h2 class="text-lg font-bold truncate">{detail.title}</h2>
+          <p class="text-sm text-base-content/70">{detail.artist}</p>
+          <p class="text-xs text-base-content/50">{detail.genre}</p>
+        </div>
+        <button
+          class="btn btn-ghost btn-xs shrink-0 ml-2"
+          on:click={() => dispatch('close')}
+        >✕</button>
+      </div>
       <div class="divider my-1"></div>
       <div class="flex gap-2 items-center">
         <label class="text-xs" for="event-input">Event:</label>
