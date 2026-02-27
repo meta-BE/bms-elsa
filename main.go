@@ -14,6 +14,11 @@ var assets embed.FS
 func main() {
 	app := NewApp()
 
+	if err := app.Init(); err != nil {
+		println("Init error:", err.Error())
+		return
+	}
+
 	err := wails.Run(&options.App{
 		Title:  "BMS ELSA",
 		Width:  1280,
@@ -23,7 +28,8 @@ func main() {
 		},
 		OnStartup: app.startup,
 		Bind: []interface{}{
-			app,
+			app.SongHandler,
+			app.IRHandler,
 		},
 	})
 
