@@ -96,7 +96,11 @@
   })
 </script>
 
-<div class="h-full flex flex-col bg-base-100 rounded-lg border border-base-300">
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+<div
+  class="h-full flex flex-col bg-base-100 rounded-lg border border-base-300"
+  on:click={() => dispatch('deselect')}
+>
   <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between">
     {#if loading}
       <span class="text-sm font-semibold">Loading...</span>
@@ -115,7 +119,7 @@
             tabindex="0"
             class="px-2 py-1.5 text-xs font-bold uppercase cursor-pointer select-none hover:bg-base-300 transition-colors truncate"
             style="width: {header.getSize()}px; min-width: {header.getSize()}px"
-            on:click={header.column.getToggleSortingHandler()}
+            on:click|stopPropagation={header.column.getToggleSortingHandler()}
             on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') header.column.getToggleSortingHandler()?.(e) }}
           >
             <span class="flex items-center gap-1">
@@ -142,7 +146,6 @@
     class="flex-1 overflow-auto"
     role="grid"
     tabindex="-1"
-    on:click={() => dispatch('deselect')}
     on:keydown={(e) => { if (e.key === 'Escape') dispatch('deselect') }}
   >
     {#if loading}

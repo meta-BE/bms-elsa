@@ -46,7 +46,8 @@
     </div>
   </div>
 
-  <div bind:this={containerEl} class="flex-1 overflow-hidden p-4 flex flex-col">
+  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <div bind:this={containerEl} class="flex-1 overflow-hidden p-4 flex flex-col" on:click={handleDeselect}>
     <div class="overflow-hidden" style="flex: {selectedFolderHash ? splitRatio : 1}">
       <SongTable on:select={handleSelect} on:deselect={handleDeselect} />
     </div>
@@ -58,7 +59,8 @@
         role="separator"
         tabindex="0"
       ></div>
-      <div class="overflow-y-auto" style="flex: {1 - splitRatio}">
+      <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+      <div class="overflow-y-auto" style="flex: {1 - splitRatio}" on:click|stopPropagation>
         <SongDetail folderHash={selectedFolderHash} on:close={handleClose} />
       </div>
     {/if}
