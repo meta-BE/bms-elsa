@@ -77,7 +77,7 @@ func (r *ElsaRepository) GetChartMeta(ctx context.Context, md5, sha256 string) (
 		m.Tags = strings.Split(tagsStr.String, ",")
 	}
 	if fetchedAtStr.Valid && fetchedAtStr.String != "" {
-		t, err := time.Parse(timeLayout, fetchedAtStr.String)
+		t, err := time.ParseInLocation(timeLayout, fetchedAtStr.String, time.UTC)
 		if err != nil {
 			return nil, err
 		}

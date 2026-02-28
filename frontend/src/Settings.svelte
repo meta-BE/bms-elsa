@@ -99,7 +99,7 @@
 <dialog bind:this={dialog} class="modal"
   on:mousedown|self={() => mouseDownOnBackdrop = true}
   on:click|self={() => { if (mouseDownOnBackdrop) dialog.close(); mouseDownOnBackdrop = false }}>
-  <div class="modal-box">
+  <div class="modal-box max-w-2xl">
     <h3 class="text-lg font-bold mb-4">設定</h3>
 
     <div class="form-control w-full">

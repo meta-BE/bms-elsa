@@ -204,7 +204,7 @@ func (a *App) ListDifficultyTables() ([]DifficultyTableDTO, error) {
 		count, _ := a.dtRepo.CountEntries(a.ctx, t.ID)
 		var fetchedAt *string
 		if t.FetchedAt != nil {
-			s := t.FetchedAt.Format("2006-01-02 15:04")
+			s := t.FetchedAt.Local().Format("2006-01-02 15:04")
 			fetchedAt = &s
 		}
 		result[i] = DifficultyTableDTO{

@@ -57,7 +57,7 @@ func (r *DifficultyTableRepository) ListTables(ctx context.Context) ([]Difficult
 			return nil, err
 		}
 		if fetchedAt.Valid {
-			parsed, _ := time.Parse(timeLayout, fetchedAt.String)
+			parsed, _ := time.ParseInLocation(timeLayout, fetchedAt.String, time.UTC)
 			t.FetchedAt = &parsed
 		}
 		tables = append(tables, t)
