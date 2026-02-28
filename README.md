@@ -85,7 +85,10 @@ bms-elsa/
 │       └── event/              # Wailsイベント実装
 ├── frontend/                   # Svelte + TypeScript
 ├── build/                      # Wailsビルド設定
-└── docs/                       # 設計ドキュメント
+├── testdata/                   # テスト用データ（songdata.db等）
+└── docs/                       # ドキュメント
+    ├── TODO.md                 # 開発タスク一覧
+    └── plans/                  # 設計・実装計画ドキュメント
 ```
 
 ## 注意事項
