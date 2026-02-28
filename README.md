@@ -33,16 +33,12 @@ go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
 ## セットアップ
 
-`config.json` を作成して `songdata.db` のパスを指定する:
+実行ファイルと同じディレクトリに `config.json` を作成して `songdata.db` のパスを指定する:
 
-```bash
-# macOS
-mkdir -p ~/Library/Application\ Support/bms-elsa
-cat > ~/Library/Application\ Support/bms-elsa/config.json << 'EOF'
+```json
 {
   "songdataDBPath": "/path/to/beatoraja/songdata.db"
 }
-EOF
 ```
 
 `config.json` を省略した場合は `~/.beatoraja/songdata.db` → `~/beatoraja/songdata.db` の順で自動検出する。
