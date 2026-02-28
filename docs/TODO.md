@@ -4,7 +4,7 @@
 - [x] 初回表示時間の改善（folderインデックス追加で2.4秒→0.02秒に解決）
 
 ## 優先度中
-- [ ] config.json / elsa.db のパス戦略（Windows/Mac非依存、バイナリ同梱 or 実行ファイル隣接）
+- [x] config.json / elsa.db のパス戦略（Windows/Mac非依存、バイナリ同梱 or 実行ファイル隣接）
 
 ## 優先度低
 - [ ] BPM検知の改善（songdata.dbのminbpm/maxbpmにギミックBPMが含まれるケースへの対応）
