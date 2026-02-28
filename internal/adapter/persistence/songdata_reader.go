@@ -75,16 +75,30 @@ func (r *SongdataReader) ListSongs(ctx context.Context, opts model.ListOptions) 
 	orderClause := fmt.Sprintf("%s %s", col, dir)
 
 	query := fmt.Sprintf(`
-		WITH song_groups AS (
+		WITH
+		bpm_mode AS (
+			SELECT folder, minbpm AS min_bpm, maxbpm AS max_bpm
+			FROM (
+				SELECT folder, minbpm, maxbpm,
+					ROW_NUMBER() OVER (
+						PARTITION BY folder ORDER BY COUNT(*) DESC, minbpm
+					) AS rn
+				FROM songdata.song
+				GROUP BY folder, minbpm, maxbpm
+			)
+			WHERE rn = 1
+		),
+		song_groups AS (
 			SELECT
 				s.folder,
 				COALESCE(MIN(CASE WHEN s.title != '' THEN s.title END), '') AS title,
 				COALESCE(MIN(CASE WHEN s.artist != '' THEN s.artist END), '') AS artist,
 				COALESCE(MIN(CASE WHEN s.genre != '' THEN s.genre END), '') AS genre,
-				MIN(s.minbpm) AS min_bpm,
-				MAX(s.maxbpm) AS max_bpm,
+				MIN(bm.min_bpm) AS min_bpm,
+				MIN(bm.max_bpm) AS max_bpm,
 				COUNT(*) AS chart_count
 			FROM songdata.song s
+			JOIN bpm_mode bm ON bm.folder = s.folder
 			GROUP BY s.folder
 		)
 		SELECT
