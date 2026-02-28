@@ -55,6 +55,20 @@ type ChartDTO struct {
 	DifficultyLabels []DifficultyLabelDTO `json:"difficultyLabels,omitempty"`
 }
 
+// ChartListItemDTO は譜面一覧用の軽量DTO
+type ChartListItemDTO struct {
+	MD5         string  `json:"md5"`
+	Title       string  `json:"title"`
+	Artist      string  `json:"artist"`
+	Genre       string  `json:"genre"`
+	MinBPM      float64 `json:"minBpm"`
+	MaxBPM      float64 `json:"maxBpm"`
+	Difficulty  int     `json:"difficulty"`
+	EventName   string  `json:"eventName,omitempty"`
+	ReleaseYear int     `json:"releaseYear,omitempty"`
+	HasIRMeta   bool    `json:"hasIrMeta"`
+}
+
 type DifficultyLabelDTO struct {
 	TableName string `json:"tableName"`
 	Symbol    string `json:"symbol"`
