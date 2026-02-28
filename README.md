@@ -88,6 +88,12 @@ bms-elsa/
 └── docs/                       # 設計ドキュメント
 ```
 
+## 注意事項
+
+### songdata.db への書き込み
+
+本アプリは起動時に beatoraja の `songdata.db` に対してインデックス（`idx_song_folder`）を作成する。これは楽曲一覧の表示速度を実用的な水準にするために必要な処理であり、テーブルのデータ自体には一切変更を加えない。インデックスは `CREATE INDEX IF NOT EXISTS` で冪等に作成されるため、既に存在する場合は何も行わない。beatoraja の動作に影響はないが、`songdata.db` のファイルサイズがインデックス分だけ増加する。
+
 ## 設計ドキュメント
 
 - [アーキテクチャ設計](docs/architecture.md)
