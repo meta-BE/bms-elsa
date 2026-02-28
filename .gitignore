@@ -5,3 +5,4 @@ frontend/wailsjs
 frontend/package.json.md5
 *.db
 .DS_Store
+.worktrees/
