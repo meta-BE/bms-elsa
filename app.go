@@ -13,6 +13,7 @@ import (
 	"github.com/meta-BE/bms-elsa/internal/adapter/gateway"
 	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	internalapp "github.com/meta-BE/bms-elsa/internal/app"
+	"github.com/meta-BE/bms-elsa/internal/app/dto"
 	"github.com/meta-BE/bms-elsa/internal/usecase"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -24,6 +25,7 @@ type App struct {
 	IRHandler   *internalapp.IRHandler
 	dtRepo      *persistence.DifficultyTableRepository
 	dtFetcher   *gateway.DifficultyTableFetcher
+	songReader  *persistence.SongdataReader
 }
 
 func NewApp() *App {
@@ -60,6 +62,7 @@ func (a *App) Init() error {
 	a.dtRepo = persistence.NewDifficultyTableRepository(db)
 	a.dtFetcher = gateway.NewDifficultyTableFetcher()
 	songdataReader := persistence.NewSongdataReader(db, elsaRepo, a.dtRepo)
+	a.songReader = songdataReader
 	irClient := gateway.NewLR2IRClient()
 
 	listSongs := usecase.NewListSongsUseCase(songdataReader)
@@ -192,6 +195,66 @@ type RefreshResult struct {
 	Success    bool   `json:"success"`
 	EntryCount int    `json:"entryCount"`
 	Error      string `json:"error,omitempty"`
+}
+
+type DifficultyTableEntryDTO struct {
+	MD5            string `json:"md5"`
+	Level          string `json:"level"`
+	Title          string `json:"title"`
+	Artist         string `json:"artist"`
+	URL            string `json:"url"`
+	URLDiff        string `json:"urlDiff"`
+	Status         string `json:"status"`
+	InstalledCount int    `json:"installedCount"`
+}
+
+func (a *App) ListDifficultyTableEntries(tableID int) ([]DifficultyTableEntryDTO, error) {
+	entries, err := a.dtRepo.ListEntries(a.ctx, tableID)
+	if err != nil {
+		return nil, err
+	}
+
+	md5s := make([]string, len(entries))
+	for i, e := range entries {
+		md5s[i] = e.MD5
+	}
+
+	counts, err := a.songReader.CountChartsByMD5s(a.ctx, md5s)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]DifficultyTableEntryDTO, len(entries))
+	for i, e := range entries {
+		count := 0
+		if counts != nil {
+			count = counts[e.MD5]
+		}
+		status := "not_installed"
+		if count == 1 {
+			status = "installed"
+		} else if count > 1 {
+			status = "duplicate"
+		}
+		result[i] = DifficultyTableEntryDTO{
+			MD5: e.MD5, Level: e.Level, Title: e.Title, Artist: e.Artist,
+			URL: e.URL, URLDiff: e.URLDiff,
+			Status: status, InstalledCount: count,
+		}
+	}
+	return result, nil
+}
+
+func (a *App) GetChartDetailByMD5(md5 string) (*dto.ChartDTO, error) {
+	chart, err := a.songReader.GetChartByMD5(a.ctx, md5)
+	if err != nil {
+		return nil, err
+	}
+	if chart == nil {
+		return nil, nil
+	}
+	result := dto.ChartToDTO(*chart)
+	return &result, nil
 }
 
 func (a *App) ListDifficultyTables() ([]DifficultyTableDTO, error) {
