@@ -2,24 +2,50 @@
 
 **Efficient Library & Storage Agent** — BMSファイルの整理・導入・検証を支援するデスクトップアプリケーション。
 
+## 機能
+
+- beatoraja の `songdata.db` を読み込み、楽曲一覧を表示
+- 仮想スクロールによる大量データの高速表示（2,600曲以上対応）
+- カラムヘッダークリックによるソート
+- 楽曲選択で詳細パネルを表示（上下分割レイアウト、ドラッグリサイズ対応）
+- LR2IR からのメタデータ取得
+- Event名・リリース年・動作URLの編集・保存
+
 ## 技術スタック
 
 | レイヤー | 技術 |
 |---|---|
-| バックエンド | Go + Wails v2 |
+| バックエンド | Go 1.24 + Wails v2 |
 | フロントエンド | Svelte 4 + TypeScript + Vite 5 |
+| UI | TailwindCSS + DaisyUI 5 |
 | 永続化 | SQLite（`modernc.org/sqlite` — 純Go実装、CGO不要） |
 | テーブル表示 | TanStack Table + TanStack Virtual |
 
 ## 前提条件
 
-- Go 1.23+
+- Go 1.24+
 - Node.js 16+
 - [Wails CLI v2](https://wails.io/docs/gettingstarted/installation)
 
 ```bash
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 ```
+
+## セットアップ
+
+`config.json` を作成して `songdata.db` のパスを指定する:
+
+```bash
+# macOS
+mkdir -p ~/Library/Application\ Support/bms-elsa
+cat > ~/Library/Application\ Support/bms-elsa/config.json << 'EOF'
+{
+  "songdataDBPath": "/path/to/beatoraja/songdata.db"
+}
+EOF
+```
+
+`config.json` を省略した場合は `~/.beatoraja/songdata.db` → `~/beatoraja/songdata.db` の順で自動検出する。
 
 ## 開発
 
