@@ -31,6 +31,28 @@ func RunMigrations(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_song_meta_folder_hash ON song_meta(folder_hash)`,
 		`CREATE INDEX IF NOT EXISTS idx_chart_meta_md5 ON chart_meta(md5)`,
 		`CREATE INDEX IF NOT EXISTS idx_chart_meta_sha256 ON chart_meta(sha256)`,
+		`CREATE TABLE IF NOT EXISTS difficulty_table (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			url         TEXT NOT NULL UNIQUE,
+			header_url  TEXT NOT NULL,
+			data_url    TEXT NOT NULL,
+			name        TEXT NOT NULL,
+			symbol      TEXT NOT NULL,
+			fetched_at  TEXT,
+			created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
+		)`,
+		`CREATE TABLE IF NOT EXISTS difficulty_table_entry (
+			table_id    INTEGER NOT NULL REFERENCES difficulty_table(id) ON DELETE CASCADE,
+			md5         TEXT NOT NULL,
+			level       TEXT NOT NULL,
+			title       TEXT,
+			artist      TEXT,
+			url         TEXT,
+			url_diff    TEXT,
+			PRIMARY KEY (table_id, md5)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_dte_md5 ON difficulty_table_entry(md5)`,
 	}
 
 	for _, stmt := range statements {
