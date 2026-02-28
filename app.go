@@ -14,6 +14,7 @@ import (
 	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	internalapp "github.com/meta-BE/bms-elsa/internal/app"
 	"github.com/meta-BE/bms-elsa/internal/usecase"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type App struct {
@@ -79,6 +80,34 @@ func (a *App) shutdown(ctx context.Context) {
 	if a.db != nil {
 		a.db.Close()
 	}
+}
+
+// GetConfig は現在のconfig.jsonを読んで返す
+func (a *App) GetConfig() Config {
+	return loadConfig()
+}
+
+// SaveConfig はconfig.jsonに設定を書き込む
+func (a *App) SaveConfig(cfg Config) error {
+	path := filepath.Join(appDir(), "config.json")
+	data, err := json.MarshalIndent(cfg, "", "  ")
+	if err != nil {
+		return fmt.Errorf("config marshal: %w", err)
+	}
+	if err := os.WriteFile(path, data, 0644); err != nil {
+		return fmt.Errorf("config write: %w", err)
+	}
+	return nil
+}
+
+// SelectFile はOSネイティブのファイル選択ダイアログを開き、選択されたパスを返す
+func (a *App) SelectFile() (string, error) {
+	return wailsRuntime.OpenFileDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "songdata.db を選択",
+		Filters: []wailsRuntime.FileFilter{
+			{DisplayName: "SQLite Database", Pattern: "*.db"},
+		},
+	})
 }
 
 // Config はアプリケーション設定
