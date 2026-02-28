@@ -1,15 +1,5 @@
 <script lang="ts">
-  import {
-    createSvelteTable,
-    flexRender,
-    getCoreRowModel,
-    getSortedRowModel,
-    type ColumnDef,
-    type SortingState,
-    type TableOptions,
-  } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
-  import { writable } from 'svelte/store'
   import { onMount, createEventDispatcher } from 'svelte'
   import { ListSongs } from '../wailsjs/go/app/SongHandler'
   import type { dto } from '../wailsjs/go/models'
@@ -17,62 +7,97 @@
   const dispatch = createEventDispatcher<{ select: string; deselect: void }>()
 
   const ROW_HEIGHT = 32
-  const PAGE_SIZE = 5000
+  const PAGE_SIZE = 100
 
-  let data: dto.SongRowDTO[] = []
-  let totalCount = 0
-  let loading = true
+  // カラム定義（TanStack Table の ColumnDef を簡素な型に置換）
+  type Column = {
+    key: string
+    header: string
+    size: number
+    accessor: (row: dto.SongRowDTO) => string
+  }
 
-  const columns: ColumnDef<dto.SongRowDTO>[] = [
-    { accessorKey: 'title', header: 'Title', size: 300 },
-    { accessorKey: 'artist', header: 'Artist', size: 200 },
-    { accessorKey: 'genre', header: 'Genre', size: 140 },
+  const columns: Column[] = [
+    { key: 'title', header: 'Title', size: 300, accessor: (r) => r.title },
+    { key: 'artist', header: 'Artist', size: 200, accessor: (r) => r.artist },
+    { key: 'genre', header: 'Genre', size: 140, accessor: (r) => r.genre },
     {
-      id: 'bpm',
+      key: 'bpm',
       header: 'BPM',
       size: 100,
-      accessorFn: (row) => {
-        if (row.minBpm === row.maxBpm) return String(Math.round(row.minBpm))
-        return `${Math.round(row.minBpm)}-${Math.round(row.maxBpm)}`
+      accessor: (r) => {
+        if (r.minBpm === r.maxBpm) return String(Math.round(r.minBpm))
+        return `${Math.round(r.minBpm)}-${Math.round(r.maxBpm)}`
       },
     },
-    { accessorKey: 'eventName', header: 'Event', size: 140 },
-    { accessorKey: 'releaseYear', header: 'Year', size: 60 },
+    { key: 'eventName', header: 'Event', size: 140, accessor: (r) => r.eventName ?? '' },
     {
-      id: 'ir',
-      header: 'IR',
-      size: 40,
-      accessorFn: (row) => row.hasIrMeta ? '●' : '',
+      key: 'releaseYear',
+      header: 'Year',
+      size: 60,
+      accessor: (r) => (r.releaseYear != null ? String(r.releaseYear) : ''),
     },
-    { accessorKey: 'chartCount', header: 'Charts', size: 60 },
+    { key: 'ir', header: 'IR', size: 40, accessor: (r) => (r.hasIrMeta ? '●' : '') },
+    { key: 'chartCount', header: 'Charts', size: 60, accessor: (r) => String(r.chartCount) },
   ]
 
-  let sorting: SortingState = []
-
-  const options = writable<TableOptions<dto.SongRowDTO>>({
-    data,
-    columns,
-    state: { sorting },
-    onSortingChange: (updater) => {
-      if (typeof updater === 'function') {
-        sorting = updater(sorting)
-      } else {
-        sorting = updater
-      }
-      options.update((o) => ({ ...o, state: { ...o.state, sorting } }))
-    },
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-  })
-
-  const table = createSvelteTable(options)
-
+  // 状態
+  let totalCount = 0
+  let loading = true
+  let pageCache = new Map<number, dto.SongRowDTO[]>()
+  let loadingPages = new Set<number>()
+  let generation = 0 // ソート切替時にインクリメントし、古いレスポンスを破棄する
+  let sortBy = 'title'
+  let sortDesc = false
   let scrollElement: HTMLDivElement
 
-  $: rows = $table.getRowModel().rows
+  // ページ取得（1-based page number）
+  async function fetchPage(page: number) {
+    const gen = generation
+    if (pageCache.has(page) || loadingPages.has(page)) return
+    loadingPages.add(page)
+    loadingPages = loadingPages
+    try {
+      const result = await ListSongs(page, PAGE_SIZE, sortBy, sortDesc, '')
+      if (gen !== generation) return // ソート変更後の古いレスポンスは破棄
+      totalCount = result.totalCount
+      pageCache.set(page, result.songs || [])
+      pageCache = pageCache // Svelte リアクティビティのトリガー
+    } catch (e) {
+      console.error('Failed to load page:', page, e)
+    } finally {
+      loadingPages.delete(page)
+      loadingPages = loadingPages
+    }
+  }
 
+  // 行データアクセス（0-based index → 1-based page + offset）
+  function getRow(index: number): dto.SongRowDTO | null {
+    const page = Math.floor(index / PAGE_SIZE) + 1
+    const offset = index % PAGE_SIZE
+    return pageCache.get(page)?.[offset] ?? null
+  }
+
+  // ソート切替
+  async function toggleSort(key: string) {
+    if (sortBy === key) {
+      sortDesc = !sortDesc
+    } else {
+      sortBy = key
+      sortDesc = false
+    }
+    generation++
+    pageCache.clear()
+    pageCache = pageCache
+    loadingPages.clear()
+    loadingPages = loadingPages
+    if (scrollElement) scrollElement.scrollTop = 0
+    await fetchPage(1)
+  }
+
+  // TanStack Virtual
   $: virtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
-    count: rows.length,
+    count: totalCount,
     getScrollElement: () => scrollElement,
     estimateSize: () => ROW_HEIGHT,
     overscan: 20,
@@ -81,18 +106,20 @@
   $: virtualItems = $virtualizer.getVirtualItems()
   $: totalSize = $virtualizer.getTotalSize()
 
-  onMount(async () => {
-    try {
-      const result = await ListSongs(1, PAGE_SIZE, 'title', false, '')
-      data = result.songs || []
-      totalCount = result.totalCount
-    } catch (e) {
-      console.error('Failed to load songs:', e)
-      data = []
-    } finally {
-      loading = false
+  // スクロール連動ページ取得: 表示中の virtualItems からページ番号を算出
+  $: {
+    const pages = new Set<number>()
+    for (const item of virtualItems) {
+      pages.add(Math.floor(item.index / PAGE_SIZE) + 1)
     }
-    options.update((o) => ({ ...o, data }))
+    for (const page of pages) {
+      fetchPage(page)
+    }
+  }
+
+  onMount(async () => {
+    await fetchPage(1)
+    loading = false
   })
 </script>
 
@@ -109,35 +136,27 @@
     {/if}
   </div>
 
-  <!-- ヘッダー（スクロールしない） -->
+  <!-- ヘッダー -->
   <div class="bg-base-200 border-b border-base-300 px-2">
-    {#each $table.getHeaderGroups() as headerGroup}
-      <div class="flex">
-        {#each headerGroup.headers as header}
-          <div
-            role="columnheader"
-            tabindex="0"
-            class="px-2 py-1.5 text-xs font-bold uppercase cursor-pointer select-none hover:bg-base-300 transition-colors truncate"
-            style="width: {header.getSize()}px; min-width: {header.getSize()}px"
-            on:click|stopPropagation={header.column.getToggleSortingHandler()}
-            on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') header.column.getToggleSortingHandler()?.(e) }}
-          >
-            <span class="flex items-center gap-1">
-              {#if !header.isPlaceholder}
-                <svelte:component
-                  this={flexRender(header.column.columnDef.header, header.getContext())}
-                />
-              {/if}
-              {#if header.column.getIsSorted() === 'asc'}
-                <span>▲</span>
-              {:else if header.column.getIsSorted() === 'desc'}
-                <span>▼</span>
-              {/if}
-            </span>
-          </div>
-        {/each}
-      </div>
-    {/each}
+    <div class="flex">
+      {#each columns as col}
+        <div
+          role="columnheader"
+          tabindex="0"
+          class="px-2 py-1.5 text-xs font-bold uppercase cursor-pointer select-none hover:bg-base-300 transition-colors truncate"
+          style="width: {col.size}px; min-width: {col.size}px"
+          on:click|stopPropagation={() => toggleSort(col.key)}
+          on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleSort(col.key) }}
+        >
+          <span class="flex items-center gap-1">
+            {col.header}
+            {#if sortBy === col.key}
+              <span>{sortDesc ? '▼' : '▲'}</span>
+            {/if}
+          </span>
+        </div>
+      {/each}
+    </div>
   </div>
 
   <!-- 仮想スクロール領域 -->
@@ -155,26 +174,33 @@
     {:else}
       <div style="height: {totalSize}px; position: relative;">
         {#each virtualItems as virtualRow (virtualRow.index)}
-          {@const row = rows[virtualRow.index]}
-          <div
-            role="row"
-            tabindex="0"
-            class="flex absolute w-full hover:bg-base-200 border-b border-base-300/50 items-center px-2 cursor-pointer"
-            style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
-            on:click|stopPropagation={() => dispatch('select', row.original.folderHash)}
-            on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.original.folderHash) }}
-          >
-            {#each row.getVisibleCells() as cell}
-              <div
-                class="px-2 text-sm truncate"
-                style="width: {cell.column.getSize()}px; min-width: {cell.column.getSize()}px"
-              >
-                <svelte:component
-                  this={flexRender(cell.column.columnDef.cell, cell.getContext())}
-                />
-              </div>
-            {/each}
-          </div>
+          {@const row = getRow(virtualRow.index)}
+          {#if row}
+            <div
+              role="row"
+              tabindex="0"
+              class="flex absolute w-full hover:bg-base-200 border-b border-base-300/50 items-center px-2 cursor-pointer"
+              style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
+              on:click|stopPropagation={() => dispatch('select', row.folderHash)}
+              on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.folderHash) }}
+            >
+              {#each columns as col}
+                <div
+                  class="px-2 text-sm truncate"
+                  style="width: {col.size}px; min-width: {col.size}px"
+                >
+                  {col.accessor(row)}
+                </div>
+              {/each}
+            </div>
+          {:else}
+            <div
+              class="flex absolute w-full border-b border-base-300/50 items-center px-2"
+              style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
+            >
+              <div class="h-3 bg-base-300/50 rounded animate-pulse" style="width: 40%"></div>
+            </div>
+          {/if}
         {/each}
       </div>
     {/if}
