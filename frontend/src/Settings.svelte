@@ -5,6 +5,7 @@
   let songdataDBPath = ''
   let saved = false
   let error = ''
+  let mouseDownOnBackdrop = false
 
   export async function open() {
     saved = false
@@ -45,7 +46,9 @@
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
-<dialog bind:this={dialog} class="modal" on:click|self={handleClose}>
+<dialog bind:this={dialog} class="modal"
+  on:mousedown|self={() => mouseDownOnBackdrop = true}
+  on:click|self={() => { if (mouseDownOnBackdrop) dialog.close(); mouseDownOnBackdrop = false }}>
   <div class="modal-box">
     <h3 class="text-lg font-bold mb-4">設定</h3>
 
