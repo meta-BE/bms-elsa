@@ -63,15 +63,10 @@
         />
         <button class="btn btn-outline" on:click={handleBrowse}>参照</button>
       </div>
-      <label class="label" for="songdata-path">
-        <span class="label-text-alt text-base-content/50">
-          未指定の場合は ~/.beatoraja/songdata.db → ~/beatoraja/songdata.db の順で自動検出
-        </span>
-      </label>
     </div>
 
     {#if saved}
-      <div class="alert alert-success mt-4">
+      <div class="alert alert-info mt-4">
         <span>保存しました。設定を反映するにはアプリを再起動してください。</span>
       </div>
     {/if}
