@@ -22,6 +22,8 @@ type App struct {
 	db          *sql.DB
 	SongHandler *internalapp.SongHandler
 	IRHandler   *internalapp.IRHandler
+	dtRepo      *persistence.DifficultyTableRepository
+	dtFetcher   *gateway.DifficultyTableFetcher
 }
 
 func NewApp() *App {
@@ -55,6 +57,8 @@ func (a *App) Init() error {
 
 	// DI組み立て
 	elsaRepo := persistence.NewElsaRepository(db)
+	a.dtRepo = persistence.NewDifficultyTableRepository(db)
+	a.dtFetcher = gateway.NewDifficultyTableFetcher()
 	songdataReader := persistence.NewSongdataReader(db, elsaRepo)
 	irClient := gateway.NewLR2IRClient()
 
@@ -172,4 +176,167 @@ func songdataDBPath() string {
 		}
 	}
 	return ""
+}
+
+type DifficultyTableDTO struct {
+	ID         int     `json:"id"`
+	URL        string  `json:"url"`
+	Name       string  `json:"name"`
+	Symbol     string  `json:"symbol"`
+	EntryCount int     `json:"entryCount"`
+	FetchedAt  *string `json:"fetchedAt"`
+}
+
+type RefreshResult struct {
+	TableName  string `json:"tableName"`
+	Success    bool   `json:"success"`
+	EntryCount int    `json:"entryCount"`
+	Error      string `json:"error,omitempty"`
+}
+
+func (a *App) ListDifficultyTables() ([]DifficultyTableDTO, error) {
+	tables, err := a.dtRepo.ListTables(a.ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]DifficultyTableDTO, len(tables))
+	for i, t := range tables {
+		count, _ := a.dtRepo.CountEntries(a.ctx, t.ID)
+		var fetchedAt *string
+		if t.FetchedAt != nil {
+			s := t.FetchedAt.Format("2006-01-02 15:04")
+			fetchedAt = &s
+		}
+		result[i] = DifficultyTableDTO{
+			ID: t.ID, URL: t.URL, Name: t.Name, Symbol: t.Symbol,
+			EntryCount: count, FetchedAt: fetchedAt,
+		}
+	}
+	return result, nil
+}
+
+func (a *App) AddDifficultyTable(tableURL string) error {
+	// 1. HTMLからheader URLを取得
+	headerURL, err := a.dtFetcher.FetchHeaderURL(tableURL)
+	if err != nil {
+		return err
+	}
+
+	// 2. header.jsonを取得
+	header, err := a.dtFetcher.FetchHeader(headerURL)
+	if err != nil {
+		return err
+	}
+
+	// 3. body JSONを取得
+	entries, err := a.dtFetcher.FetchBody(header.DataURL)
+	if err != nil {
+		return err
+	}
+
+	// 4. DBに保存
+	tableID, err := a.dtRepo.InsertTable(a.ctx, persistence.DifficultyTable{
+		URL: tableURL, HeaderURL: headerURL, DataURL: header.DataURL,
+		Name: header.Name, Symbol: header.Symbol,
+	})
+	if err != nil {
+		return err
+	}
+
+	// 5. エントリを保存
+	dbEntries := make([]persistence.DifficultyTableEntry, len(entries))
+	for i, e := range entries {
+		dbEntries[i] = persistence.DifficultyTableEntry{
+			TableID: tableID, MD5: e.MD5, Level: e.Level,
+			Title: e.Title, Artist: e.Artist,
+			URL: e.URL, URLDiff: e.URLDiff,
+		}
+	}
+	return a.dtRepo.ReplaceEntries(a.ctx, tableID, dbEntries)
+}
+
+func (a *App) RemoveDifficultyTable(id int) error {
+	return a.dtRepo.DeleteTable(a.ctx, id)
+}
+
+func (a *App) RefreshDifficultyTable(id int) RefreshResult {
+	tables, err := a.dtRepo.ListTables(a.ctx)
+	if err != nil {
+		return RefreshResult{Success: false, Error: err.Error()}
+	}
+
+	var target *persistence.DifficultyTable
+	for _, t := range tables {
+		if t.ID == id {
+			target = &t
+			break
+		}
+	}
+	if target == nil {
+		return RefreshResult{Success: false, Error: "テーブルが見つかりません"}
+	}
+
+	return a.refreshTable(*target)
+}
+
+func (a *App) RefreshAllDifficultyTables() []RefreshResult {
+	tables, err := a.dtRepo.ListTables(a.ctx)
+	if err != nil {
+		return []RefreshResult{{Success: false, Error: err.Error()}}
+	}
+
+	results := make([]RefreshResult, len(tables))
+	for i, t := range tables {
+		results[i] = a.refreshTable(t)
+	}
+	return results
+}
+
+func (a *App) refreshTable(t persistence.DifficultyTable) RefreshResult {
+	result := RefreshResult{TableName: t.Name}
+
+	// header再取得（data_url変更に追従）
+	header, err := a.dtFetcher.FetchHeader(t.HeaderURL)
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+
+	// data_urlが変わっていれば更新
+	if header.DataURL != t.DataURL {
+		t.DataURL = header.DataURL
+	}
+	t.Name = header.Name
+	t.Symbol = header.Symbol
+
+	// body取得
+	entries, err := a.dtFetcher.FetchBody(t.DataURL)
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+
+	// テーブルメタ更新
+	if err := a.dtRepo.UpdateTable(a.ctx, t); err != nil {
+		result.Error = err.Error()
+		return result
+	}
+
+	// エントリ全件置換
+	dbEntries := make([]persistence.DifficultyTableEntry, len(entries))
+	for i, e := range entries {
+		dbEntries[i] = persistence.DifficultyTableEntry{
+			TableID: t.ID, MD5: e.MD5, Level: e.Level,
+			Title: e.Title, Artist: e.Artist,
+			URL: e.URL, URLDiff: e.URLDiff,
+		}
+	}
+	if err := a.dtRepo.ReplaceEntries(a.ctx, t.ID, dbEntries); err != nil {
+		result.Error = err.Error()
+		return result
+	}
+
+	result.Success = true
+	result.EntryCount = len(entries)
+	return result
 }
