@@ -1,18 +1,33 @@
 # TODO
 
-## 優先度高
+## 実装済み
 - [x] 初回表示時間の改善（folderインデックス追加で2.4秒→0.02秒に解決）
+- [x] config.json / elsa.db のパス戦略（実行ファイル隣接）
+- [x] 設定画面（songdata.dbパス設定、OSファイル選択ダイアログ）
+- [x] BMS難易度表の取り込み・表示（URL登録→HTML→header→body取得、設定画面から管理）
+- [x] 譜面詳細に難易度ラベルバッジ表示
 
-## 優先度中
-- [x] config.json / elsa.db のパス戦略（Windows/Mac非依存、バイナリ同梱 or 実行ファイル隣接）
+## 難易度表関連
+- [ ] 段位認定（course）データの取り込み
+- [ ] url/url_diff → working_body_url の推定・反映
+- [ ] 未所持譜面の難易度表ベース表示・導入機能
+- [ ] 譜面一覧ビューでの難易度表フィルタ・ソート
 
-## 優先度低
-- [ ] BPM検知の改善（songdata.dbのminbpm/maxbpmにギミックBPMが含まれるケースへの対応）
+## 楽曲管理
+- [ ] フォルダ移動（都度指定で移動先選択、beatoraja再スキャンはユーザー手動）
+- [ ] 楽曲導入（URL提示 + フォルダ取り込み）
+- [ ] 差分導入
+- [ ] 重複検知（同一md5の複数パス検出）
 
-## 未実装機能
+## IR・メタデータ
+- [ ] URL書き換えルール（url_rewrite_rulesテーブル、ドメイン置換ロジック）
+- [ ] イベントページパース（イベント情報の自動取得）
+
+## BMS基盤
 - [ ] BMSパーサー実装
+- [ ] MD5/SHA256計算
 - [ ] フォルダ走査（ScanSongs: worker pool）
-- [ ] 楽曲・差分の導入（ImportSong, ImportChart）
-- [ ] 差分正当性検証（ValidateChart）
-- [ ] 楽曲リネーム・移動（RenameSong, MoveSong）
 - [ ] 走査進捗表示（Wailsイベント受信）
+
+## 改善
+- [ ] BPM検知の改善（songdata.dbのminbpm/maxbpmにギミックBPMが含まれるケースへの対応）

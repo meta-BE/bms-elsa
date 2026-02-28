@@ -10,6 +10,9 @@
 - 楽曲選択で詳細パネルを表示（上下分割レイアウト、ドラッグリサイズ対応）
 - LR2IR からのメタデータ取得
 - Event名・リリース年・動作URLの編集・保存
+- BMS難易度表の取り込み・管理（Stella, 発狂BMS, Solomon等に対応）
+- 譜面詳細に難易度ラベルをバッジ表示
+- GUIからの設定編集（songdata.dbパス、難易度表の追加・削除・更新）
 
 ## 技術スタック
 
@@ -33,15 +36,10 @@ go install github.com/wailsapp/wails/v2/cmd/wails@latest
 
 ## セットアップ
 
-実行ファイルと同じディレクトリに `config.json` を作成して `songdata.db` のパスを指定する:
+`songdata.db` のパスはアプリの設定画面（歯車アイコン）から設定できる。
+設定は実行ファイルと同じディレクトリの `config.json` に保存される。
 
-```json
-{
-  "songdataDBPath": "/path/to/beatoraja/songdata.db"
-}
-```
-
-`config.json` を省略した場合は `~/.beatoraja/songdata.db` → `~/beatoraja/songdata.db` の順で自動検出する。
+未設定の場合は `~/.beatoraja/songdata.db` → `~/beatoraja/songdata.db` の順で自動検出する。
 
 ## 開発
 
@@ -62,23 +60,15 @@ wails build -devtools
 
 ```
 bms-elsa/
-├── main.go                     # Wailsエントリポイント + DI組み立て
-├── app.go                      # App構造体（将来ハンドラーに分割）
+├── main.go                     # Wailsエントリポイント
+├── app.go                      # App構造体 + 設定・難易度表API
 ├── internal/
-│   ├── domain/                 # ドメイン層（最内層・外部依存なし）
-│   │   ├── model/              # エンティティ・値オブジェクト
-│   │   ├── repository/         # リポジトリインターフェース
-│   │   └── service/            # ドメインサービス
+│   ├── domain/model/           # エンティティ・値オブジェクト
 │   ├── usecase/                # ユースケース層
-│   ├── port/                   # ポート定義（外部I/Oの抽象）
-│   ├── adapter/                # アダプタ層（ポート・リポジトリの実装）
-│   │   ├── parser/             # BMSパーサー
-│   │   ├── gateway/            # LR2IRクライアント
-│   │   ├── filesystem/         # ファイル操作・MD5計算
-│   │   └── persistence/        # SQLiteリポジトリ
-│   └── app/                    # Wailsバインディング層
-│       ├── dto/                # フロントエンド向けDTO
-│       └── event/              # Wailsイベント実装
+│   ├── adapter/
+│   │   ├── gateway/            # LR2IRクライアント・難易度表フェッチャー
+│   │   └── persistence/        # SQLiteリポジトリ（elsa.db + songdata.db）
+│   └── app/                    # Wailsバインディング層（ハンドラー + DTO）
 ├── frontend/                   # Svelte + TypeScript
 ├── build/                      # Wailsビルド設定
 ├── testdata/                   # テスト用データ（songdata.db等）
@@ -99,3 +89,4 @@ bms-elsa/
 - [BMSドメイン知識・モチベーション](docs/bms-domain-and-motivation.md)
 - [フロントエンド技術調査](docs/frontend-research.md)
 - [Wails + Go 設計引き継ぎ](docs/wails_go_design_handoff.md)
+- [BMS難易度表フォーマット](docs/bms-difficulty-table-format.md)
