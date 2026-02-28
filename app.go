@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -87,38 +86,39 @@ type Config struct {
 	SongdataDBPath string `json:"songdataDBPath"`
 }
 
-// loadConfig は ~/.config/bms-elsa/config.json を読み込む。
+// loadConfig は実行ファイルと同じディレクトリの config.json を読み込む。
 // ファイルが存在しない場合はゼロ値の Config を返す。
 func loadConfig() Config {
-	configDir, err := os.UserConfigDir()
+	path := filepath.Join(appDir(), "config.json")
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return Config{}
 	}
-	path := filepath.Join(configDir, "bms-elsa", "config.json")
-	f, err := os.Open(path)
-	if err != nil {
-		return Config{}
-	}
-	defer f.Close()
-
 	var cfg Config
-	data, err := io.ReadAll(f)
-	if err != nil {
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		fmt.Fprintf(os.Stderr, "config.json のパースに失敗しました: %v\n", err)
 		return Config{}
 	}
-	json.Unmarshal(data, &cfg)
 	return cfg
 }
 
-// elsaDBPath はelsa.dbの保存パスを返す
+// elsaDBPath は実行ファイルと同じディレクトリの elsa.db パスを返す
 func elsaDBPath() string {
-	configDir, err := os.UserConfigDir()
+	return filepath.Join(appDir(), "elsa.db")
+}
+
+// appDir は実行ファイルと同じディレクトリを返す。
+// config.jsonやelsa.dbの保存先として使用する。
+func appDir() string {
+	exe, err := os.Executable()
 	if err != nil {
-		configDir = "."
+		return "."
 	}
-	dir := filepath.Join(configDir, "bms-elsa")
-	os.MkdirAll(dir, 0755)
-	return filepath.Join(dir, "elsa.db")
+	exe, err = filepath.EvalSymlinks(exe)
+	if err != nil {
+		return "."
+	}
+	return filepath.Dir(exe)
 }
 
 // songdataDBPath はsongdata.dbのパスを返す。
