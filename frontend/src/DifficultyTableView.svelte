@@ -122,16 +122,20 @@
     await loadEntries(id)
   }
 
-  function rowBgClass(status: string, md5: string): string {
-    if (md5 === selectedMD5) return 'bg-primary/20'
-    if (status === 'not_installed') return 'bg-base-300/50'
+  function statusBgClass(status: string): string {
+    if (status === 'not_installed') return 'bg-base-200 hover:bg-base-300'
     if (status === 'duplicate') return 'bg-warning/20'
     return ''
   }
 
   function handleRowClick(entry: main.DifficultyTableEntryDTO) {
-    selectedMD5 = entry.md5
-    dispatch('select', { md5: entry.md5, entry })
+    if (selectedMD5 === entry.md5) {
+      selectedMD5 = null
+      dispatch('deselect')
+    } else {
+      selectedMD5 = entry.md5
+      dispatch('select', { md5: entry.md5, entry })
+    }
   }
 </script>
 
@@ -214,7 +218,7 @@
             <div
               role="row"
               tabindex="0"
-              class="flex absolute w-full hover:bg-base-200 border-b border-base-300/50 items-center px-2 cursor-pointer {rowBgClass(row.original.status, row.original.md5)}"
+              class="flex absolute w-full border-b border-base-300/50 items-center px-2 cursor-pointer {selectedMD5 === row.original.md5 ? 'bg-primary/20' : statusBgClass(row.original.status) + ' hover:bg-base-200'}"
               style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
               on:click|stopPropagation={() => handleRowClick(row.original)}
               on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(row.original) }}

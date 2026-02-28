@@ -23,14 +23,15 @@
 
   function switchTab(tab: 'songs' | 'difficulty') {
     activeTab = tab
-    selectedFolderHash = null
-    selectedEntryMD5 = null
-    selectedEntryData = null
   }
 
   // 楽曲タブのハンドラ
   function handleSelect(e: CustomEvent<string>) {
-    selectedFolderHash = e.detail
+    if (selectedFolderHash === e.detail) {
+      selectedFolderHash = null
+    } else {
+      selectedFolderHash = e.detail
+    }
   }
 
   function handleDeselect() {
@@ -82,7 +83,6 @@
     window.removeEventListener('mouseup', onDragEnd)
   }
 
-  $: hasDetailPane = activeTab === 'songs' ? !!selectedFolderHash : !!(selectedEntryMD5 && selectedEntryData)
 </script>
 
 <div data-theme="emerald" class="h-full flex flex-col">
@@ -114,29 +114,41 @@
 
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
   <div bind:this={containerEl} class="flex-1 overflow-hidden p-4 flex flex-col" on:click={handleDeselect}>
-    <div class="overflow-hidden" style="flex: {hasDetailPane ? splitRatio : 1}">
-      {#if activeTab === 'songs'}
-        <SongTable on:select={handleSelect} on:deselect={handleDeselect} />
-      {:else}
-        <DifficultyTableView on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
-      {/if}
+    <!-- 楽曲一覧タブ -->
+    <div class="overflow-hidden" class:hidden={activeTab !== 'songs'} style="flex: {selectedFolderHash ? splitRatio : 1}">
+      <SongTable on:select={handleSelect} on:deselect={handleDeselect} />
     </div>
-
-    {#if hasDetailPane}
+    {#if selectedFolderHash}
       <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
       <div
         class="h-1 shrink-0 cursor-row-resize bg-base-300 hover:bg-primary/30 transition-colors my-1 rounded"
+        class:hidden={activeTab !== 'songs'}
         on:mousedown={onDragStart}
         role="separator"
         tabindex="0"
       ></div>
       <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-      <div class="overflow-y-auto" style="flex: {1 - splitRatio}" on:click|stopPropagation>
-        {#if activeTab === 'songs' && selectedFolderHash}
-          <SongDetail folderHash={selectedFolderHash} on:close={handleClose} />
-        {:else if activeTab === 'difficulty' && selectedEntryMD5 && selectedEntryData}
-          <ChartDetail md5={selectedEntryMD5} entryData={selectedEntryData} on:close={handleClose} />
-        {/if}
+      <div class="overflow-y-auto" class:hidden={activeTab !== 'songs'} style="flex: {1 - splitRatio}" on:click|stopPropagation>
+        <SongDetail folderHash={selectedFolderHash} on:close={handleClose} />
+      </div>
+    {/if}
+
+    <!-- 難易度表タブ -->
+    <div class="overflow-hidden" class:hidden={activeTab !== 'difficulty'} style="flex: {selectedEntryMD5 && selectedEntryData ? splitRatio : 1}">
+      <DifficultyTableView on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
+    </div>
+    {#if selectedEntryMD5 && selectedEntryData}
+      <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
+      <div
+        class="h-1 shrink-0 cursor-row-resize bg-base-300 hover:bg-primary/30 transition-colors my-1 rounded"
+        class:hidden={activeTab !== 'difficulty'}
+        on:mousedown={onDragStart}
+        role="separator"
+        tabindex="0"
+      ></div>
+      <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+      <div class="overflow-y-auto" class:hidden={activeTab !== 'difficulty'} style="flex: {1 - splitRatio}" on:click|stopPropagation>
+        <ChartDetail md5={selectedEntryMD5} entryData={selectedEntryData} on:close={handleClose} />
       </div>
     {/if}
   </div>
