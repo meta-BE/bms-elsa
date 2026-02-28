@@ -47,7 +47,8 @@ func setupSongdataReader(t *testing.T) (*persistence.SongdataReader, *sql.DB) {
 	}
 
 	metaRepo := persistence.NewElsaRepository(db)
-	reader := persistence.NewSongdataReader(db, metaRepo)
+	dtRepo := persistence.NewDifficultyTableRepository(db)
+	reader := persistence.NewSongdataReader(db, metaRepo, dtRepo)
 
 	return reader, db
 }

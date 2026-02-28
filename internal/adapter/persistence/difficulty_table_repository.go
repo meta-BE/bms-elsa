@@ -126,6 +126,29 @@ func (r *DifficultyTableRepository) CountEntries(ctx context.Context, tableID in
 	return count, err
 }
 
+func (r *DifficultyTableRepository) ListEntries(ctx context.Context, tableID int) ([]DifficultyTableEntry, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT table_id, md5, level, COALESCE(title, ''), COALESCE(artist, ''), COALESCE(url, ''), COALESCE(url_diff, '')
+		FROM difficulty_table_entry
+		WHERE table_id = ?
+		ORDER BY level, title
+	`, tableID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var entries []DifficultyTableEntry
+	for rows.Next() {
+		var e DifficultyTableEntry
+		if err := rows.Scan(&e.TableID, &e.MD5, &e.Level, &e.Title, &e.Artist, &e.URL, &e.URLDiff); err != nil {
+			return nil, err
+		}
+		entries = append(entries, e)
+	}
+	return entries, rows.Err()
+}
+
 func (r *DifficultyTableRepository) GetLabelsByMD5(ctx context.Context, md5 string) ([]model.DifficultyLabel, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT dt.name, dt.symbol, dte.level

@@ -261,3 +261,78 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 
 	return song, nil
 }
+
+// CountChartsByMD5s は指定md5群がsongdata.db内に何件存在するかを返す
+func (r *SongdataReader) CountChartsByMD5s(ctx context.Context, md5s []string) (map[string]int, error) {
+	if len(md5s) == 0 {
+		return nil, nil
+	}
+
+	placeholders := make([]string, len(md5s))
+	args := make([]interface{}, len(md5s))
+	for i, m := range md5s {
+		placeholders[i] = "?"
+		args[i] = m
+	}
+
+	query := `
+		SELECT md5, COUNT(*) FROM songdata.song
+		WHERE md5 IN (` + joinStrings(placeholders, ",") + `)
+		GROUP BY md5
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("CountChartsByMD5s: %w", err)
+	}
+	defer rows.Close()
+
+	result := make(map[string]int)
+	for rows.Next() {
+		var md5 string
+		var count int
+		if err := rows.Scan(&md5, &count); err != nil {
+			return nil, err
+		}
+		result[md5] = count
+	}
+	return result, rows.Err()
+}
+
+// GetChartByMD5 はmd5で譜面を1件取得し、IRメタ・難易度ラベルを付与して返す
+func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5 string) (*model.Chart, error) {
+	var c model.Chart
+	err := r.db.QueryRowContext(ctx, `
+		SELECT md5, sha256, title, artist, COALESCE(subartist, ''),
+			genre, mode, difficulty, level, minbpm, maxbpm, path
+		FROM songdata.song
+		WHERE md5 = ?
+		LIMIT 1
+	`, md5).Scan(
+		&c.MD5, &c.SHA256, &c.Title, &c.Artist, &c.SubArtist,
+		&c.Genre, &c.Mode, &c.Difficulty, &c.Level,
+		&c.MinBPM, &c.MaxBPM, &c.Path,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("GetChartByMD5 query: %w", err)
+	}
+
+	// IRメタ付与
+	irMeta, err := r.metaRepo.GetChartMeta(ctx, c.MD5, c.SHA256)
+	if err != nil {
+		return nil, fmt.Errorf("GetChartByMD5 GetChartMeta: %w", err)
+	}
+	c.IRMeta = irMeta
+
+	// 難易度ラベル付与
+	labels, err := r.dtRepo.GetLabelsByMD5(ctx, c.MD5)
+	if err != nil {
+		return nil, fmt.Errorf("GetChartByMD5 GetLabelsByMD5: %w", err)
+	}
+	c.DifficultyLabels = labels
+
+	return &c, nil
+}
