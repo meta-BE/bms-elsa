@@ -14,12 +14,13 @@ const defaultPageSize = 50
 
 // SongdataReader はsongdata.db（ATTACHされた）から楽曲を読み取る
 type SongdataReader struct {
-	db       *sql.DB // elsa.db接続（songdata.dbがATTACH済み）
+	db       *sql.DB
 	metaRepo *ElsaRepository
+	dtRepo   *DifficultyTableRepository
 }
 
-func NewSongdataReader(db *sql.DB, metaRepo *ElsaRepository) *SongdataReader {
-	return &SongdataReader{db: db, metaRepo: metaRepo}
+func NewSongdataReader(db *sql.DB, metaRepo *ElsaRepository, dtRepo *DifficultyTableRepository) *SongdataReader {
+	return &SongdataReader{db: db, metaRepo: metaRepo, dtRepo: dtRepo}
 }
 
 // AttachSongdata はsongdata.dbをelsa.db接続にATTACHする。
@@ -207,6 +208,19 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 			return nil, fmt.Errorf("GetSongByFolder GetChartMeta: %w", err)
 		}
 		charts[i].IRMeta = irMeta
+	}
+
+	// 難易度ラベルを一括取得（N+1回避）
+	md5s := make([]string, len(charts))
+	for i, c := range charts {
+		md5s[i] = c.MD5
+	}
+	labelsMap, err := r.dtRepo.GetLabelsByMD5s(ctx, md5s)
+	if err != nil {
+		return nil, fmt.Errorf("GetSongByFolder GetLabelsByMD5s: %w", err)
+	}
+	for i := range charts {
+		charts[i].DifficultyLabels = labelsMap[charts[i].MD5]
 	}
 
 	if len(charts) == 0 {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	"github.com/meta-BE/bms-elsa/internal/domain/model"
 )
 
 // DifficultyTable は難易度表マスタ
@@ -26,13 +28,6 @@ type DifficultyTableEntry struct {
 	Artist  string
 	URL     string
 	URLDiff string
-}
-
-// DifficultyLabel は譜面に紐づく難易度ラベル（JOINで取得）
-type DifficultyLabel struct {
-	TableName string
-	Symbol    string
-	Level     string
 }
 
 type DifficultyTableRepository struct {
@@ -131,7 +126,7 @@ func (r *DifficultyTableRepository) CountEntries(ctx context.Context, tableID in
 	return count, err
 }
 
-func (r *DifficultyTableRepository) GetLabelsByMD5(ctx context.Context, md5 string) ([]DifficultyLabel, error) {
+func (r *DifficultyTableRepository) GetLabelsByMD5(ctx context.Context, md5 string) ([]model.DifficultyLabel, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT dt.name, dt.symbol, dte.level
 		FROM difficulty_table_entry dte
@@ -144,9 +139,9 @@ func (r *DifficultyTableRepository) GetLabelsByMD5(ctx context.Context, md5 stri
 	}
 	defer rows.Close()
 
-	var labels []DifficultyLabel
+	var labels []model.DifficultyLabel
 	for rows.Next() {
-		var l DifficultyLabel
+		var l model.DifficultyLabel
 		if err := rows.Scan(&l.TableName, &l.Symbol, &l.Level); err != nil {
 			return nil, err
 		}
@@ -156,7 +151,7 @@ func (r *DifficultyTableRepository) GetLabelsByMD5(ctx context.Context, md5 stri
 }
 
 // GetLabelsByMD5s は複数md5の難易度ラベルをまとめて取得する（N+1回避）
-func (r *DifficultyTableRepository) GetLabelsByMD5s(ctx context.Context, md5s []string) (map[string][]DifficultyLabel, error) {
+func (r *DifficultyTableRepository) GetLabelsByMD5s(ctx context.Context, md5s []string) (map[string][]model.DifficultyLabel, error) {
 	if len(md5s) == 0 {
 		return nil, nil
 	}
@@ -183,10 +178,10 @@ func (r *DifficultyTableRepository) GetLabelsByMD5s(ctx context.Context, md5s []
 	}
 	defer rows.Close()
 
-	result := make(map[string][]DifficultyLabel)
+	result := make(map[string][]model.DifficultyLabel)
 	for rows.Next() {
 		var md5 string
-		var l DifficultyLabel
+		var l model.DifficultyLabel
 		if err := rows.Scan(&md5, &l.TableName, &l.Symbol, &l.Level); err != nil {
 			return nil, err
 		}

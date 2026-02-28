@@ -51,7 +51,14 @@ type ChartDTO struct {
 	LR2IRDiffURL   string  `json:"lr2irDiffUrl,omitempty"`
 	LR2IRNotes     string  `json:"lr2irNotes,omitempty"`
 	WorkingBodyURL string  `json:"workingBodyUrl,omitempty"`
-	WorkingDiffURL string  `json:"workingDiffUrl,omitempty"`
+	WorkingDiffURL   string               `json:"workingDiffUrl,omitempty"`
+	DifficultyLabels []DifficultyLabelDTO `json:"difficultyLabels,omitempty"`
+}
+
+type DifficultyLabelDTO struct {
+	TableName string `json:"tableName"`
+	Symbol    string `json:"symbol"`
+	Level     string `json:"level"`
 }
 
 func SongToRowDTO(s model.Song) SongRowDTO {
@@ -104,6 +111,14 @@ func ChartToDTO(c model.Chart) ChartDTO {
 		d.LR2IRNotes = c.IRMeta.LR2IRNotes
 		d.WorkingBodyURL = c.IRMeta.WorkingBodyURL
 		d.WorkingDiffURL = c.IRMeta.WorkingDiffURL
+	}
+	if c.DifficultyLabels != nil {
+		d.DifficultyLabels = make([]DifficultyLabelDTO, len(c.DifficultyLabels))
+		for i, l := range c.DifficultyLabels {
+			d.DifficultyLabels[i] = DifficultyLabelDTO{
+				TableName: l.TableName, Symbol: l.Symbol, Level: l.Level,
+			}
+		}
 	}
 	return d
 }

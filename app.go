@@ -59,7 +59,7 @@ func (a *App) Init() error {
 	elsaRepo := persistence.NewElsaRepository(db)
 	a.dtRepo = persistence.NewDifficultyTableRepository(db)
 	a.dtFetcher = gateway.NewDifficultyTableFetcher()
-	songdataReader := persistence.NewSongdataReader(db, elsaRepo)
+	songdataReader := persistence.NewSongdataReader(db, elsaRepo, a.dtRepo)
 	irClient := gateway.NewLR2IRClient()
 
 	listSongs := usecase.NewListSongsUseCase(songdataReader)

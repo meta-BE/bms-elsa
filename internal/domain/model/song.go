@@ -34,7 +34,8 @@ type Chart struct {
 	MaxBPM     float64
 	Path       string
 	// elsa.db メタデータ
-	IRMeta *ChartIRMeta
+	IRMeta           *ChartIRMeta
+	DifficultyLabels []DifficultyLabel
 }
 
 // SongMeta は楽曲レベルの追加メタデータ
@@ -55,4 +56,11 @@ type ChartIRMeta struct {
 	WorkingBodyURL string
 	WorkingDiffURL string
 	FetchedAt      *time.Time
+}
+
+// DifficultyLabel は難易度表から取得した難易度ラベル
+type DifficultyLabel struct {
+	TableName string
+	Symbol    string
+	Level     string
 }
