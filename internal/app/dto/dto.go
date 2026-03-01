@@ -48,6 +48,7 @@ type ChartDTO struct {
 	Level          int     `json:"level"`
 	MinBPM         float64 `json:"minBpm"`
 	MaxBPM         float64 `json:"maxBpm"`
+	Path           string  `json:"path,omitempty"`
 	HasIRMeta      bool    `json:"hasIrMeta"`
 	LR2IRTags      string  `json:"lr2irTags,omitempty"`
 	LR2IRBodyURL   string  `json:"lr2irBodyUrl,omitempty"`
@@ -124,6 +125,7 @@ func ChartToDTO(c model.Chart) ChartDTO {
 		Level:      c.Level,
 		MinBPM:     c.MinBPM,
 		MaxBPM:     c.MaxBPM,
+		Path:       c.Path,
 		HasIRMeta:  c.IRMeta != nil,
 	}
 	if c.IRMeta != nil {

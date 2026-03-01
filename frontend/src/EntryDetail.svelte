@@ -66,14 +66,8 @@
     <div class="bg-base-200 rounded-lg p-3">
       <div class="flex justify-between items-start">
         <div class="flex-1 min-w-0">
-          <h2 class="text-lg font-bold truncate">{entryData.title}</h2>
-          {#if chart?.subtitle}
-            <p class="text-sm text-base-content/50">{chart.subtitle}</p>
-          {/if}
-          <p class="text-sm text-base-content/70">{entryData.artist}</p>
-          {#if chart?.subArtist}
-            <p class="text-xs text-base-content/50">{chart.subArtist}</p>
-          {/if}
+          <h2 class="text-lg font-bold truncate">{chart ? (chart.title + (chart.subtitle ? ' ' + chart.subtitle : '')) : entryData.title}</h2>
+          <p class="text-sm text-base-content/70">{chart ? (chart.artist + (chart.subArtist ? ' ' + chart.subArtist : '')) : entryData.artist}</p>
           <div class="flex items-center gap-2 mt-1">
             <span class="badge badge-sm">Lv. {entryData.level}</span>
             {#if !chart}

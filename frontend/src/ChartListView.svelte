@@ -40,11 +40,6 @@
       },
     },
     {
-      accessorKey: 'difficulty',
-      header: '★',
-      size: 80,
-    },
-    {
       id: 'eventName',
       header: 'Event',
       size: 140,
@@ -175,10 +170,10 @@
               >
                 {#if cell.column.id === 'title'}
                   <div class="truncate">{cell.row.original.title}</div>
-                  <div class="truncate text-[10px] text-base-content/50">{cell.row.original.subtitle || ''}</div>
+                  <div class="truncate text-[10px] text-base-content/70">{cell.row.original.subtitle || ''}</div>
                 {:else if cell.column.id === 'artist'}
                   <div class="truncate">{cell.row.original.artist}</div>
-                  <div class="truncate text-[10px] text-base-content/50">{cell.row.original.subArtist || ''}</div>
+                  <div class="truncate text-[10px] text-base-content/70">{cell.row.original.subArtist || ''}</div>
                 {:else}
                   <svelte:component
                     this={flexRender(cell.column.columnDef.cell, cell.getContext())}

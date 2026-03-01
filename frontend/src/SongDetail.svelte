@@ -83,9 +83,9 @@
     <div class="bg-base-200 rounded-lg p-3">
       <div class="flex justify-between items-start">
         <div class="flex-1 min-w-0">
+          <p class="text-xs text-base-content/50">{detail.genre}</p>
           <h2 class="text-lg font-bold truncate">{detail.title}</h2>
           <p class="text-sm text-base-content/70">{detail.artist}</p>
-          <p class="text-xs text-base-content/50">{detail.genre}</p>
         </div>
         <button
           class="btn btn-ghost btn-xs shrink-0 ml-2"
@@ -104,39 +104,58 @@
     <!-- 譜面一覧 -->
     <div class="bg-base-200 rounded-lg p-3">
       <h3 class="text-sm font-semibold mb-2">譜面一覧</h3>
-      {#each detail.charts as chart}
-        <!-- button のネストは HTML 仕様違反のため div + role で代替 -->
-        <div
-          class="flex items-center gap-2 py-1 px-2 rounded cursor-pointer hover:bg-base-300 text-xs"
-          class:bg-base-300={selectedChart?.md5 === chart.md5}
-          role="button"
-          tabindex="0"
-          on:click={() => selectChart(chart)}
-          on:keydown={(e) => e.key === 'Enter' && selectChart(chart)}
-        >
-          <span class="w-8">{modeLabel(chart.mode)}</span>
-          <span class="w-8">{diffLabel(chart.difficulty)}</span>
-          <span class="w-8">☆{chart.level}</span>
-          {#if chart.subtitle}
-            <span class="text-base-content/50 truncate">{chart.subtitle}</span>
-          {/if}
-          {#if chart.difficultyLabels?.length}
-            {#each chart.difficultyLabels as label}
-              <span class="badge badge-sm badge-outline" title={label.tableName}>{label.symbol}{label.level}</span>
-            {/each}
-          {/if}
-          <span class="flex-1 truncate text-base-content/50">{chart.md5.slice(0, 8)}...</span>
-          <button
-            class="btn btn-ghost btn-xs"
-            on:click|stopPropagation={() => lookupIR(chart)}
-          >
-            IR取得
-          </button>
-          {#if chart.hasIrMeta}
-            <span class="text-success text-xs">●</span>
-          {/if}
-        </div>
-      {/each}
+      <table class="table table-xs w-full">
+        <thead>
+          <tr>
+            <th class="w-12">Mode</th>
+            <th class="w-10">Diff</th>
+            <th class="w-10">Lv</th>
+            <th>Subtitle</th>
+            <th>難易度表</th>
+            <th>Path</th>
+            <th class="w-8">IR</th>
+            <th class="w-16"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {#each detail.charts as chart}
+            <tr
+              class="cursor-pointer hover:bg-base-300"
+              class:bg-base-300={selectedChart?.md5 === chart.md5}
+              on:click={() => selectChart(chart)}
+              on:keydown={(e) => e.key === 'Enter' && selectChart(chart)}
+            >
+              <td>{modeLabel(chart.mode)}</td>
+              <td>{diffLabel(chart.difficulty)}</td>
+              <td>☆{chart.level}</td>
+              <td class="truncate max-w-[200px]">{chart.subtitle || ''}</td>
+              <td>
+                {#if chart.difficultyLabels?.length}
+                  <div class="flex gap-1 flex-wrap">
+                    {#each chart.difficultyLabels as label}
+                      <span class="badge badge-sm badge-outline" title={label.tableName}>{label.symbol}{label.level}</span>
+                    {/each}
+                  </div>
+                {/if}
+              </td>
+              <td class="truncate max-w-[200px] text-base-content/50">{chart.path || ''}</td>
+              <td>
+                {#if chart.hasIrMeta}
+                  <span class="text-success">●</span>
+                {/if}
+              </td>
+              <td>
+                <button
+                  class="btn btn-ghost btn-xs"
+                  on:click|stopPropagation={() => lookupIR(chart)}
+                >
+                  IR取得
+                </button>
+              </td>
+            </tr>
+          {/each}
+        </tbody>
+      </table>
     </div>
 
     <!-- 選択中の譜面のIR情報 -->
