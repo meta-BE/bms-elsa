@@ -3,6 +3,7 @@
   import { GetSongDetail, UpdateSongMeta } from '../wailsjs/go/app/SongHandler'
   import { LookupByMD5, UpdateChartMeta } from '../wailsjs/go/app/IRHandler'
   import type { dto } from '../wailsjs/go/models'
+  import { modeLabel, diffLabel } from './utils/chartLabels'
 
   const dispatch = createEventDispatcher<{ close: void }>()
 
@@ -62,15 +63,6 @@
     if (detail) await loadDetail(detail.folderHash)
   }
 
-  function modeLabel(mode: number): string {
-    const labels: Record<number, string> = { 5: '5K', 7: '7K', 9: 'PMS', 10: '10K', 14: '14K', 25: '24K' }
-    return labels[mode] || `${mode}K`
-  }
-
-  function diffLabel(diff: number): string {
-    const labels = ['', 'BEG', 'NOR', 'HYP', 'ANO', 'INS']
-    return labels[diff] || ''
-  }
 </script>
 
 {#if loading}
