@@ -117,6 +117,9 @@
           <span class="w-8">{modeLabel(chart.mode)}</span>
           <span class="w-8">{diffLabel(chart.difficulty)}</span>
           <span class="w-8">☆{chart.level}</span>
+          {#if chart.subtitle}
+            <span class="text-base-content/50 truncate">{chart.subtitle}</span>
+          {/if}
           {#if chart.difficultyLabels?.length}
             {#each chart.difficultyLabels as label}
               <span class="badge badge-sm badge-outline" title={label.tableName}>{label.symbol}{label.level}</span>
