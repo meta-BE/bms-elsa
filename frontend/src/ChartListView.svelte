@@ -109,7 +109,8 @@
   }
 </script>
 
-<div class="flex flex-col h-full">
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+<div class="flex flex-col h-full" on:click={() => dispatch('deselect')}>
   <!-- ヘッダー -->
   <div class="flex items-center gap-2 px-4 py-2 bg-base-100 shrink-0">
     <span class="text-sm text-base-content/70">
@@ -123,52 +124,54 @@
     </div>
   {:else}
     <!-- テーブルヘッダー -->
-    <div class="shrink-0">
-      <table class="table table-xs w-full">
-        <thead>
-          {#each $table.getHeaderGroups() as headerGroup}
-            <tr>
-              {#each headerGroup.headers as header}
-                <th
-                  style="width: {header.getSize()}px"
-                  class="cursor-pointer select-none hover:bg-base-200"
-                  on:click={header.column.getToggleSortingHandler()}
-                >
-                  <div class="flex items-center gap-1">
-                    <svelte:component
-                      this={flexRender(header.column.columnDef.header, header.getContext())}
-                    />
-                    {#if header.column.getIsSorted() === 'asc'}
-                      <span class="text-xs">▲</span>
-                    {:else if header.column.getIsSorted() === 'desc'}
-                      <span class="text-xs">▼</span>
-                    {/if}
-                  </div>
-                </th>
-              {/each}
-            </tr>
+    <div class="bg-base-200 border-b border-base-300 px-2 shrink-0">
+      {#each $table.getHeaderGroups() as headerGroup}
+        <div class="flex">
+          {#each headerGroup.headers as header}
+            <div
+              role="columnheader"
+              tabindex="0"
+              class="px-2 py-1.5 text-xs font-bold uppercase cursor-pointer select-none hover:bg-base-300 transition-colors truncate"
+              style="width: {header.getSize()}px; min-width: {header.getSize()}px"
+              on:click|stopPropagation={header.column.getToggleSortingHandler()}
+              on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') header.column.getToggleSortingHandler()?.(e) }}
+            >
+              <span class="flex items-center gap-1">
+                {#if !header.isPlaceholder}
+                  <svelte:component
+                    this={flexRender(header.column.columnDef.header, header.getContext())}
+                  />
+                {/if}
+                {#if header.column.getIsSorted() === 'asc'}
+                  <span>▲</span>
+                {:else if header.column.getIsSorted() === 'desc'}
+                  <span>▼</span>
+                {/if}
+              </span>
+            </div>
           {/each}
-        </thead>
-      </table>
+        </div>
+      {/each}
     </div>
 
     <!-- 仮想スクロール本体 -->
     <div class="flex-1 overflow-auto" bind:this={scrollElement}>
-      <div style="height: {totalSize}px; width: 100%; position: relative;">
+      <div style="height: {totalSize}px; position: relative;">
         {#each virtualItems as virtualRow (virtualRow.index)}
           {@const row = rows[virtualRow.index]}
           <div
-            class="absolute w-full flex items-center text-xs cursor-pointer transition-colors
-              {selectedMD5 === row.original.md5 ? 'bg-primary/20' : 'hover:bg-base-200'}"
-            style="height: {ROW_HEIGHT}px; transform: translateY({virtualRow.start}px);"
-            on:click={() => handleRowClick(row.original)}
             role="row"
             tabindex="0"
+            class="flex absolute w-full items-center px-2 text-xs cursor-pointer transition-colors
+              {selectedMD5 === row.original.md5 ? 'bg-primary/20' : 'hover:bg-base-200'}"
+            style="height: {ROW_HEIGHT}px; transform: translateY({virtualRow.start}px);"
+            on:click|stopPropagation={() => handleRowClick(row.original)}
+            on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(row.original) }}
           >
             {#each row.getVisibleCells() as cell}
               <div
-                class="truncate px-2"
-                style="width: {cell.column.getSize()}px"
+                class="px-2 truncate"
+                style="width: {cell.column.getSize()}px; min-width: {cell.column.getSize()}px"
               >
                 <svelte:component
                   this={flexRender(cell.column.columnDef.cell, cell.getContext())}
