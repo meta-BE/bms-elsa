@@ -22,6 +22,8 @@
   let data: dto.SongRowDTO[] = []
   let totalCount = 0
   let loading = true
+  let searchText = ''
+  let debounceTimer: ReturnType<typeof setTimeout>
 
   const columns: ColumnDef<dto.SongRowDTO>[] = [
     { accessorKey: 'title', header: 'Title', size: 300 },
@@ -94,6 +96,26 @@
     }
     options.update((o) => ({ ...o, data }))
   })
+
+  async function doSearch() {
+    loading = true
+    try {
+      const result = await ListSongs(1, PAGE_SIZE, 'title', false, searchText)
+      data = result.songs || []
+      totalCount = result.totalCount
+    } catch (e) {
+      console.error('Failed to search songs:', e)
+      data = []
+    } finally {
+      loading = false
+    }
+    options.update((o) => ({ ...o, data }))
+  }
+
+  function handleSearchInput() {
+    clearTimeout(debounceTimer)
+    debounceTimer = setTimeout(doSearch, 300)
+  }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -101,12 +123,18 @@
   class="h-full flex flex-col bg-base-100 rounded-lg border border-base-300"
   on:click={() => dispatch('deselect')}
 >
-  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between">
-    {#if loading}
-      <span class="text-sm font-semibold">Loading...</span>
-    {:else}
-      <span class="text-sm font-semibold">{totalCount.toLocaleString()} songs</span>
-    {/if}
+  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2" on:click|stopPropagation>
+    <span class="text-sm font-semibold shrink-0">
+      {#if loading}Loading...{:else}{totalCount.toLocaleString()} songs{/if}
+    </span>
+    <input
+      type="text"
+      placeholder="検索..."
+      class="input input-xs input-bordered w-48"
+      bind:value={searchText}
+      on:input={handleSearchInput}
+    />
   </div>
 
   <!-- ヘッダー（スクロールしない） -->
