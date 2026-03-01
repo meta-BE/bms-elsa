@@ -21,7 +21,7 @@
 
   let charts: dto.ChartListItemDTO[] = []
   let loading = false
-  let selectedMD5: string | null = null
+  export let selected: string | null = null
   let scrollElement: HTMLDivElement
   let sorting: SortingState = []
   let globalFilter = ''
@@ -111,30 +111,34 @@
   })
 
   function handleRowClick(chart: dto.ChartListItemDTO) {
-    if (selectedMD5 === chart.md5) {
-      selectedMD5 = null
+    if (selected === chart.md5) {
       dispatch('deselect')
     } else {
-      selectedMD5 = chart.md5
       dispatch('select', { md5: chart.md5 })
     }
   }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-<div class="flex flex-col h-full" on:click={() => dispatch('deselect')}>
+<div class="h-full flex flex-col bg-base-100 rounded-lg border border-base-300" on:click={() => dispatch('deselect')}>
   <!-- ヘッダー -->
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <div class="flex items-center justify-between gap-2 px-4 py-2 bg-base-100 shrink-0" on:click|stopPropagation>
+  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2" on:click|stopPropagation>
     <span class="text-sm text-base-content/70 shrink-0">
       {rows.length} 譜面
     </span>
-    <input
-      type="text"
-      placeholder="検索..."
-      class="input input-xs input-bordered w-48"
-      bind:value={globalFilter}
-    />
+    <div class="relative">
+      <input
+        type="text"
+        placeholder="検索..."
+        class="input input-xs input-bordered w-48 pr-6"
+        bind:value={globalFilter}
+      />
+      {#if globalFilter}
+        <button class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle h-4 w-4 min-h-0 p-0"
+          on:click={() => { globalFilter = '' }}>✕</button>
+      {/if}
+    </div>
   </div>
 
   {#if loading}
@@ -182,7 +186,7 @@
             role="row"
             tabindex="0"
             class="flex absolute w-full items-center px-2 text-xs cursor-pointer transition-colors
-              {selectedMD5 === row.original.md5 ? 'bg-primary/20' : 'hover:bg-base-200'}"
+              {selected === row.original.md5 ? 'bg-primary/20' : 'hover:bg-base-200'}"
             style="height: {ROW_HEIGHT}px; transform: translateY({virtualRow.start}px);"
             on:click|stopPropagation={() => handleRowClick(row.original)}
             on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(row.original) }}

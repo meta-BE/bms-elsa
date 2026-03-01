@@ -26,7 +26,7 @@
   let entries: main.DifficultyTableEntryDTO[] = []
   let loading = false
   let loadingEntries = false
-  let selectedMD5: string | null = null
+  export let selected: string | null = null
   let searchText = ''
 
   const columns: ColumnDef<main.DifficultyTableEntryDTO>[] = [
@@ -103,7 +103,6 @@
 
   async function loadEntries(tableId: number) {
     loadingEntries = true
-    selectedMD5 = null
     try {
       entries = (await ListDifficultyTableEntries(tableId)) || []
     } catch (e) {
@@ -112,9 +111,10 @@
     } finally {
       loadingEntries = false
     }
+    applyFilter()
   }
 
-  $: {
+  function applyFilter() {
     const filtered = searchText
       ? entries.filter(e => {
           const s = searchText.toLowerCase()
@@ -140,11 +140,9 @@
   }
 
   function handleRowClick(entry: main.DifficultyTableEntryDTO) {
-    if (selectedMD5 === entry.md5) {
-      selectedMD5 = null
+    if (selected === entry.md5) {
       dispatch('deselect')
     } else {
-      selectedMD5 = entry.md5
       dispatch('select', { md5: entry.md5, entry })
     }
   }
@@ -172,12 +170,19 @@
         {/each}
       </select>
       <span class="text-sm font-semibold shrink-0">{rows.length} entries</span>
-      <input
-        type="text"
-        placeholder="検索..."
-        class="input input-xs input-bordered w-48"
-        bind:value={searchText}
-      />
+      <div class="relative">
+        <input
+          type="text"
+          placeholder="検索..."
+          class="input input-xs input-bordered w-48 pr-6"
+          bind:value={searchText}
+          on:input={applyFilter}
+        />
+        {#if searchText}
+          <button class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle h-4 w-4 min-h-0 p-0"
+            on:click={() => { searchText = ''; applyFilter() }}>✕</button>
+        {/if}
+      </div>
     {/if}
   </div>
 
@@ -236,7 +241,7 @@
             <div
               role="row"
               tabindex="0"
-              class="flex absolute w-full border-b border-base-300/50 items-center px-2 cursor-pointer {selectedMD5 === row.original.md5 ? 'bg-primary/20' : statusBgClass(row.original.status) + ' hover:bg-base-200'}"
+              class="flex absolute w-full border-b border-base-300/50 items-center px-2 cursor-pointer {selected === row.original.md5 ? 'bg-primary/20' : statusBgClass(row.original.status) + ' hover:bg-base-200'}"
               style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
               on:click|stopPropagation={() => handleRowClick(row.original)}
               on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(row.original) }}

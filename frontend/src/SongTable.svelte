@@ -16,6 +16,8 @@
 
   const dispatch = createEventDispatcher<{ select: string; deselect: void }>()
 
+  export let selected: string | null = null
+
   const ROW_HEIGHT = 32
   const PAGE_SIZE = 5000
 
@@ -128,13 +130,19 @@
     <span class="text-sm font-semibold shrink-0">
       {#if loading}Loading...{:else}{totalCount.toLocaleString()} songs{/if}
     </span>
-    <input
-      type="text"
-      placeholder="検索..."
-      class="input input-xs input-bordered w-48"
-      bind:value={searchText}
-      on:input={handleSearchInput}
-    />
+    <div class="relative">
+      <input
+        type="text"
+        placeholder="検索..."
+        class="input input-xs input-bordered w-48 pr-6"
+        bind:value={searchText}
+        on:input={handleSearchInput}
+      />
+      {#if searchText}
+        <button class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle h-4 w-4 min-h-0 p-0"
+          on:click={() => { searchText = ''; doSearch() }}>✕</button>
+      {/if}
+    </div>
   </div>
 
   <!-- ヘッダー（スクロールしない） -->
@@ -187,7 +195,8 @@
           <div
             role="row"
             tabindex="0"
-            class="flex absolute w-full hover:bg-base-200 border-b border-base-300/50 items-center px-2 cursor-pointer"
+            class="flex absolute w-full border-b border-base-300/50 items-center px-2 cursor-pointer
+              {selected === row.original.folderHash ? 'bg-primary/20' : 'hover:bg-base-200'}"
             style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
             on:click|stopPropagation={() => dispatch('select', row.original.folderHash)}
             on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.original.folderHash) }}

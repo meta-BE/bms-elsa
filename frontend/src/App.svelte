@@ -76,8 +76,13 @@
 
   // 難易度表タブのハンドラ
   function handleEntrySelect(e: CustomEvent<{ md5: string; entry: main.DifficultyTableEntryDTO }>) {
-    selectedEntryMD5 = e.detail.md5
-    selectedEntryData = e.detail.entry
+    if (selectedEntryMD5 === e.detail.md5) {
+      selectedEntryMD5 = null
+      selectedEntryData = null
+    } else {
+      selectedEntryMD5 = e.detail.md5
+      selectedEntryData = e.detail.entry
+    }
   }
 
   function handleEntryDeselect() {
@@ -143,7 +148,7 @@
   <div bind:this={containerEl} class="flex-1 overflow-hidden p-4 flex flex-col" on:click={handleDeselect}>
     <!-- 楽曲一覧タブ -->
     <div class="overflow-hidden" class:hidden={activeTab !== 'songs'} style="flex: {selectedFolderHash ? splitRatio : 1}">
-      <SongTable on:select={handleSelect} on:deselect={handleDeselect} />
+      <SongTable selected={selectedFolderHash} on:select={handleSelect} on:deselect={handleDeselect} />
     </div>
     {#if selectedFolderHash}
       <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
@@ -162,7 +167,7 @@
 
     <!-- 譜面一覧タブ -->
     <div class="overflow-hidden" class:hidden={activeTab !== 'charts'} style="flex: {selectedChartMD5 ? splitRatio : 1}">
-      <ChartListView on:select={handleChartSelect} on:deselect={handleChartDeselect} />
+      <ChartListView selected={selectedChartMD5} on:select={handleChartSelect} on:deselect={handleChartDeselect} />
     </div>
     {#if selectedChartMD5}
       <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
@@ -181,7 +186,7 @@
 
     <!-- 難易度表タブ -->
     <div class="overflow-hidden" class:hidden={activeTab !== 'difficulty'} style="flex: {selectedEntryMD5 && selectedEntryData ? splitRatio : 1}">
-      <DifficultyTableView on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
+      <DifficultyTableView selected={selectedEntryMD5} on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
     </div>
     {#if selectedEntryMD5 && selectedEntryData}
       <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
