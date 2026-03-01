@@ -22,6 +22,13 @@
     dragging = false
     window.removeEventListener('mousemove', onDragMove)
     window.removeEventListener('mouseup', onDragEnd)
+    // ドラッグ終了直後のclickイベントがdeselectを発火するのを防ぐ
+    window.addEventListener('click', suppressClick, { capture: true, once: true })
+  }
+
+  function suppressClick(e: MouseEvent) {
+    e.stopPropagation()
+    e.preventDefault()
   }
 </script>
 
