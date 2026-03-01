@@ -66,7 +66,13 @@
       <div class="flex justify-between items-start">
         <div class="flex-1 min-w-0">
           <h2 class="text-lg font-bold truncate">{chart?.title ?? ''}</h2>
+          {#if chart?.subtitle}
+            <p class="text-sm text-base-content/50">{chart.subtitle}</p>
+          {/if}
           <p class="text-sm text-base-content/70">{chart?.artist ?? ''}</p>
+          {#if chart?.subArtist}
+            <p class="text-xs text-base-content/50">{chart.subArtist}</p>
+          {/if}
         </div>
         <button
           class="btn btn-ghost btn-xs shrink-0 ml-2"
