@@ -24,6 +24,7 @@ type Chart struct {
 	MD5        string
 	SHA256     string
 	Title      string
+	Subtitle   string
 	Artist     string
 	SubArtist  string
 	Genre      string

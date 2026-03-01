@@ -40,6 +40,9 @@ type ChartDTO struct {
 	MD5            string  `json:"md5"`
 	SHA256         string  `json:"sha256"`
 	Title          string  `json:"title"`
+	Subtitle       string  `json:"subtitle,omitempty"`
+	Artist         string  `json:"artist,omitempty"`
+	SubArtist      string  `json:"subArtist,omitempty"`
 	Mode           int     `json:"mode"`
 	Difficulty     int     `json:"difficulty"`
 	Level          int     `json:"level"`
@@ -59,7 +62,9 @@ type ChartDTO struct {
 type ChartListItemDTO struct {
 	MD5         string  `json:"md5"`
 	Title       string  `json:"title"`
+	Subtitle    string  `json:"subtitle,omitempty"`
 	Artist      string  `json:"artist"`
+	SubArtist   string  `json:"subArtist,omitempty"`
 	Genre       string  `json:"genre"`
 	MinBPM      float64 `json:"minBpm"`
 	MaxBPM      float64 `json:"maxBpm"`
@@ -111,6 +116,9 @@ func ChartToDTO(c model.Chart) ChartDTO {
 		MD5:        c.MD5,
 		SHA256:     c.SHA256,
 		Title:      c.Title,
+		Subtitle:   c.Subtitle,
+		Artist:     c.Artist,
+		SubArtist:  c.SubArtist,
 		Mode:       c.Mode,
 		Difficulty: c.Difficulty,
 		Level:      c.Level,
