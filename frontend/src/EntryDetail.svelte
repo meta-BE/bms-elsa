@@ -2,11 +2,12 @@
   import { createEventDispatcher } from 'svelte'
   import { GetChartDetailByMD5 } from '../wailsjs/go/main/App'
   import { LookupByMD5, UpdateChartMeta } from '../wailsjs/go/app/IRHandler'
-  import type { dto } from '../wailsjs/go/models'
+  import type { dto, main } from '../wailsjs/go/models'
 
   const dispatch = createEventDispatcher<{ close: void }>()
 
   export let md5: string
+  export let entryData: main.DifficultyTableEntryDTO
 
   let chart: dto.ChartDTO | null = null
   let loading = false
@@ -61,21 +62,48 @@
   </div>
 {:else}
   <div class="flex flex-col gap-3">
-    <!-- 譜面ヘッダー -->
+    <!-- エントリ基本情報 -->
     <div class="bg-base-200 rounded-lg p-3">
       <div class="flex justify-between items-start">
         <div class="flex-1 min-w-0">
-          <h2 class="text-lg font-bold truncate">{chart?.title ?? ''}</h2>
-          <p class="text-sm text-base-content/70">{chart?.artist ?? ''}</p>
+          <h2 class="text-lg font-bold truncate">{entryData.title}</h2>
+          <p class="text-sm text-base-content/70">{entryData.artist}</p>
+          <div class="flex items-center gap-2 mt-1">
+            <span class="badge badge-sm">Lv. {entryData.level}</span>
+            {#if !chart}
+              <span class="badge badge-sm badge-warning">未導入</span>
+            {:else if entryData.status === 'duplicate'}
+              <span class="badge badge-sm badge-warning">重複</span>
+            {:else}
+              <span class="badge badge-sm badge-success">導入済</span>
+            {/if}
+          </div>
         </div>
         <button
           class="btn btn-ghost btn-xs shrink-0 ml-2"
           on:click={() => dispatch('close')}
         >✕</button>
       </div>
+      {#if entryData.url || entryData.urlDiff}
+        <div class="divider my-1"></div>
+        <div class="text-xs space-y-1">
+          {#if entryData.url}
+            <p>
+              <span class="font-semibold">URL:</span>
+              <a href={entryData.url} target="_blank" rel="noopener noreferrer" class="link link-primary">{entryData.url}</a>
+            </p>
+          {/if}
+          {#if entryData.urlDiff}
+            <p>
+              <span class="font-semibold">差分URL:</span>
+              <a href={entryData.urlDiff} target="_blank" rel="noopener noreferrer" class="link link-primary">{entryData.urlDiff}</a>
+            </p>
+          {/if}
+        </div>
+      {/if}
     </div>
 
-    <!-- 譜面メタデータ -->
+    <!-- 譜面メタデータ（導入済の場合のみ） -->
     {#if chart}
       <div class="bg-base-200 rounded-lg p-3">
         <h3 class="text-sm font-semibold mb-2">譜面情報</h3>
@@ -132,12 +160,12 @@
             {/if}
             <div class="divider my-1"></div>
             <div class="flex gap-2 items-center">
-              <label class="font-semibold" for="chart-working-body-url">動作URL(本体):</label>
-              <input id="chart-working-body-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingBodyUrl} on:blur={saveWorkingUrls} />
+              <label class="font-semibold" for="entry-working-body-url">動作URL(本体):</label>
+              <input id="entry-working-body-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingBodyUrl} on:blur={saveWorkingUrls} />
             </div>
             <div class="flex gap-2 items-center">
-              <label class="font-semibold" for="chart-working-diff-url">動作URL(差分):</label>
-              <input id="chart-working-diff-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingDiffUrl} on:blur={saveWorkingUrls} />
+              <label class="font-semibold" for="entry-working-diff-url">動作URL(差分):</label>
+              <input id="entry-working-diff-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingDiffUrl} on:blur={saveWorkingUrls} />
             </div>
           </div>
         {:else}
