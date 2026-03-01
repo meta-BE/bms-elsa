@@ -25,6 +25,18 @@
 - [ ] 重複検知（同一md5の複数パス検出）
 
 ## IR・メタデータ
+- [ ] 楽曲メタデータ推測（event_mappingによるURL→EventName/ReleaseYear自動設定 + 手動確認フロー）
+  - 設計: docs/plans/2026-03-02-meta-inference-design.md
+  - 実装計画: docs/plans/2026-03-02-meta-inference-impl.md
+- [ ] IR一括取得: 未取得譜面のLR2IR情報を逐次取得する単機能
+  - 楽曲と譜面は1:Nなので、楽曲単位ではなく譜面単位でIR取得状況を管理する
+  - 既存のLookupIRUseCase（md5単位でLR2IRをHTTPスクレイピング→chart_metaにUpsert）を流用
+  - レートリミット: LR2IRClientに1秒/リクエストの制限が既にある。大量取得時もこれを厳守
+  - 対象: chart_metaにレコードがない or lr2ir_fetched_atがNULLの譜面
+  - UIイメージ: 楽曲一覧ヘッダーに「IR取得」ボタン → バックグラウンドで逐次取得、進捗表示（「取得中: 1234 / 5000」）
+  - 中断可能にする（ユーザーが「停止」を押せる）
+  - Wailsイベント（runtime.EventsEmit）で進捗をフロントに通知するのが良さそう
+  - メタ推測機能の前提条件として使う想定（IR URL取得済みの曲だけがマッチング対象になる）
 - [ ] URL書き換えルール（url_rewrite_rulesテーブル、ドメイン置換ロジック）
 - [ ] イベントページパース（イベント情報の自動取得）
 
