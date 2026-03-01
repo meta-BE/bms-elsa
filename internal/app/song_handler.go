@@ -34,6 +34,18 @@ func (h *SongHandler) ListSongs(page, pageSize int, sortBy string, sortDesc bool
 	return &dto.SongListDTO{Songs: rows, TotalCount: total, Page: page, PageSize: pageSize}, nil
 }
 
+func (h *SongHandler) ListAllSongs() ([]dto.SongRowDTO, error) {
+	songs, err := h.listSongs.ExecuteAll(h.ctx)
+	if err != nil {
+		return nil, err
+	}
+	rows := make([]dto.SongRowDTO, len(songs))
+	for i, s := range songs {
+		rows[i] = dto.SongToRowDTO(s)
+	}
+	return rows, nil
+}
+
 func (h *SongHandler) GetSongDetail(folderHash string) (*dto.SongDetailDTO, error) {
 	song, err := h.getSongDetail.Execute(h.ctx, folderHash)
 	if err != nil {

@@ -4,14 +4,14 @@
     flexRender,
     getCoreRowModel,
     getSortedRowModel,
+    getFilteredRowModel,
     type ColumnDef,
     type SortingState,
-    type TableOptions,
+    type FilterFn,
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
-  import { writable } from 'svelte/store'
   import { onMount, createEventDispatcher } from 'svelte'
-  import { ListSongs } from '../wailsjs/go/app/SongHandler'
+  import { ListAllSongs } from '../wailsjs/go/app/SongHandler'
   import type { dto } from '../wailsjs/go/models'
   import SearchInput from './SearchInput.svelte'
   import SortableHeader from './SortableHeader.svelte'
@@ -21,13 +21,21 @@
   export let selected: string | null = null
 
   const ROW_HEIGHT = 32
-  const PAGE_SIZE = 5000
 
-  let data: dto.SongRowDTO[] = []
-  let totalCount = 0
+  let songs: dto.SongRowDTO[] = []
   let loading = true
-  let searchText = ''
-  let debounceTimer: ReturnType<typeof setTimeout>
+  let globalFilter = ''
+
+  const searchFilter: FilterFn<dto.SongRowDTO> = (row, _columnId, filterValue) => {
+    const s = (filterValue as string).toLowerCase()
+    const item = row.original
+    return (
+      item.title.toLowerCase().includes(s) ||
+      item.artist.toLowerCase().includes(s) ||
+      item.genre.toLowerCase().includes(s) ||
+      (item.eventName || '').toLowerCase().includes(s)
+    )
+  }
 
   const columns: ColumnDef<dto.SongRowDTO>[] = [
     { accessorKey: 'title', header: 'Title', size: 300 },
@@ -55,23 +63,18 @@
 
   let sorting: SortingState = []
 
-  const options = writable<TableOptions<dto.SongRowDTO>>({
-    data,
+  $: table = createSvelteTable({
+    data: songs,
     columns,
-    state: { sorting },
+    state: { sorting, globalFilter },
     onSortingChange: (updater) => {
-      if (typeof updater === 'function') {
-        sorting = updater(sorting)
-      } else {
-        sorting = updater
-      }
-      options.update((o) => ({ ...o, state: { ...o.state, sorting } }))
+      sorting = typeof updater === 'function' ? updater(sorting) : updater
     },
+    globalFilterFn: searchFilter,
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
   })
-
-  const table = createSvelteTable(options)
 
   let scrollElement: HTMLDivElement
 
@@ -89,37 +92,13 @@
 
   onMount(async () => {
     try {
-      const result = await ListSongs(1, PAGE_SIZE, 'title', false, '')
-      data = result.songs || []
-      totalCount = result.totalCount
+      songs = (await ListAllSongs()) || []
     } catch (e) {
       console.error('Failed to load songs:', e)
-      data = []
     } finally {
       loading = false
     }
-    options.update((o) => ({ ...o, data }))
   })
-
-  async function doSearch() {
-    loading = true
-    try {
-      const result = await ListSongs(1, PAGE_SIZE, 'title', false, searchText)
-      data = result.songs || []
-      totalCount = result.totalCount
-    } catch (e) {
-      console.error('Failed to search songs:', e)
-      data = []
-    } finally {
-      loading = false
-    }
-    options.update((o) => ({ ...o, data }))
-  }
-
-  function handleSearchInput() {
-    clearTimeout(debounceTimer)
-    debounceTimer = setTimeout(doSearch, 300)
-  }
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -130,26 +109,26 @@
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
   <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2">
     <span class="text-sm font-semibold shrink-0">
-      {#if loading}Loading...{:else}{totalCount.toLocaleString()} songs{/if}
+      {#if loading}Loading...{:else}{rows.length.toLocaleString()} songs{/if}
     </span>
-    <SearchInput bind:value={searchText} on:input={handleSearchInput} on:clear={doSearch} />
+    <SearchInput bind:value={globalFilter} />
   </div>
 
-  <SortableHeader table={$table} />
+  {#if loading}
+    <div class="flex items-center justify-center flex-1">
+      <span class="loading loading-spinner"></span>
+    </div>
+  {:else}
+    <SortableHeader table={$table} />
 
-  <!-- 仮想スクロール領域 -->
-  <div
-    bind:this={scrollElement}
-    class="flex-1 overflow-auto"
-    role="grid"
-    tabindex="-1"
-    on:keydown={(e) => { if (e.key === 'Escape') dispatch('deselect') }}
-  >
-    {#if loading}
-      <div class="flex items-center justify-center h-32">
-        <span class="loading loading-spinner loading-md"></span>
-      </div>
-    {:else}
+    <!-- 仮想スクロール領域 -->
+    <div
+      bind:this={scrollElement}
+      class="flex-1 overflow-auto"
+      role="grid"
+      tabindex="-1"
+      on:keydown={(e) => { if (e.key === 'Escape') dispatch('deselect') }}
+    >
       <div style="height: {totalSize}px; position: relative;">
         {#each virtualItems as virtualRow (virtualRow.index)}
           {@const row = rows[virtualRow.index]}
@@ -175,6 +154,6 @@
           </div>
         {/each}
       </div>
-    {/if}
-  </div>
+    </div>
+  {/if}
 </div>

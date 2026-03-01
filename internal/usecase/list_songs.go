@@ -18,3 +18,7 @@ func NewListSongsUseCase(songRepo model.SongRepository) *ListSongsUseCase {
 func (u *ListSongsUseCase) Execute(ctx context.Context, opts model.ListOptions) ([]model.Song, int, error) {
 	return u.songRepo.ListSongs(ctx, opts)
 }
+
+func (u *ListSongsUseCase) ExecuteAll(ctx context.Context) ([]model.Song, error) {
+	return u.songRepo.ListAllSongs(ctx)
+}

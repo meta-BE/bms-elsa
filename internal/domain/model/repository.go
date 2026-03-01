@@ -20,6 +20,7 @@ type DuplicateGroup struct {
 // SongRepository はsongdata.dbから楽曲・譜面を読み取る（読み取り専用）
 type SongRepository interface {
 	ListSongs(ctx context.Context, opts ListOptions) ([]Song, int, error)
+	ListAllSongs(ctx context.Context) ([]Song, error)
 	GetSongByFolder(ctx context.Context, folderHash string) (*Song, error)
 }
 

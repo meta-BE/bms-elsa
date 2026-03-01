@@ -169,6 +169,87 @@ func (r *SongdataReader) ListSongs(ctx context.Context, opts model.ListOptions) 
 	return songs, totalCount, nil
 }
 
+// ListAllSongs は楽曲一覧を全件取得する（フロントエンドフィルタ用）
+func (r *SongdataReader) ListAllSongs(ctx context.Context) ([]model.Song, error) {
+	query := `
+		WITH
+		bpm_mode AS (
+			SELECT folder, minbpm AS min_bpm, maxbpm AS max_bpm
+			FROM (
+				SELECT folder, minbpm, maxbpm,
+					ROW_NUMBER() OVER (
+						PARTITION BY folder ORDER BY COUNT(*) DESC, minbpm
+					) AS rn
+				FROM songdata.song
+				GROUP BY folder, minbpm, maxbpm
+			)
+			WHERE rn = 1
+		),
+		song_groups AS (
+			SELECT
+				s.folder,
+				COALESCE(MIN(CASE WHEN s.title != '' THEN s.title END), '') AS title,
+				COALESCE(MIN(CASE WHEN s.artist != '' THEN s.artist END), '') AS artist,
+				COALESCE(MIN(CASE WHEN s.genre != '' THEN s.genre END), '') AS genre,
+				MIN(bm.min_bpm) AS min_bpm,
+				MIN(bm.max_bpm) AS max_bpm,
+				COUNT(*) AS chart_count
+			FROM songdata.song s
+			JOIN bpm_mode bm ON bm.folder = s.folder
+			GROUP BY s.folder
+		)
+		SELECT
+			sg.folder, sg.title, sg.artist, sg.genre,
+			sg.min_bpm, sg.max_bpm, sg.chart_count,
+			sm.release_year, sm.event_name,
+			EXISTS(
+				SELECT 1 FROM songdata.song ss
+				INNER JOIN main.chart_meta cm ON cm.md5 = ss.md5 AND cm.sha256 = ss.sha256
+				WHERE ss.folder = sg.folder
+			) AS has_ir_meta
+		FROM song_groups sg
+		LEFT JOIN main.song_meta sm ON sm.folder_hash = sg.folder
+		ORDER BY sg.title ASC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("ListAllSongs query: %w", err)
+	}
+	defer rows.Close()
+
+	var songs []model.Song
+	for rows.Next() {
+		var s model.Song
+		var releaseYear sql.NullInt64
+		var eventName sql.NullString
+
+		if err := rows.Scan(
+			&s.FolderHash, &s.Title, &s.Artist, &s.Genre,
+			&s.MinBPM, &s.MaxBPM, &s.ChartCount,
+			&releaseYear, &eventName,
+			&s.HasIRMeta,
+		); err != nil {
+			return nil, fmt.Errorf("ListAllSongs scan: %w", err)
+		}
+
+		if releaseYear.Valid {
+			v := int(releaseYear.Int64)
+			s.ReleaseYear = &v
+		}
+		if eventName.Valid {
+			s.EventName = &eventName.String
+		}
+		songs = append(songs, s)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("ListAllSongs rows: %w", err)
+	}
+
+	return songs, nil
+}
+
 func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string) (*model.Song, error) {
 	// 全譜面を取得
 	rows, err := r.db.QueryContext(ctx, `

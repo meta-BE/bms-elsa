@@ -20,6 +20,11 @@ func (m *mockSongRepo) ListSongs(ctx context.Context, opts model.ListOptions) ([
 	return m.listSongsFunc(ctx, opts)
 }
 
+func (m *mockSongRepo) ListAllSongs(ctx context.Context) ([]model.Song, error) {
+	songs, _, err := m.listSongsFunc(ctx, model.ListOptions{})
+	return songs, err
+}
+
 func (m *mockSongRepo) GetSongByFolder(ctx context.Context, folderHash string) (*model.Song, error) {
 	return m.getSongByFolderFunc(ctx, folderHash)
 }
