@@ -5,12 +5,11 @@
   import ChartDetail from './ChartDetail.svelte'
   import ChartListView from './ChartListView.svelte'
   import EntryDetail from './EntryDetail.svelte'
+  import SplitPane from './SplitPane.svelte'
   import Settings from './Settings.svelte'
   import type { main } from '../wailsjs/go/models'
 
   let settingsComponent: Settings
-  let containerEl: HTMLDivElement
-  let dragging = false
   let splitRatio = 0.6
 
   // タブ状態
@@ -90,26 +89,6 @@
     selectedEntryData = null
   }
 
-  // ドラッグリサイズ
-  function onDragStart(e: MouseEvent) {
-    e.preventDefault()
-    dragging = true
-    window.addEventListener('mousemove', onDragMove)
-    window.addEventListener('mouseup', onDragEnd)
-  }
-
-  function onDragMove(e: MouseEvent) {
-    if (!dragging || !containerEl) return
-    const rect = containerEl.getBoundingClientRect()
-    splitRatio = Math.max(0.2, Math.min(0.8, (e.clientY - rect.top) / rect.height))
-  }
-
-  function onDragEnd() {
-    dragging = false
-    window.removeEventListener('mousemove', onDragMove)
-    window.removeEventListener('mouseup', onDragEnd)
-  }
-
 </script>
 
 <div data-theme="emerald" class="h-full flex flex-col">
@@ -145,63 +124,36 @@
   </div>
 
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <div bind:this={containerEl} class="flex-1 overflow-hidden p-4 flex flex-col" on:click={handleDeselect}>
+  <div class="flex-1 overflow-hidden p-4" on:click={handleDeselect}>
     <!-- 楽曲一覧タブ -->
-    <div class="overflow-hidden" class:hidden={activeTab !== 'songs'} style="flex: {selectedFolderHash ? splitRatio : 1}">
-      <SongTable selected={selectedFolderHash} on:select={handleSelect} on:deselect={handleDeselect} />
+    <div class="h-full" class:hidden={activeTab !== 'songs'}>
+      <SplitPane showDetail={!!selectedFolderHash} bind:splitRatio>
+        <SongTable slot="list" selected={selectedFolderHash} on:select={handleSelect} on:deselect={handleDeselect} />
+        {#if selectedFolderHash}
+          <SongDetail slot="detail" folderHash={selectedFolderHash} on:close={handleClose} />
+        {/if}
+      </SplitPane>
     </div>
-    {#if selectedFolderHash}
-      <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
-      <div
-        class="h-1 shrink-0 cursor-row-resize bg-base-300 hover:bg-primary/30 transition-colors my-1 rounded"
-        class:hidden={activeTab !== 'songs'}
-        on:mousedown={onDragStart}
-        role="separator"
-        tabindex="0"
-      ></div>
-      <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-      <div class="overflow-y-auto" class:hidden={activeTab !== 'songs'} style="flex: {1 - splitRatio}" on:click|stopPropagation>
-        <SongDetail folderHash={selectedFolderHash} on:close={handleClose} />
-      </div>
-    {/if}
 
     <!-- 譜面一覧タブ -->
-    <div class="overflow-hidden" class:hidden={activeTab !== 'charts'} style="flex: {selectedChartMD5 ? splitRatio : 1}">
-      <ChartListView selected={selectedChartMD5} on:select={handleChartSelect} on:deselect={handleChartDeselect} />
+    <div class="h-full" class:hidden={activeTab !== 'charts'}>
+      <SplitPane showDetail={!!selectedChartMD5} bind:splitRatio>
+        <ChartListView slot="list" selected={selectedChartMD5} on:select={handleChartSelect} on:deselect={handleChartDeselect} />
+        {#if selectedChartMD5}
+          <ChartDetail slot="detail" md5={selectedChartMD5} on:close={() => { selectedChartMD5 = null }} />
+        {/if}
+      </SplitPane>
     </div>
-    {#if selectedChartMD5}
-      <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
-      <div
-        class="h-1 shrink-0 cursor-row-resize bg-base-300 hover:bg-primary/30 transition-colors my-1 rounded"
-        class:hidden={activeTab !== 'charts'}
-        on:mousedown={onDragStart}
-        role="separator"
-        tabindex="0"
-      ></div>
-      <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-      <div class="overflow-y-auto" class:hidden={activeTab !== 'charts'} style="flex: {1 - splitRatio}" on:click|stopPropagation>
-        <ChartDetail md5={selectedChartMD5} on:close={() => { selectedChartMD5 = null }} />
-      </div>
-    {/if}
 
     <!-- 難易度表タブ -->
-    <div class="overflow-hidden" class:hidden={activeTab !== 'difficulty'} style="flex: {selectedEntryMD5 && selectedEntryData ? splitRatio : 1}">
-      <DifficultyTableView selected={selectedEntryMD5} on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
+    <div class="h-full" class:hidden={activeTab !== 'difficulty'}>
+      <SplitPane showDetail={!!(selectedEntryMD5 && selectedEntryData)} bind:splitRatio>
+        <DifficultyTableView slot="list" selected={selectedEntryMD5} on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
+        {#if selectedEntryMD5 && selectedEntryData}
+          <EntryDetail slot="detail" md5={selectedEntryMD5} entryData={selectedEntryData} on:close={handleClose} />
+        {/if}
+      </SplitPane>
     </div>
-    {#if selectedEntryMD5 && selectedEntryData}
-      <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
-      <div
-        class="h-1 shrink-0 cursor-row-resize bg-base-300 hover:bg-primary/30 transition-colors my-1 rounded"
-        class:hidden={activeTab !== 'difficulty'}
-        on:mousedown={onDragStart}
-        role="separator"
-        tabindex="0"
-      ></div>
-      <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-      <div class="overflow-y-auto" class:hidden={activeTab !== 'difficulty'} style="flex: {1 - splitRatio}" on:click|stopPropagation>
-        <EntryDetail md5={selectedEntryMD5} entryData={selectedEntryData} on:close={handleClose} />
-      </div>
-    {/if}
   </div>
   <Settings bind:this={settingsComponent} />
 </div>
