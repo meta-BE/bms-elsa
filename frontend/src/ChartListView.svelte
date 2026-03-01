@@ -4,9 +4,11 @@
     createSvelteTable,
     getCoreRowModel,
     getSortedRowModel,
+    getFilteredRowModel,
     flexRender,
     type ColumnDef,
     type SortingState,
+    type FilterFn,
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { ListCharts } from '../wailsjs/go/main/App'
@@ -22,6 +24,19 @@
   let selectedMD5: string | null = null
   let scrollElement: HTMLDivElement
   let sorting: SortingState = []
+  let globalFilter = ''
+
+  const searchFilter: FilterFn<dto.ChartListItemDTO> = (row, _columnId, filterValue) => {
+    const s = (filterValue as string).toLowerCase()
+    const item = row.original
+    return (
+      item.title.toLowerCase().includes(s) ||
+      (item.subtitle || '').toLowerCase().includes(s) ||
+      item.artist.toLowerCase().includes(s) ||
+      (item.subArtist || '').toLowerCase().includes(s) ||
+      item.genre.toLowerCase().includes(s)
+    )
+  }
 
   const ROW_HEIGHT = 48
   const columns: ColumnDef<dto.ChartListItemDTO>[] = [
@@ -62,11 +77,13 @@
   $: table = createSvelteTable({
     data: charts,
     columns,
-    state: { sorting },
+    state: { sorting, globalFilter },
     onSortingChange: (updater) => {
       sorting = typeof updater === 'function' ? updater(sorting) : updater
     },
+    globalFilterFn: searchFilter,
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
   })
 
@@ -107,10 +124,17 @@
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div class="flex flex-col h-full" on:click={() => dispatch('deselect')}>
   <!-- ヘッダー -->
-  <div class="flex items-center gap-2 px-4 py-2 bg-base-100 shrink-0">
-    <span class="text-sm text-base-content/70">
-      {charts.length} 譜面
+  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <div class="flex items-center justify-between gap-2 px-4 py-2 bg-base-100 shrink-0" on:click|stopPropagation>
+    <span class="text-sm text-base-content/70 shrink-0">
+      {rows.length} 譜面
     </span>
+    <input
+      type="text"
+      placeholder="検索..."
+      class="input input-xs input-bordered w-48"
+      bind:value={globalFilter}
+    />
   </div>
 
   {#if loading}
