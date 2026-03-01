@@ -256,7 +256,9 @@ func (a *App) ListCharts() ([]dto.ChartListItemDTO, error) {
 		result[i] = dto.ChartListItemDTO{
 			MD5:        c.MD5,
 			Title:      c.Title,
+			Subtitle:   c.Subtitle,
 			Artist:     c.Artist,
+			SubArtist:  c.SubArtist,
 			Genre:      c.Genre,
 			MinBPM:     c.MinBPM,
 			MaxBPM:     c.MaxBPM,

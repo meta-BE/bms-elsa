@@ -173,7 +173,7 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 	// 全譜面を取得
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT
-			s.md5, s.sha256, s.title, s.artist, COALESCE(s.subartist, ''),
+			s.md5, s.sha256, s.title, COALESCE(s.subtitle, ''), s.artist, COALESCE(s.subartist, ''),
 			s.genre, s.mode, s.difficulty, s.level,
 			s.minbpm, s.maxbpm, s.path
 		FROM songdata.song s
@@ -189,7 +189,7 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 	for rows.Next() {
 		var c model.Chart
 		if err := rows.Scan(
-			&c.MD5, &c.SHA256, &c.Title, &c.Artist, &c.SubArtist,
+			&c.MD5, &c.SHA256, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist,
 			&c.Genre, &c.Mode, &c.Difficulty, &c.Level,
 			&c.MinBPM, &c.MaxBPM, &c.Path,
 		); err != nil {
@@ -303,7 +303,9 @@ func (r *SongdataReader) CountChartsByMD5s(ctx context.Context, md5s []string) (
 type ChartListItem struct {
 	MD5         string
 	Title       string
+	Subtitle    string
 	Artist      string
+	SubArtist   string
 	Genre       string
 	MinBPM      float64
 	MaxBPM      float64
@@ -319,7 +321,9 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 		SELECT
 			s.md5,
 			s.title,
+			COALESCE(s.subtitle, ''),
 			s.artist,
+			COALESCE(s.subartist, ''),
 			s.genre,
 			s.minbpm,
 			s.maxbpm,
@@ -347,7 +351,7 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 		var eventName sql.NullString
 		var releaseYear sql.NullInt64
 		if err := rows.Scan(
-			&c.MD5, &c.Title, &c.Artist, &c.Genre,
+			&c.MD5, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist, &c.Genre,
 			&c.MinBPM, &c.MaxBPM, &c.Difficulty,
 			&eventName, &releaseYear, &c.HasIRMeta,
 		); err != nil {
@@ -369,13 +373,13 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5 string) (*model.Chart, error) {
 	var c model.Chart
 	err := r.db.QueryRowContext(ctx, `
-		SELECT md5, sha256, title, artist, COALESCE(subartist, ''),
+		SELECT md5, sha256, title, COALESCE(subtitle, ''), artist, COALESCE(subartist, ''),
 			genre, mode, difficulty, level, minbpm, maxbpm, path
 		FROM songdata.song
 		WHERE md5 = ?
 		LIMIT 1
 	`, md5).Scan(
-		&c.MD5, &c.SHA256, &c.Title, &c.Artist, &c.SubArtist,
+		&c.MD5, &c.SHA256, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist,
 		&c.Genre, &c.Mode, &c.Difficulty, &c.Level,
 		&c.MinBPM, &c.MaxBPM, &c.Path,
 	)
