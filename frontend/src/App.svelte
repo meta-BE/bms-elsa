@@ -3,6 +3,8 @@
   import SongDetail from './SongDetail.svelte'
   import DifficultyTableView from './DifficultyTableView.svelte'
   import ChartDetail from './ChartDetail.svelte'
+  import ChartListView from './ChartListView.svelte'
+  import EntryDetail from './EntryDetail.svelte'
   import Settings from './Settings.svelte'
   import type { main } from '../wailsjs/go/models'
 
@@ -12,16 +14,19 @@
   let splitRatio = 0.6
 
   // タブ状態
-  let activeTab: 'songs' | 'difficulty' = 'songs'
+  let activeTab: 'songs' | 'charts' | 'difficulty' = 'songs'
 
   // 楽曲タブの選択状態
   let selectedFolderHash: string | null = null
+
+  // 譜面タブの選択状態
+  let selectedChartMD5: string | null = null
 
   // 難易度表タブの選択状態
   let selectedEntryMD5: string | null = null
   let selectedEntryData: main.DifficultyTableEntryDTO | null = null
 
-  function switchTab(tab: 'songs' | 'difficulty') {
+  function switchTab(tab: 'songs' | 'charts' | 'difficulty') {
     activeTab = tab
   }
 
@@ -37,6 +42,8 @@
   function handleDeselect() {
     if (activeTab === 'songs') {
       selectedFolderHash = null
+    } else if (activeTab === 'charts') {
+      selectedChartMD5 = null
     } else {
       selectedEntryMD5 = null
       selectedEntryData = null
@@ -46,10 +53,25 @@
   function handleClose() {
     if (activeTab === 'songs') {
       selectedFolderHash = null
+    } else if (activeTab === 'charts') {
+      selectedChartMD5 = null
     } else {
       selectedEntryMD5 = null
       selectedEntryData = null
     }
+  }
+
+  // 譜面タブのハンドラ
+  function handleChartSelect(e: CustomEvent<{ md5: string }>) {
+    if (selectedChartMD5 === e.detail.md5) {
+      selectedChartMD5 = null
+    } else {
+      selectedChartMD5 = e.detail.md5
+    }
+  }
+
+  function handleChartDeselect() {
+    selectedChartMD5 = null
   }
 
   // 難易度表タブのハンドラ
@@ -107,6 +129,11 @@
     >楽曲一覧</button>
     <button
       class="tab"
+      class:tab-active={activeTab === 'charts'}
+      on:click={() => switchTab('charts')}
+    >譜面一覧</button>
+    <button
+      class="tab"
       class:tab-active={activeTab === 'difficulty'}
       on:click={() => switchTab('difficulty')}
     >難易度表</button>
@@ -133,6 +160,25 @@
       </div>
     {/if}
 
+    <!-- 譜面一覧タブ -->
+    <div class="overflow-hidden" class:hidden={activeTab !== 'charts'} style="flex: {selectedChartMD5 ? splitRatio : 1}">
+      <ChartListView on:select={handleChartSelect} on:deselect={handleChartDeselect} />
+    </div>
+    {#if selectedChartMD5}
+      <!-- svelte-ignore a11y-no-noninteractive-tabindex a11y-no-noninteractive-element-interactions -->
+      <div
+        class="h-1 shrink-0 cursor-row-resize bg-base-300 hover:bg-primary/30 transition-colors my-1 rounded"
+        class:hidden={activeTab !== 'charts'}
+        on:mousedown={onDragStart}
+        role="separator"
+        tabindex="0"
+      ></div>
+      <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+      <div class="overflow-y-auto" class:hidden={activeTab !== 'charts'} style="flex: {1 - splitRatio}" on:click|stopPropagation>
+        <ChartDetail md5={selectedChartMD5} on:close={() => { selectedChartMD5 = null }} />
+      </div>
+    {/if}
+
     <!-- 難易度表タブ -->
     <div class="overflow-hidden" class:hidden={activeTab !== 'difficulty'} style="flex: {selectedEntryMD5 && selectedEntryData ? splitRatio : 1}">
       <DifficultyTableView on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
@@ -148,7 +194,7 @@
       ></div>
       <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
       <div class="overflow-y-auto" class:hidden={activeTab !== 'difficulty'} style="flex: {1 - splitRatio}" on:click|stopPropagation>
-        <ChartDetail md5={selectedEntryMD5} entryData={selectedEntryData} on:close={handleClose} />
+        <EntryDetail md5={selectedEntryMD5} entryData={selectedEntryData} on:close={handleClose} />
       </div>
     {/if}
   </div>
