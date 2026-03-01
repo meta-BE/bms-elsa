@@ -13,6 +13,7 @@
   import { onMount, createEventDispatcher } from 'svelte'
   import { ListSongs } from '../wailsjs/go/app/SongHandler'
   import type { dto } from '../wailsjs/go/models'
+  import SearchInput from './SearchInput.svelte'
 
   const dispatch = createEventDispatcher<{ select: string; deselect: void }>()
 
@@ -130,19 +131,7 @@
     <span class="text-sm font-semibold shrink-0">
       {#if loading}Loading...{:else}{totalCount.toLocaleString()} songs{/if}
     </span>
-    <div class="relative">
-      <input
-        type="text"
-        placeholder="検索..."
-        class="input input-xs input-bordered w-48 pr-6"
-        bind:value={searchText}
-        on:input={handleSearchInput}
-      />
-      {#if searchText}
-        <button class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle h-4 w-4 min-h-0 p-0"
-          on:click={() => { searchText = ''; doSearch() }}>✕</button>
-      {/if}
-    </div>
+    <SearchInput bind:value={searchText} on:input={handleSearchInput} on:clear={doSearch} />
   </div>
 
   <!-- ヘッダー（スクロールしない） -->

@@ -13,6 +13,7 @@
   import { onMount, createEventDispatcher } from 'svelte'
   import { ListDifficultyTables, ListDifficultyTableEntries } from '../wailsjs/go/main/App'
   import type { main } from '../wailsjs/go/models'
+  import SearchInput from './SearchInput.svelte'
 
   const dispatch = createEventDispatcher<{
     select: { md5: string; entry: main.DifficultyTableEntryDTO }
@@ -170,19 +171,7 @@
         {/each}
       </select>
       <span class="text-sm font-semibold shrink-0">{rows.length} entries</span>
-      <div class="relative">
-        <input
-          type="text"
-          placeholder="検索..."
-          class="input input-xs input-bordered w-48 pr-6"
-          bind:value={searchText}
-          on:input={applyFilter}
-        />
-        {#if searchText}
-          <button class="absolute right-1 top-1/2 -translate-y-1/2 btn btn-ghost btn-xs btn-circle h-4 w-4 min-h-0 p-0"
-            on:click={() => { searchText = ''; applyFilter() }}>✕</button>
-        {/if}
-      </div>
+      <SearchInput bind:value={searchText} on:input={applyFilter} on:clear={applyFilter} />
     {/if}
   </div>
 
