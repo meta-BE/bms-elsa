@@ -131,7 +131,11 @@ func (r *DifficultyTableRepository) ListEntries(ctx context.Context, tableID int
 		SELECT table_id, md5, level, COALESCE(title, ''), COALESCE(artist, ''), COALESCE(url, ''), COALESCE(url_diff, '')
 		FROM difficulty_table_entry
 		WHERE table_id = ?
-		ORDER BY level, title
+		ORDER BY
+			CASE WHEN CAST(level AS INTEGER) = 0 AND level != '0' THEN 1 ELSE 0 END,
+			CAST(level AS INTEGER),
+			level,
+			title, artist
 	`, tableID)
 	if err != nil {
 		return nil, err

@@ -125,9 +125,9 @@
 <div class="h-full flex flex-col bg-base-100 rounded-lg border border-base-300" on:click={() => dispatch('deselect')}>
   <!-- ヘッダー -->
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2" on:click|stopPropagation>
-    <span class="text-sm text-base-content/70 shrink-0">
-      {rows.length} 譜面
+  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2">
+    <span class="text-sm font-semibold shrink-0">
+      {rows.length.toLocaleString()} charts
     </span>
     <SearchInput bind:value={globalFilter} />
   </div>

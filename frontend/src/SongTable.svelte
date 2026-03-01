@@ -128,7 +128,7 @@
   on:click={() => dispatch('deselect')}
 >
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2" on:click|stopPropagation>
+  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2">
     <span class="text-sm font-semibold shrink-0">
       {#if loading}Loading...{:else}{totalCount.toLocaleString()} songs{/if}
     </span>

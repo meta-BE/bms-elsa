@@ -12,7 +12,8 @@
   }
 </script>
 
-<div class="relative">
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+<div class="relative" on:click|stopPropagation>
   <input
     type="text"
     {placeholder}

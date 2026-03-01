@@ -105,21 +105,22 @@
   </div>
 
   <!-- タブバー -->
-  <div class="tabs tabs-bordered bg-base-100 px-4 shrink-0">
+  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <div class="tabs tabs-bordered bg-base-100 px-4 shrink-0" on:click={handleDeselect}>
     <button
       class="tab"
       class:tab-active={activeTab === 'songs'}
-      on:click={() => switchTab('songs')}
+      on:click|stopPropagation={() => switchTab('songs')}
     >楽曲一覧</button>
     <button
       class="tab"
       class:tab-active={activeTab === 'charts'}
-      on:click={() => switchTab('charts')}
+      on:click|stopPropagation={() => switchTab('charts')}
     >譜面一覧</button>
     <button
       class="tab"
       class:tab-active={activeTab === 'difficulty'}
-      on:click={() => switchTab('difficulty')}
+      on:click|stopPropagation={() => switchTab('difficulty')}
     >難易度表</button>
   </div>
 
@@ -129,9 +130,11 @@
     <div class="h-full" class:hidden={activeTab !== 'songs'}>
       <SplitPane showDetail={!!selectedFolderHash} bind:splitRatio>
         <SongTable slot="list" selected={selectedFolderHash} on:select={handleSelect} on:deselect={handleDeselect} />
-        {#if selectedFolderHash}
-          <SongDetail slot="detail" folderHash={selectedFolderHash} on:close={handleClose} />
-        {/if}
+        <svelte:fragment slot="detail">
+          {#if selectedFolderHash}
+            <SongDetail folderHash={selectedFolderHash} on:close={handleClose} />
+          {/if}
+        </svelte:fragment>
       </SplitPane>
     </div>
 
@@ -139,9 +142,11 @@
     <div class="h-full" class:hidden={activeTab !== 'charts'}>
       <SplitPane showDetail={!!selectedChartMD5} bind:splitRatio>
         <ChartListView slot="list" selected={selectedChartMD5} on:select={handleChartSelect} on:deselect={handleChartDeselect} />
-        {#if selectedChartMD5}
-          <ChartDetail slot="detail" md5={selectedChartMD5} on:close={() => { selectedChartMD5 = null }} />
-        {/if}
+        <svelte:fragment slot="detail">
+          {#if selectedChartMD5}
+            <ChartDetail md5={selectedChartMD5} on:close={() => { selectedChartMD5 = null }} />
+          {/if}
+        </svelte:fragment>
       </SplitPane>
     </div>
 
@@ -149,9 +154,11 @@
     <div class="h-full" class:hidden={activeTab !== 'difficulty'}>
       <SplitPane showDetail={!!(selectedEntryMD5 && selectedEntryData)} bind:splitRatio>
         <DifficultyTableView slot="list" selected={selectedEntryMD5} on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
-        {#if selectedEntryMD5 && selectedEntryData}
-          <EntryDetail slot="detail" md5={selectedEntryMD5} entryData={selectedEntryData} on:close={handleClose} />
-        {/if}
+        <svelte:fragment slot="detail">
+          {#if selectedEntryMD5 && selectedEntryData}
+            <EntryDetail md5={selectedEntryMD5} entryData={selectedEntryData} on:close={handleClose} />
+          {/if}
+        </svelte:fragment>
       </SplitPane>
     </div>
   </div>

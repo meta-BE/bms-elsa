@@ -32,7 +32,16 @@
   let searchText = ''
 
   const columns: ColumnDef<main.DifficultyTableEntryDTO>[] = [
-    { accessorKey: 'level', header: 'Level', size: 80 },
+    {
+      accessorKey: 'level',
+      header: 'Level',
+      size: 80,
+      sortingFn: (rowA, rowB, columnId) => {
+        const a = Number(rowA.getValue(columnId)) || 0
+        const b = Number(rowB.getValue(columnId)) || 0
+        return a - b
+      },
+    },
     { accessorKey: 'title', header: 'Title', size: 300 },
     { accessorKey: 'artist', header: 'Artist', size: 200 },
     {
@@ -156,22 +165,24 @@
   on:click={() => dispatch('deselect')}
 >
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2" on:click|stopPropagation>
+  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2">
     {#if loading}
       <span class="text-sm font-semibold">Loading...</span>
     {:else if tables.length === 0}
       <span class="text-sm text-base-content/50">Settings画面から難易度表を追加してください</span>
     {:else}
+      <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
       <select
         class="select select-bordered select-sm"
         value={selectedTableId}
         on:change={handleTableChange}
+        on:click|stopPropagation
       >
         {#each tables as t}
           <option value={t.id}>{t.symbol} {t.name} ({t.entryCount})</option>
         {/each}
       </select>
-      <span class="text-sm font-semibold shrink-0">{rows.length} entries</span>
+      <span class="text-sm font-semibold shrink-0">{rows.length.toLocaleString()} charts</span>
       <SearchInput bind:value={searchText} on:input={applyFilter} on:clear={applyFilter} />
     {/if}
   </div>
