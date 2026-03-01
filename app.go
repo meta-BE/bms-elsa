@@ -245,6 +245,34 @@ func (a *App) ListDifficultyTableEntries(tableID int) ([]DifficultyTableEntryDTO
 	return result, nil
 }
 
+// ListCharts はsongdata.dbの全譜面一覧を返す
+func (a *App) ListCharts() ([]dto.ChartListItemDTO, error) {
+	charts, err := a.songReader.ListAllCharts(a.ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]dto.ChartListItemDTO, len(charts))
+	for i, c := range charts {
+		result[i] = dto.ChartListItemDTO{
+			MD5:        c.MD5,
+			Title:      c.Title,
+			Artist:     c.Artist,
+			Genre:      c.Genre,
+			MinBPM:     c.MinBPM,
+			MaxBPM:     c.MaxBPM,
+			Difficulty: c.Difficulty,
+			HasIRMeta:  c.HasIRMeta,
+		}
+		if c.EventName != nil {
+			result[i].EventName = *c.EventName
+		}
+		if c.ReleaseYear != nil {
+			result[i].ReleaseYear = *c.ReleaseYear
+		}
+	}
+	return result, nil
+}
+
 func (a *App) GetChartDetailByMD5(md5 string) (*dto.ChartDTO, error) {
 	chart, err := a.songReader.GetChartByMD5(a.ctx, md5)
 	if err != nil {
