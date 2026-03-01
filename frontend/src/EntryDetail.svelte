@@ -67,7 +67,13 @@
       <div class="flex justify-between items-start">
         <div class="flex-1 min-w-0">
           <h2 class="text-lg font-bold truncate">{entryData.title}</h2>
+          {#if chart?.subtitle}
+            <p class="text-sm text-base-content/50">{chart.subtitle}</p>
+          {/if}
           <p class="text-sm text-base-content/70">{entryData.artist}</p>
+          {#if chart?.subArtist}
+            <p class="text-xs text-base-content/50">{chart.subArtist}</p>
+          {/if}
           <div class="flex items-center gap-2 mt-1">
             <span class="badge badge-sm">Lv. {entryData.level}</span>
             {#if !chart}
