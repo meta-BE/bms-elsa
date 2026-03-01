@@ -27,6 +27,7 @@
   let loading = false
   let loadingEntries = false
   let selectedMD5: string | null = null
+  let searchText = ''
 
   const columns: ColumnDef<main.DifficultyTableEntryDTO>[] = [
     { accessorKey: 'level', header: 'Level', size: 80 },
@@ -111,13 +112,23 @@
     } finally {
       loadingEntries = false
     }
-    options.update((o) => ({ ...o, data: entries }))
+  }
+
+  $: {
+    const filtered = searchText
+      ? entries.filter(e => {
+          const s = searchText.toLowerCase()
+          return e.title.toLowerCase().includes(s) || e.artist.toLowerCase().includes(s)
+        })
+      : entries
+    options.update((o) => ({ ...o, data: filtered }))
   }
 
   async function handleTableChange(e: Event) {
     const target = e.target as HTMLSelectElement
     const id = Number(target.value)
     selectedTableId = id
+    searchText = ''
     dispatch('deselect')
     await loadEntries(id)
   }
@@ -144,7 +155,8 @@
   class="h-full flex flex-col bg-base-100 rounded-lg border border-base-300"
   on:click={() => dispatch('deselect')}
 >
-  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2">
+  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+  <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2" on:click|stopPropagation>
     {#if loading}
       <span class="text-sm font-semibold">Loading...</span>
     {:else if tables.length === 0}
@@ -159,7 +171,13 @@
           <option value={t.id}>{t.symbol} {t.name} ({t.entryCount})</option>
         {/each}
       </select>
-      <span class="text-sm font-semibold">{entries.length} entries</span>
+      <span class="text-sm font-semibold shrink-0">{rows.length} entries</span>
+      <input
+        type="text"
+        placeholder="検索..."
+        class="input input-xs input-bordered w-48"
+        bind:value={searchText}
+      />
     {/if}
   </div>
 
