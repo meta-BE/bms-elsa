@@ -264,6 +264,40 @@ func TestListSongs_DefaultPageSize(t *testing.T) {
 	}
 }
 
+func TestListAllCharts(t *testing.T) {
+	reader, _ := setupSongdataReader(t)
+	ctx := context.Background()
+
+	charts, err := reader.ListAllCharts(ctx)
+	if err != nil {
+		t.Fatalf("ListAllCharts failed: %v", err)
+	}
+
+	// testdata/songdata.db に譜面が存在すること
+	if len(charts) == 0 {
+		t.Fatal("expected charts, got 0")
+	}
+
+	// 各譜面にMD5があること
+	for i, c := range charts {
+		if c.MD5 == "" {
+			t.Errorf("charts[%d].MD5 is empty", i)
+		}
+	}
+
+	// タイトルが非空の譜面が存在すること
+	hasTitle := false
+	for _, c := range charts {
+		if c.Title != "" {
+			hasTitle = true
+			break
+		}
+	}
+	if !hasTitle {
+		t.Error("expected at least one chart with non-empty Title")
+	}
+}
+
 // songTitles はデバッグ用にSongのタイトル一覧を返す
 func songTitles(songs []model.Song) []string {
 	titles := make([]string, len(songs))
