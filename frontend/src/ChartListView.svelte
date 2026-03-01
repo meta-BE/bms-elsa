@@ -23,7 +23,7 @@
   let scrollElement: HTMLDivElement
   let sorting: SortingState = []
 
-  const ROW_HEIGHT = 32
+  const ROW_HEIGHT = 48
   const columns: ColumnDef<dto.ChartListItemDTO>[] = [
     { accessorKey: 'title', header: 'Title', size: 300 },
     { accessorKey: 'artist', header: 'Artist', size: 200 },
@@ -173,9 +173,17 @@
                 class="px-2 truncate"
                 style="width: {cell.column.getSize()}px; min-width: {cell.column.getSize()}px"
               >
-                <svelte:component
-                  this={flexRender(cell.column.columnDef.cell, cell.getContext())}
-                />
+                {#if cell.column.id === 'title'}
+                  <div class="truncate">{cell.row.original.title}</div>
+                  <div class="truncate text-[10px] text-base-content/50">{cell.row.original.subtitle || ''}</div>
+                {:else if cell.column.id === 'artist'}
+                  <div class="truncate">{cell.row.original.artist}</div>
+                  <div class="truncate text-[10px] text-base-content/50">{cell.row.original.subArtist || ''}</div>
+                {:else}
+                  <svelte:component
+                    this={flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  />
+                {/if}
               </div>
             {/each}
           </div>
