@@ -50,12 +50,12 @@ func (r *ElsaRepository) UpsertSongMeta(ctx context.Context, meta model.SongMeta
 	return err
 }
 
-func (r *ElsaRepository) GetChartMeta(ctx context.Context, md5, sha256 string) (*model.ChartIRMeta, error) {
+func (r *ElsaRepository) GetChartMeta(ctx context.Context, md5 string) (*model.ChartIRMeta, error) {
 	row := r.db.QueryRowContext(ctx,
 		`SELECT md5, sha256, lr2ir_tags, lr2ir_body_url, lr2ir_diff_url, lr2ir_notes,
 		        lr2ir_fetched_at, working_body_url, working_diff_url
-		 FROM chart_meta WHERE md5 = ? AND sha256 = ?`,
-		md5, sha256,
+		 FROM chart_meta WHERE md5 = ?`,
+		md5,
 	)
 
 	var m model.ChartIRMeta
@@ -99,7 +99,8 @@ func (r *ElsaRepository) UpsertChartMeta(ctx context.Context, meta model.ChartIR
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO chart_meta (md5, sha256, lr2ir_tags, lr2ir_body_url, lr2ir_diff_url, lr2ir_notes, lr2ir_fetched_at, working_body_url, working_diff_url)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		 ON CONFLICT(md5, sha256) DO UPDATE SET
+		 ON CONFLICT(md5) DO UPDATE SET
+		   sha256           = COALESCE(NULLIF(excluded.sha256, ''), chart_meta.sha256),
 		   lr2ir_tags       = excluded.lr2ir_tags,
 		   lr2ir_body_url   = excluded.lr2ir_body_url,
 		   lr2ir_diff_url   = excluded.lr2ir_diff_url,
@@ -115,14 +116,14 @@ func (r *ElsaRepository) UpsertChartMeta(ctx context.Context, meta model.ChartIR
 	return err
 }
 
-func (r *ElsaRepository) UpdateWorkingURLs(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error {
+func (r *ElsaRepository) UpdateWorkingURLs(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error {
 	_, err := r.db.ExecContext(ctx,
 		`UPDATE chart_meta SET
 			working_body_url = ?,
 			working_diff_url = ?,
 			updated_at = datetime('now')
-		 WHERE md5 = ? AND sha256 = ?`,
-		workingBodyURL, workingDiffURL, md5, sha256,
+		 WHERE md5 = ?`,
+		workingBodyURL, workingDiffURL, md5,
 	)
 	return err
 }
@@ -137,7 +138,8 @@ func (r *ElsaRepository) BulkUpsertChartMeta(ctx context.Context, metas []model.
 	stmt, err := tx.PrepareContext(ctx,
 		`INSERT INTO chart_meta (md5, sha256, lr2ir_tags, lr2ir_body_url, lr2ir_diff_url, lr2ir_notes, lr2ir_fetched_at, working_body_url, working_diff_url)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		 ON CONFLICT(md5, sha256) DO UPDATE SET
+		 ON CONFLICT(md5) DO UPDATE SET
+		   sha256           = COALESCE(NULLIF(excluded.sha256, ''), chart_meta.sha256),
 		   lr2ir_tags       = excluded.lr2ir_tags,
 		   lr2ir_body_url   = excluded.lr2ir_body_url,
 		   lr2ir_diff_url   = excluded.lr2ir_diff_url,
@@ -212,11 +214,11 @@ func (r *ElsaRepository) DeleteEventMapping(ctx context.Context, id int) error {
 	return err
 }
 
-func (r *ElsaRepository) ListUnfetchedChartKeys(ctx context.Context) ([]model.ChartKey, error) {
+func (r *ElsaRepository) ListUnfetchedChartMD5s(ctx context.Context) ([]string, error) {
 	rows, err := r.db.QueryContext(ctx, `
-		SELECT DISTINCT s.md5, s.sha256
+		SELECT DISTINCT s.md5
 		FROM songdata.song s
-		LEFT JOIN chart_meta cm ON s.md5 = cm.md5 AND s.sha256 = cm.sha256
+		LEFT JOIN chart_meta cm ON s.md5 = cm.md5
 		WHERE cm.id IS NULL OR cm.lr2ir_fetched_at IS NULL
 		ORDER BY s.md5`)
 	if err != nil {
@@ -224,15 +226,38 @@ func (r *ElsaRepository) ListUnfetchedChartKeys(ctx context.Context) ([]model.Ch
 	}
 	defer rows.Close()
 
-	var keys []model.ChartKey
+	var md5s []string
 	for rows.Next() {
-		var k model.ChartKey
-		if err := rows.Scan(&k.MD5, &k.SHA256); err != nil {
+		var md5 string
+		if err := rows.Scan(&md5); err != nil {
 			return nil, err
 		}
-		keys = append(keys, k)
+		md5s = append(md5s, md5)
 	}
-	return keys, rows.Err()
+	return md5s, rows.Err()
+}
+
+func (r *ElsaRepository) ListUnfetchedDTEntryMD5s(ctx context.Context, tableID int) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT dte.md5
+		FROM difficulty_table_entry dte
+		LEFT JOIN chart_meta cm ON dte.md5 = cm.md5
+		WHERE dte.table_id = ? AND (cm.id IS NULL OR cm.lr2ir_fetched_at IS NULL)
+		ORDER BY dte.md5`, tableID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var md5s []string
+	for rows.Next() {
+		var md5 string
+		if err := rows.Scan(&md5); err != nil {
+			return nil, err
+		}
+		md5s = append(md5s, md5)
+	}
+	return md5s, rows.Err()
 }
 
 func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.SongIRURLs, error) {

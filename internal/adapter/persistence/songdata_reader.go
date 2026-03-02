@@ -284,7 +284,7 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 
 	// rowsを閉じた後にchart_metaを付与（コネクション競合を回避）
 	for i := range charts {
-		irMeta, err := r.metaRepo.GetChartMeta(ctx, charts[i].MD5, charts[i].SHA256)
+		irMeta, err := r.metaRepo.GetChartMeta(ctx, charts[i].MD5)
 		if err != nil {
 			return nil, fmt.Errorf("GetSongByFolder GetChartMeta: %w", err)
 		}
@@ -472,7 +472,7 @@ func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5 string) (*model.
 	}
 
 	// IRメタ付与
-	irMeta, err := r.metaRepo.GetChartMeta(ctx, c.MD5, c.SHA256)
+	irMeta, err := r.metaRepo.GetChartMeta(ctx, c.MD5)
 	if err != nil {
 		return nil, fmt.Errorf("GetChartByMD5 GetChartMeta: %w", err)
 	}
