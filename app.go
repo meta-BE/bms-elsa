@@ -27,6 +27,7 @@ type App struct {
 	dtRepo      *persistence.DifficultyTableRepository
 	dtFetcher   *gateway.DifficultyTableFetcher
 	songReader  *persistence.SongdataReader
+	elsaRepo    *persistence.ElsaRepository
 }
 
 func NewApp() *App {
@@ -60,6 +61,7 @@ func (a *App) Init() error {
 
 	// DI組み立て
 	elsaRepo := persistence.NewElsaRepository(db)
+	a.elsaRepo = elsaRepo
 	a.dtRepo = persistence.NewDifficultyTableRepository(db)
 	a.dtFetcher = gateway.NewDifficultyTableFetcher()
 	songdataReader := persistence.NewSongdataReader(db, elsaRepo, a.dtRepo)
@@ -74,7 +76,7 @@ func (a *App) Init() error {
 	bulkFetchIR := usecase.NewBulkFetchIRUseCase(irClient, elsaRepo)
 
 	a.SongHandler = internalapp.NewSongHandler(listSongs, getSongDetail, updateSongMeta)
-	a.IRHandler = internalapp.NewIRHandler(lookupIR, bulkFetchIR, updateChartMeta)
+	a.IRHandler = internalapp.NewIRHandler(lookupIR, bulkFetchIR, updateChartMeta, elsaRepo)
 
 	inferMeta := usecase.NewInferSongMetaUseCase(elsaRepo)
 	a.InferenceHandler = internalapp.NewInferenceHandler(inferMeta, elsaRepo)
@@ -290,6 +292,19 @@ func (a *App) GetChartDetailByMD5(md5 string) (*dto.ChartDTO, error) {
 		return nil, nil
 	}
 	result := dto.ChartToDTO(*chart)
+	return &result, nil
+}
+
+// GetChartMetaByMD5 はchart_metaテーブルからIR情報のみを取得する（未導入譜面用）
+func (a *App) GetChartMetaByMD5(md5 string) (*dto.ChartIRMetaDTO, error) {
+	meta, err := a.elsaRepo.GetChartMeta(a.ctx, md5)
+	if err != nil {
+		return nil, err
+	}
+	if meta == nil {
+		return nil, nil
+	}
+	result := dto.ChartIRMetaToDTO(*meta)
 	return &result, nil
 }
 

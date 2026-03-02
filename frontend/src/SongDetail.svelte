@@ -59,7 +59,7 @@
 
   async function saveWorkingUrls() {
     if (!selectedChart) return
-    await UpdateChartMeta(selectedChart.md5, selectedChart.sha256, editWorkingBodyUrl, editWorkingDiffUrl)
+    await UpdateChartMeta(selectedChart.md5, editWorkingBodyUrl, editWorkingDiffUrl)
     if (detail) await loadDetail(detail.folderHash)
   }
 

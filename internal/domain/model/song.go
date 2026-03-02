@@ -84,9 +84,3 @@ type SongIRURLs struct {
 	ChartCount int      // 総譜面数
 	IRCount    int      // IR取得済み譜面数
 }
-
-// ChartKey は譜面の識別キー（IR取得対象リスト用）
-type ChartKey struct {
-	MD5    string
-	SHA256 string
-}

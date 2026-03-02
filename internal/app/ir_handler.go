@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/meta-BE/bms-elsa/internal/app/dto"
+	"github.com/meta-BE/bms-elsa/internal/domain/model"
 	"github.com/meta-BE/bms-elsa/internal/usecase"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -15,6 +16,7 @@ type IRHandler struct {
 	lookupIR    *usecase.LookupIRUseCase
 	bulkFetchIR *usecase.BulkFetchIRUseCase
 	updateChart *usecase.UpdateChartMetaUseCase
+	metaRepo    model.MetaRepository
 
 	mu         sync.Mutex
 	running    bool
@@ -25,8 +27,9 @@ func NewIRHandler(
 	li *usecase.LookupIRUseCase,
 	bf *usecase.BulkFetchIRUseCase,
 	uc *usecase.UpdateChartMetaUseCase,
+	mr model.MetaRepository,
 ) *IRHandler {
-	return &IRHandler{lookupIR: li, bulkFetchIR: bf, updateChart: uc}
+	return &IRHandler{lookupIR: li, bulkFetchIR: bf, updateChart: uc, metaRepo: mr}
 }
 
 func (h *IRHandler) SetContext(ctx context.Context) { h.ctx = ctx }
@@ -51,8 +54,8 @@ func (h *IRHandler) LookupByMD5(md5, sha256 string) (*dto.ChartDTO, error) {
 	return result, nil
 }
 
-func (h *IRHandler) UpdateChartMeta(md5, sha256, workingBodyURL, workingDiffURL string) error {
-	return h.updateChart.Execute(h.ctx, md5, sha256, workingBodyURL, workingDiffURL)
+func (h *IRHandler) UpdateChartMeta(md5, workingBodyURL, workingDiffURL string) error {
+	return h.updateChart.Execute(h.ctx, md5, workingBodyURL, workingDiffURL)
 }
 
 // StartBulkFetch はIR一括取得をバックグラウンドで開始する。二重起動不可。
@@ -63,7 +66,19 @@ func (h *IRHandler) StartBulkFetch() error {
 		return nil
 	}
 	h.running = true
+	h.mu.Unlock()
+
+	// md5リスト取得（ロック外で実行）
+	md5s, err := h.metaRepo.ListUnfetchedChartMD5s(h.ctx)
+	if err != nil {
+		h.mu.Lock()
+		h.running = false
+		h.mu.Unlock()
+		return err
+	}
+
 	ctx, cancel := context.WithCancel(h.ctx)
+	h.mu.Lock()
 	h.cancelFunc = cancel
 	h.mu.Unlock()
 
@@ -75,7 +90,65 @@ func (h *IRHandler) StartBulkFetch() error {
 			h.mu.Unlock()
 		}()
 
-		result, err := h.bulkFetchIR.Execute(ctx, func(p usecase.BulkFetchProgress) {
+		result, err := h.bulkFetchIR.Execute(ctx, md5s, func(p usecase.BulkFetchProgress) {
+			wailsRuntime.EventsEmit(h.ctx, "ir:progress", map[string]int{
+				"current": p.Current,
+				"total":   p.Total,
+			})
+		})
+
+		doneData := map[string]interface{}{
+			"cancelled": false,
+			"error":     "",
+		}
+		if err != nil {
+			doneData["error"] = err.Error()
+		}
+		if result != nil {
+			doneData["total"] = result.Total
+			doneData["fetched"] = result.Fetched
+			doneData["notFound"] = result.NotFound
+			doneData["failed"] = result.Failed
+			doneData["cancelled"] = result.Cancelled
+		}
+		wailsRuntime.EventsEmit(h.ctx, "ir:done", doneData)
+	}()
+
+	return nil
+}
+
+// StartDifficultyTableBulkFetch は難易度表エントリのIR一括取得をバックグラウンドで開始する。二重起動不可。
+func (h *IRHandler) StartDifficultyTableBulkFetch(tableID int) error {
+	h.mu.Lock()
+	if h.running {
+		h.mu.Unlock()
+		return nil
+	}
+	h.running = true
+	h.mu.Unlock()
+
+	md5s, err := h.metaRepo.ListUnfetchedDTEntryMD5s(h.ctx, tableID)
+	if err != nil {
+		h.mu.Lock()
+		h.running = false
+		h.mu.Unlock()
+		return err
+	}
+
+	ctx, cancel := context.WithCancel(h.ctx)
+	h.mu.Lock()
+	h.cancelFunc = cancel
+	h.mu.Unlock()
+
+	go func() {
+		defer func() {
+			h.mu.Lock()
+			h.running = false
+			h.cancelFunc = nil
+			h.mu.Unlock()
+		}()
+
+		result, err := h.bulkFetchIR.Execute(ctx, md5s, func(p usecase.BulkFetchProgress) {
 			wailsRuntime.EventsEmit(h.ctx, "ir:progress", map[string]int{
 				"current": p.Current,
 				"total":   p.Total,

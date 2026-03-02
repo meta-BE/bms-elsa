@@ -32,10 +32,10 @@ func (m *mockSongRepo) GetSongByFolder(ctx context.Context, folderHash string) (
 type mockMetaRepo struct {
 	getSongMetaFunc              func(ctx context.Context, folderHash string) (*model.SongMeta, error)
 	upsertSongMetaFunc           func(ctx context.Context, meta model.SongMeta) error
-	getChartMetaFunc             func(ctx context.Context, md5, sha256 string) (*model.ChartIRMeta, error)
+	getChartMetaFunc             func(ctx context.Context, md5 string) (*model.ChartIRMeta, error)
 	upsertChartMetaFunc          func(ctx context.Context, meta model.ChartIRMeta) error
 	bulkUpsertChartMetaFunc      func(ctx context.Context, metas []model.ChartIRMeta) error
-	updateWorkingURLsFunc        func(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error
+	updateWorkingURLsFunc        func(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error
 	listEventMappingsFunc        func(ctx context.Context) ([]model.EventMapping, error)
 	upsertEventMappingFunc       func(ctx context.Context, m model.EventMapping) error
 	deleteEventMappingFunc       func(ctx context.Context, id int) error
@@ -50,8 +50,8 @@ func (m *mockMetaRepo) UpsertSongMeta(ctx context.Context, meta model.SongMeta) 
 	return m.upsertSongMetaFunc(ctx, meta)
 }
 
-func (m *mockMetaRepo) GetChartMeta(ctx context.Context, md5, sha256 string) (*model.ChartIRMeta, error) {
-	return m.getChartMetaFunc(ctx, md5, sha256)
+func (m *mockMetaRepo) GetChartMeta(ctx context.Context, md5 string) (*model.ChartIRMeta, error) {
+	return m.getChartMetaFunc(ctx, md5)
 }
 
 func (m *mockMetaRepo) UpsertChartMeta(ctx context.Context, meta model.ChartIRMeta) error {
@@ -62,8 +62,8 @@ func (m *mockMetaRepo) BulkUpsertChartMeta(ctx context.Context, metas []model.Ch
 	return m.bulkUpsertChartMetaFunc(ctx, metas)
 }
 
-func (m *mockMetaRepo) UpdateWorkingURLs(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error {
-	return m.updateWorkingURLsFunc(ctx, md5, sha256, workingBodyURL, workingDiffURL)
+func (m *mockMetaRepo) UpdateWorkingURLs(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error {
+	return m.updateWorkingURLsFunc(ctx, md5, workingBodyURL, workingDiffURL)
 }
 
 func (m *mockMetaRepo) ListEventMappings(ctx context.Context) ([]model.EventMapping, error) {
@@ -82,7 +82,11 @@ func (m *mockMetaRepo) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.So
 	return m.listUnsetSongsWithIRURLsFunc(ctx)
 }
 
-func (m *mockMetaRepo) ListUnfetchedChartKeys(_ context.Context) ([]model.ChartKey, error) {
+func (m *mockMetaRepo) ListUnfetchedChartMD5s(_ context.Context) ([]string, error) {
+	return nil, nil
+}
+
+func (m *mockMetaRepo) ListUnfetchedDTEntryMD5s(_ context.Context, _ int) ([]string, error) {
 	return nil, nil
 }
 
@@ -178,11 +182,10 @@ func TestUpdateSongMeta(t *testing.T) {
 }
 
 func TestUpdateChartMeta(t *testing.T) {
-	var calledMD5, calledSHA256, calledBodyURL, calledDiffURL string
+	var calledMD5, calledBodyURL, calledDiffURL string
 	repo := &mockMetaRepo{
-		updateWorkingURLsFunc: func(_ context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error {
+		updateWorkingURLsFunc: func(_ context.Context, md5, workingBodyURL, workingDiffURL string) error {
 			calledMD5 = md5
-			calledSHA256 = sha256
 			calledBodyURL = workingBodyURL
 			calledDiffURL = workingDiffURL
 			return nil
@@ -190,16 +193,13 @@ func TestUpdateChartMeta(t *testing.T) {
 	}
 
 	uc := usecase.NewUpdateChartMetaUseCase(repo)
-	err := uc.Execute(context.Background(), "md5hash", "sha256hash", "http://body.url", "http://diff.url")
+	err := uc.Execute(context.Background(), "md5hash", "http://body.url", "http://diff.url")
 
 	if err != nil {
 		t.Fatalf("予期しないエラー: %v", err)
 	}
 	if calledMD5 != "md5hash" {
 		t.Errorf("calledMD5 = %q, want %q", calledMD5, "md5hash")
-	}
-	if calledSHA256 != "sha256hash" {
-		t.Errorf("calledSHA256 = %q, want %q", calledSHA256, "sha256hash")
 	}
 	if calledBodyURL != "http://body.url" {
 		t.Errorf("calledBodyURL = %q, want %q", calledBodyURL, "http://body.url")

@@ -59,6 +59,18 @@ type ChartDTO struct {
 	DifficultyLabels []DifficultyLabelDTO `json:"difficultyLabels,omitempty"`
 }
 
+// ChartIRMetaDTO はchart_metaのIR情報のみ（未導入譜面の詳細表示用）
+type ChartIRMetaDTO struct {
+	MD5            string `json:"md5"`
+	HasIRMeta      bool   `json:"hasIrMeta"`
+	LR2IRTags      string `json:"lr2irTags,omitempty"`
+	LR2IRBodyURL   string `json:"lr2irBodyUrl,omitempty"`
+	LR2IRDiffURL   string `json:"lr2irDiffUrl,omitempty"`
+	LR2IRNotes     string `json:"lr2irNotes,omitempty"`
+	WorkingBodyURL string `json:"workingBodyUrl,omitempty"`
+	WorkingDiffURL string `json:"workingDiffUrl,omitempty"`
+}
+
 // ChartListItemDTO は譜面一覧用の軽量DTO
 type ChartListItemDTO struct {
 	MD5         string  `json:"md5"`
@@ -166,6 +178,23 @@ func ChartToDTO(c model.Chart) ChartDTO {
 				TableName: l.TableName, Symbol: l.Symbol, Level: l.Level,
 			}
 		}
+	}
+	return d
+}
+
+func ChartIRMetaToDTO(m model.ChartIRMeta) ChartIRMetaDTO {
+	hasIR := m.FetchedAt != nil
+	d := ChartIRMetaDTO{
+		MD5:       m.MD5,
+		HasIRMeta: hasIR,
+	}
+	if hasIR {
+		d.LR2IRTags = strings.Join(m.Tags, ",")
+		d.LR2IRBodyURL = m.LR2IRBodyURL
+		d.LR2IRDiffURL = m.LR2IRDiffURL
+		d.LR2IRNotes = m.LR2IRNotes
+		d.WorkingBodyURL = m.WorkingBodyURL
+		d.WorkingDiffURL = m.WorkingDiffURL
 	}
 	return d
 }

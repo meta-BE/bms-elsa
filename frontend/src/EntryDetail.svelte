@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetChartDetailByMD5 } from '../wailsjs/go/main/App'
+  import { GetChartDetailByMD5, GetChartMetaByMD5 } from '../wailsjs/go/main/App'
   import { LookupByMD5, UpdateChartMeta } from '../wailsjs/go/app/IRHandler'
   import type { dto, main } from '../wailsjs/go/models'
   import { modeLabel, diffLabel } from './utils/chartLabels'
@@ -11,20 +11,32 @@
   export let entryData: main.DifficultyTableEntryDTO
 
   let chart: dto.ChartDTO | null = null
+  let irMeta: dto.ChartIRMetaDTO | null = null
   let loading = false
   let editWorkingBodyUrl = ''
   let editWorkingDiffUrl = ''
 
   $: if (md5) loadChart(md5)
 
+  // IR情報の統一アクセス（chart or irMeta）
+  $: ir = chart ?? irMeta
+
   async function loadChart(hash: string) {
     loading = true
     chart = null
+    irMeta = null
     try {
       chart = await GetChartDetailByMD5(hash)
       if (chart) {
         editWorkingBodyUrl = chart.workingBodyUrl || ''
         editWorkingDiffUrl = chart.workingDiffUrl || ''
+      } else {
+        // 未導入: chart_metaから直接IR情報を取得
+        irMeta = await GetChartMetaByMD5(hash)
+        if (irMeta) {
+          editWorkingBodyUrl = irMeta.workingBodyUrl || ''
+          editWorkingDiffUrl = irMeta.workingDiffUrl || ''
+        }
       }
     } catch (e) {
       console.error('Failed to load chart detail:', e)
@@ -35,14 +47,13 @@
   }
 
   async function lookupIR() {
-    if (!chart) return
-    await LookupByMD5(chart.md5, chart.sha256)
+    await LookupByMD5(md5, chart?.sha256 || '')
     await loadChart(md5)
   }
 
   async function saveWorkingUrls() {
-    if (!chart) return
-    await UpdateChartMeta(chart.md5, chart.sha256, editWorkingBodyUrl, editWorkingDiffUrl)
+    if (!ir) return
+    await UpdateChartMeta(md5, editWorkingBodyUrl, editWorkingDiffUrl)
     await loadChart(md5)
   }
 
@@ -123,47 +134,47 @@
           {/if}
         </div>
       </div>
-
-      <!-- IR情報 -->
-      <div class="bg-base-200 rounded-lg p-3">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="text-sm font-semibold">LR2IR情報</h3>
-          <button class="btn btn-ghost btn-xs" on:click={lookupIR}>IR取得</button>
-        </div>
-        {#if chart.hasIrMeta}
-          <div class="text-xs space-y-1">
-            {#if chart.lr2irTags}
-              <p><span class="font-semibold">タグ:</span> {chart.lr2irTags}</p>
-            {/if}
-            {#if chart.lr2irBodyUrl}
-              <p>
-                <span class="font-semibold">本体URL:</span>
-                <a href={chart.lr2irBodyUrl} target="_blank" rel="noopener noreferrer" class="link link-primary">{chart.lr2irBodyUrl}</a>
-              </p>
-            {/if}
-            {#if chart.lr2irDiffUrl}
-              <p>
-                <span class="font-semibold">差分URL:</span>
-                <a href={chart.lr2irDiffUrl} target="_blank" rel="noopener noreferrer" class="link link-primary">{chart.lr2irDiffUrl}</a>
-              </p>
-            {/if}
-            {#if chart.lr2irNotes}
-              <p><span class="font-semibold">備考:</span> {chart.lr2irNotes}</p>
-            {/if}
-            <div class="divider my-1"></div>
-            <div class="flex gap-2 items-center">
-              <label class="font-semibold" for="entry-working-body-url">動作URL(本体):</label>
-              <input id="entry-working-body-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingBodyUrl} on:blur={saveWorkingUrls} />
-            </div>
-            <div class="flex gap-2 items-center">
-              <label class="font-semibold" for="entry-working-diff-url">動作URL(差分):</label>
-              <input id="entry-working-diff-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingDiffUrl} on:blur={saveWorkingUrls} />
-            </div>
-          </div>
-        {:else}
-          <p class="text-xs text-base-content/50">IR情報がありません。「IR取得」ボタンで取得してください。</p>
-        {/if}
-      </div>
     {/if}
+
+    <!-- IR情報（導入済・未導入共通） -->
+    <div class="bg-base-200 rounded-lg p-3">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-sm font-semibold">LR2IR情報</h3>
+        <button class="btn btn-ghost btn-xs" on:click={lookupIR}>IR取得</button>
+      </div>
+      {#if ir?.hasIrMeta}
+        <div class="text-xs space-y-1">
+          {#if ir.lr2irTags}
+            <p><span class="font-semibold">タグ:</span> {ir.lr2irTags}</p>
+          {/if}
+          {#if ir.lr2irBodyUrl}
+            <p>
+              <span class="font-semibold">本体URL:</span>
+              <a href={ir.lr2irBodyUrl} target="_blank" rel="noopener noreferrer" class="link link-primary">{ir.lr2irBodyUrl}</a>
+            </p>
+          {/if}
+          {#if ir.lr2irDiffUrl}
+            <p>
+              <span class="font-semibold">差分URL:</span>
+              <a href={ir.lr2irDiffUrl} target="_blank" rel="noopener noreferrer" class="link link-primary">{ir.lr2irDiffUrl}</a>
+            </p>
+          {/if}
+          {#if ir.lr2irNotes}
+            <p><span class="font-semibold">備考:</span> {ir.lr2irNotes}</p>
+          {/if}
+          <div class="divider my-1"></div>
+          <div class="flex gap-2 items-center">
+            <label class="font-semibold" for="entry-working-body-url">動作URL(本体):</label>
+            <input id="entry-working-body-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingBodyUrl} on:blur={saveWorkingUrls} />
+          </div>
+          <div class="flex gap-2 items-center">
+            <label class="font-semibold" for="entry-working-diff-url">動作URL(差分):</label>
+            <input id="entry-working-diff-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingDiffUrl} on:blur={saveWorkingUrls} />
+          </div>
+        </div>
+      {:else}
+        <p class="text-xs text-base-content/50">IR情報がありません。「IR取得」ボタンで取得してください。</p>
+      {/if}
+    </div>
   </div>
 {/if}

@@ -32,16 +32,10 @@ func NewBulkFetchIRUseCase(irClient port.IRClient, metaRepo model.MetaRepository
 	return &BulkFetchIRUseCase{irClient: irClient, metaRepo: metaRepo}
 }
 
-func (u *BulkFetchIRUseCase) Execute(ctx context.Context, progressFn func(BulkFetchProgress)) (*BulkFetchResult, error) {
-	keys, err := u.metaRepo.ListUnfetchedChartKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
+func (u *BulkFetchIRUseCase) Execute(ctx context.Context, md5s []string, progressFn func(BulkFetchProgress)) (*BulkFetchResult, error) {
+	result := &BulkFetchResult{Total: len(md5s)}
 
-	result := &BulkFetchResult{Total: len(keys)}
-
-	for i, key := range keys {
-		// キャンセルチェック
+	for i, md5 := range md5s {
 		select {
 		case <-ctx.Done():
 			result.Cancelled = true
@@ -49,25 +43,22 @@ func (u *BulkFetchIRUseCase) Execute(ctx context.Context, progressFn func(BulkFe
 		default:
 		}
 
-		resp, err := u.irClient.LookupByMD5(ctx, key.MD5)
+		resp, err := u.irClient.LookupByMD5(ctx, md5)
 		if err != nil {
-			// contextキャンセルの場合
 			if ctx.Err() != nil {
 				result.Cancelled = true
 				return result, nil
 			}
 			result.Failed++
 			if progressFn != nil {
-				progressFn(BulkFetchProgress{Current: i + 1, Total: len(keys)})
+				progressFn(BulkFetchProgress{Current: i + 1, Total: len(md5s)})
 			}
 			continue
 		}
 
-		// DB保存（未登録でもfetched_atを記録）
 		now := time.Now()
 		meta := model.ChartIRMeta{
-			MD5:       key.MD5,
-			SHA256:    key.SHA256,
+			MD5:       md5,
 			FetchedAt: &now,
 		}
 		if resp.Registered {
@@ -85,7 +76,7 @@ func (u *BulkFetchIRUseCase) Execute(ctx context.Context, progressFn func(BulkFe
 		}
 
 		if progressFn != nil {
-			progressFn(BulkFetchProgress{Current: i + 1, Total: len(keys)})
+			progressFn(BulkFetchProgress{Current: i + 1, Total: len(md5s)})
 		}
 	}
 
