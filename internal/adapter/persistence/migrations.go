@@ -53,6 +53,12 @@ func RunMigrations(db *sql.DB) error {
 			PRIMARY KEY (table_id, md5)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_dte_md5 ON difficulty_table_entry(md5)`,
+		`CREATE TABLE IF NOT EXISTS event_mapping (
+			id           INTEGER PRIMARY KEY AUTOINCREMENT,
+			url_pattern  TEXT NOT NULL UNIQUE,
+			event_name   TEXT NOT NULL,
+			release_year INTEGER NOT NULL
+		)`,
 	}
 
 	for _, stmt := range statements {
@@ -60,5 +66,39 @@ func RunMigrations(db *sql.DB) error {
 			return err
 		}
 	}
+
+	// 主要BMSイベントの初期マッピングデータ（冪等）
+	seedMappings := []struct {
+		pattern string
+		name    string
+		year    int
+	}{
+		{"manbow.nothing.sh|&event=17", "BOF2004", 2004},
+		{"manbow.nothing.sh|&event=37", "BOF2006", 2006},
+		{"manbow.nothing.sh|&event=54", "BOF2008", 2008},
+		{"manbow.nothing.sh|&event=65", "BOF2010", 2010},
+		{"manbow.nothing.sh|&event=74", "BOF2011", 2011},
+		{"manbow.nothing.sh|&event=83", "BOF2012", 2012},
+		{"manbow.nothing.sh|&event=88", "BOF2013", 2013},
+		{"manbow.nothing.sh|&event=96", "G2R2014", 2014},
+		{"manbow.nothing.sh|&event=104", "BOFU2015", 2015},
+		{"manbow.nothing.sh|&event=110", "BOFU2016", 2016},
+		{"manbow.nothing.sh|&event=116", "BOFU2017", 2017},
+		{"manbow.nothing.sh|&event=127", "BOFXV", 2019},
+		{"manbow.nothing.sh|&event=133", "BOFXVI", 2020},
+		{"manbow.nothing.sh|&event=137", "BOFXVII", 2021},
+		{"manbow.nothing.sh|&event=140", "BOF:ET", 2022},
+		{"manbow.nothing.sh|&event=142", "BOF:NT", 2023},
+		{"manbow.nothing.sh|&event=146", "BOF:TT", 2024},
+	}
+	for _, m := range seedMappings {
+		if _, err := db.Exec(
+			`INSERT OR IGNORE INTO event_mapping (url_pattern, event_name, release_year) VALUES (?, ?, ?)`,
+			m.pattern, m.name, m.year,
+		); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

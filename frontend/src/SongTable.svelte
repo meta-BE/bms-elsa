@@ -15,6 +15,9 @@
   import type { dto } from '../wailsjs/go/models'
   import SearchInput from './SearchInput.svelte'
   import SortableHeader from './SortableHeader.svelte'
+  import InferenceModal from './InferenceModal.svelte'
+
+  let inferenceModal: InferenceModal
 
   const dispatch = createEventDispatcher<{ select: string; deselect: void }>()
 
@@ -111,7 +114,10 @@
     <span class="text-sm font-semibold shrink-0">
       {#if loading}Loading...{:else}{rows.length.toLocaleString()} songs{/if}
     </span>
-    <SearchInput bind:value={globalFilter} />
+    <div class="flex items-center gap-2">
+      <button class="btn btn-xs btn-outline" on:click|stopPropagation={() => inferenceModal.open()}>メタ推測</button>
+      <SearchInput bind:value={globalFilter} />
+    </div>
   </div>
 
   {#if loading}
@@ -157,3 +163,4 @@
     </div>
   {/if}
 </div>
+<InferenceModal bind:this={inferenceModal} />

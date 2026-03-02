@@ -30,12 +30,16 @@ func (m *mockSongRepo) GetSongByFolder(ctx context.Context, folderHash string) (
 }
 
 type mockMetaRepo struct {
-	getSongMetaFunc         func(ctx context.Context, folderHash string) (*model.SongMeta, error)
-	upsertSongMetaFunc      func(ctx context.Context, meta model.SongMeta) error
-	getChartMetaFunc        func(ctx context.Context, md5, sha256 string) (*model.ChartIRMeta, error)
-	upsertChartMetaFunc     func(ctx context.Context, meta model.ChartIRMeta) error
-	bulkUpsertChartMetaFunc func(ctx context.Context, metas []model.ChartIRMeta) error
-	updateWorkingURLsFunc   func(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error
+	getSongMetaFunc              func(ctx context.Context, folderHash string) (*model.SongMeta, error)
+	upsertSongMetaFunc           func(ctx context.Context, meta model.SongMeta) error
+	getChartMetaFunc             func(ctx context.Context, md5, sha256 string) (*model.ChartIRMeta, error)
+	upsertChartMetaFunc          func(ctx context.Context, meta model.ChartIRMeta) error
+	bulkUpsertChartMetaFunc      func(ctx context.Context, metas []model.ChartIRMeta) error
+	updateWorkingURLsFunc        func(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error
+	listEventMappingsFunc        func(ctx context.Context) ([]model.EventMapping, error)
+	upsertEventMappingFunc       func(ctx context.Context, m model.EventMapping) error
+	deleteEventMappingFunc       func(ctx context.Context, id int) error
+	listUnsetSongsWithIRURLsFunc func(ctx context.Context) ([]model.SongIRURLs, error)
 }
 
 func (m *mockMetaRepo) GetSongMeta(ctx context.Context, folderHash string) (*model.SongMeta, error) {
@@ -60,6 +64,22 @@ func (m *mockMetaRepo) BulkUpsertChartMeta(ctx context.Context, metas []model.Ch
 
 func (m *mockMetaRepo) UpdateWorkingURLs(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error {
 	return m.updateWorkingURLsFunc(ctx, md5, sha256, workingBodyURL, workingDiffURL)
+}
+
+func (m *mockMetaRepo) ListEventMappings(ctx context.Context) ([]model.EventMapping, error) {
+	return m.listEventMappingsFunc(ctx)
+}
+
+func (m *mockMetaRepo) UpsertEventMapping(ctx context.Context, em model.EventMapping) error {
+	return m.upsertEventMappingFunc(ctx, em)
+}
+
+func (m *mockMetaRepo) DeleteEventMapping(ctx context.Context, id int) error {
+	return m.deleteEventMappingFunc(ctx, id)
+}
+
+func (m *mockMetaRepo) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.SongIRURLs, error) {
+	return m.listUnsetSongsWithIRURLsFunc(ctx)
 }
 
 type mockIRClient struct {

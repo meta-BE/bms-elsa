@@ -21,8 +21,9 @@ import (
 type App struct {
 	ctx         context.Context
 	db          *sql.DB
-	SongHandler *internalapp.SongHandler
-	IRHandler   *internalapp.IRHandler
+	SongHandler      *internalapp.SongHandler
+	IRHandler        *internalapp.IRHandler
+	InferenceHandler *internalapp.InferenceHandler
 	dtRepo      *persistence.DifficultyTableRepository
 	dtFetcher   *gateway.DifficultyTableFetcher
 	songReader  *persistence.SongdataReader
@@ -74,6 +75,9 @@ func (a *App) Init() error {
 	a.SongHandler = internalapp.NewSongHandler(listSongs, getSongDetail, updateSongMeta)
 	a.IRHandler = internalapp.NewIRHandler(lookupIR, updateChartMeta)
 
+	inferMeta := usecase.NewInferSongMetaUseCase(elsaRepo)
+	a.InferenceHandler = internalapp.NewInferenceHandler(inferMeta, elsaRepo)
+
 	return nil
 }
 
@@ -81,6 +85,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.SongHandler.SetContext(ctx)
 	a.IRHandler.SetContext(ctx)
+	a.InferenceHandler.SetContext(ctx)
 }
 
 func (a *App) shutdown(ctx context.Context) {

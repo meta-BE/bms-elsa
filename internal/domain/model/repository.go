@@ -32,4 +32,10 @@ type MetaRepository interface {
 	UpsertChartMeta(ctx context.Context, meta ChartIRMeta) error
 	BulkUpsertChartMeta(ctx context.Context, metas []ChartIRMeta) error
 	UpdateWorkingURLs(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error
+	// event_mapping CRUD
+	ListEventMappings(ctx context.Context) ([]EventMapping, error)
+	UpsertEventMapping(ctx context.Context, m EventMapping) error
+	DeleteEventMapping(ctx context.Context, id int) error
+	// 推測用: 未設定曲のfolderHash + 紐づくIR本体URLを取得
+	ListUnsetSongsWithIRURLs(ctx context.Context) ([]SongIRURLs, error)
 }

@@ -171,3 +171,102 @@ func (r *ElsaRepository) BulkUpsertChartMeta(ctx context.Context, metas []model.
 
 	return tx.Commit()
 }
+
+func (r *ElsaRepository) ListEventMappings(ctx context.Context) ([]model.EventMapping, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, url_pattern, event_name, release_year FROM event_mapping ORDER BY id`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var mappings []model.EventMapping
+	for rows.Next() {
+		var m model.EventMapping
+		if err := rows.Scan(&m.ID, &m.URLPattern, &m.EventName, &m.ReleaseYear); err != nil {
+			return nil, err
+		}
+		mappings = append(mappings, m)
+	}
+	return mappings, rows.Err()
+}
+
+func (r *ElsaRepository) UpsertEventMapping(ctx context.Context, m model.EventMapping) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO event_mapping (url_pattern, event_name, release_year)
+		 VALUES (?, ?, ?)
+		 ON CONFLICT(url_pattern) DO UPDATE SET
+		   event_name   = excluded.event_name,
+		   release_year = excluded.release_year`,
+		m.URLPattern, m.EventName, m.ReleaseYear,
+	)
+	return err
+}
+
+func (r *ElsaRepository) DeleteEventMapping(ctx context.Context, id int) error {
+	_, err := r.db.ExecContext(ctx,
+		`DELETE FROM event_mapping WHERE id = ?`,
+		id,
+	)
+	return err
+}
+
+func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.SongIRURLs, error) {
+	// songdata.db（sdスキーマ）とelsa.dbのクロスDB JOIN
+	// song_metaにレコードがない or (release_year IS NULL AND event_name IS NULL)の曲が対象
+	rows, err := r.db.QueryContext(ctx, `
+		WITH song_groups AS (
+			SELECT
+				f.path AS folder_hash,
+				MIN(s.title) AS title,
+				MIN(s.artist) AS artist,
+				MIN(s.genre) AS genre,
+				COUNT(*) AS chart_count
+			FROM sd.song s
+			JOIN sd.folder f ON s.path = f.path
+			GROUP BY f.path
+		),
+		ir_urls AS (
+			SELECT
+				f.path AS folder_hash,
+				cm.lr2ir_body_url,
+				CASE WHEN cm.lr2ir_fetched_at IS NOT NULL THEN 1 ELSE 0 END AS has_ir
+			FROM sd.song s
+			JOIN sd.folder f ON s.path = f.path
+			LEFT JOIN chart_meta cm ON s.md5 = cm.md5
+		)
+		SELECT
+			sg.folder_hash, sg.title, sg.artist, sg.genre, sg.chart_count,
+			GROUP_CONCAT(DISTINCT iu.lr2ir_body_url) AS body_urls,
+			COALESCE(SUM(iu.has_ir), 0) AS ir_count
+		FROM song_groups sg
+		LEFT JOIN song_meta sm ON sg.folder_hash = sm.folder_hash
+		LEFT JOIN ir_urls iu ON sg.folder_hash = iu.folder_hash
+		WHERE sm.folder_hash IS NULL
+		   OR (sm.release_year IS NULL AND sm.event_name IS NULL)
+		GROUP BY sg.folder_hash
+		ORDER BY sg.title`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []model.SongIRURLs
+	for rows.Next() {
+		var r model.SongIRURLs
+		var bodyURLsStr sql.NullString
+		if err := rows.Scan(&r.FolderHash, &r.Title, &r.Artist, &r.Genre, &r.ChartCount, &bodyURLsStr, &r.IRCount); err != nil {
+			return nil, err
+		}
+		if bodyURLsStr.Valid && bodyURLsStr.String != "" {
+			for _, u := range strings.Split(bodyURLsStr.String, ",") {
+				if u != "" {
+					r.BodyURLs = append(r.BodyURLs, u)
+				}
+			}
+		}
+		results = append(results, r)
+	}
+	return results, rows.Err()
+}

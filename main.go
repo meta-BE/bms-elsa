@@ -32,6 +32,7 @@ func main() {
 			app,
 			app.SongHandler,
 			app.IRHandler,
+			app.InferenceHandler,
 		},
 	})
 

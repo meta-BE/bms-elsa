@@ -65,3 +65,22 @@ type DifficultyLabel struct {
 	Symbol    string
 	Level     string
 }
+
+// EventMapping はURLパターンとイベント名のマッピング
+type EventMapping struct {
+	ID          int
+	URLPattern  string
+	EventName   string
+	ReleaseYear int
+}
+
+// SongIRURLs は未設定曲のfolderHashと紐づくIR本体URLの集約
+type SongIRURLs struct {
+	FolderHash string
+	Title      string
+	Artist     string
+	Genre      string
+	BodyURLs   []string // この曲の全譜面のlr2ir_body_url（空文字列除く）
+	ChartCount int      // 総譜面数
+	IRCount    int      // IR取得済み譜面数
+}
