@@ -16,31 +16,8 @@
   import SearchInput from './SearchInput.svelte'
   import SortableHeader from './SortableHeader.svelte'
   import InferenceModal from './InferenceModal.svelte'
-  import { EventsOn } from '../wailsjs/runtime/runtime'
-  import { StartBulkFetch, StopBulkFetch } from '../wailsjs/go/app/IRHandler'
 
   let inferenceModal: InferenceModal
-
-  // IR一括取得の状態
-  let irFetching = false
-  let irProgress = { current: 0, total: 0 }
-  let irDoneMessage = ''
-  let irDoneTimer: ReturnType<typeof setTimeout> | null = null
-
-  function startBulkFetch() {
-    irFetching = true
-    irProgress = { current: 0, total: 0 }
-    irDoneMessage = ''
-    if (irDoneTimer) { clearTimeout(irDoneTimer); irDoneTimer = null }
-    StartBulkFetch().catch((e: Error) => {
-      console.error('StartBulkFetch failed:', e)
-      irFetching = false
-    })
-  }
-
-  function stopBulkFetch() {
-    StopBulkFetch()
-  }
 
   const dispatch = createEventDispatcher<{ select: string; deselect: void }>()
 
@@ -116,32 +93,13 @@
   $: virtualItems = $virtualizer.getVirtualItems()
   $: totalSize = $virtualizer.getTotalSize()
 
-  onMount(() => {
-    const offProgress = EventsOn('ir:progress', (data: { current: number; total: number }) => {
-      irProgress = data
-    })
-    const offDone = EventsOn('ir:done', (data: { fetched: number; notFound: number; failed: number; cancelled: boolean }) => {
-      irFetching = false
-      const parts: string[] = []
-      if (data.fetched > 0) parts.push(`${data.fetched}件取得`)
-      if (data.notFound > 0) parts.push(`${data.notFound}件未登録`)
-      if (data.failed > 0) parts.push(`${data.failed}件失敗`)
-      if (data.cancelled) parts.push('中断')
-      irDoneMessage = parts.join(', ')
-      irDoneTimer = setTimeout(() => { irDoneMessage = '' }, 5000)
-      // 楽曲リスト再読み込み
-      ListAllSongs().then(s => { songs = s || [] }).catch(console.error)
-    })
-
-    // 既存の楽曲リスト読み込み
-    ListAllSongs().then(s => { songs = s || [] }).catch(e => {
+  onMount(async () => {
+    try {
+      songs = (await ListAllSongs()) || []
+    } catch (e) {
       console.error('Failed to load songs:', e)
-    }).finally(() => { loading = false })
-
-    return () => {
-      offProgress()
-      offDone()
-      if (irDoneTimer) clearTimeout(irDoneTimer)
+    } finally {
+      loading = false
     }
   })
 </script>
@@ -157,16 +115,6 @@
       {#if loading}Loading...{:else}{rows.length.toLocaleString()} songs{/if}
     </span>
     <div class="flex items-center gap-2">
-      {#if irFetching}
-        <span class="text-xs text-base-content/70">
-          取得中: {irProgress.current.toLocaleString()} / {irProgress.total.toLocaleString()}
-        </span>
-        <button class="btn btn-xs btn-error btn-outline" on:click|stopPropagation={stopBulkFetch}>停止</button>
-      {:else if irDoneMessage}
-        <span class="text-xs text-success">{irDoneMessage}</span>
-      {:else}
-        <button class="btn btn-xs btn-outline" on:click|stopPropagation={startBulkFetch}>IR取得</button>
-      {/if}
       <button class="btn btn-xs btn-outline" on:click|stopPropagation={() => inferenceModal.open()}>メタ推測</button>
       <SearchInput bind:value={globalFilter} />
     </div>
