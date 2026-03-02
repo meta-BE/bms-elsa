@@ -16,7 +16,7 @@ import (
 
 const (
 	lr2irBaseURL       = "http://www.dream-pro.info/~lavalse/LR2IR/search.cgi"
-	minRequestInterval = time.Second
+	minRequestInterval = 500 * time.Millisecond
 )
 
 // LR2IRClient はLR2IRへのHTTPクライアント実装

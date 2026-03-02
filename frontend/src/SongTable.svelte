@@ -93,7 +93,7 @@
   $: virtualItems = $virtualizer.getVirtualItems()
   $: totalSize = $virtualizer.getTotalSize()
 
-  onMount(async () => {
+  async function loadSongs() {
     try {
       songs = (await ListAllSongs()) || []
     } catch (e) {
@@ -101,7 +101,9 @@
     } finally {
       loading = false
     }
-  })
+  }
+
+  onMount(() => { loadSongs() })
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -163,4 +165,4 @@
     </div>
   {/if}
 </div>
-<InferenceModal bind:this={inferenceModal} />
+<InferenceModal bind:this={inferenceModal} on:close={loadSongs} />
