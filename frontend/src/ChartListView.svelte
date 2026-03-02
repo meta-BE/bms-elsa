@@ -33,12 +33,15 @@
   let irDoneTimer: ReturnType<typeof setTimeout> | null = null
 
   function startBulkFetch() {
+    console.log('[IR] startBulkFetch called')
     irFetching = true
     irProgress = { current: 0, total: 0 }
     irDoneMessage = ''
     if (irDoneTimer) { clearTimeout(irDoneTimer); irDoneTimer = null }
-    StartBulkFetch().catch((e: Error) => {
-      console.error('StartBulkFetch failed:', e)
+    StartBulkFetch().then(() => {
+      console.log('[IR] StartBulkFetch resolved')
+    }).catch((e: Error) => {
+      console.error('[IR] StartBulkFetch failed:', e)
       irFetching = false
     })
   }
@@ -129,16 +132,22 @@
 
   onMount(() => {
     offProgress = EventsOn('ir:progress', (data: { current: number; total: number }) => {
+      console.log('[IR] progress:', data)
       irProgress = data
     })
-    offDone = EventsOn('ir:done', (data: { fetched: number; notFound: number; failed: number; cancelled: boolean }) => {
+    offDone = EventsOn('ir:done', (data: { total: number; fetched: number; notFound: number; failed: number; cancelled: boolean }) => {
+      console.log('[IR] done:', data)
       irFetching = false
       const parts: string[] = []
-      if (data.fetched > 0) parts.push(`${data.fetched}件取得`)
-      if (data.notFound > 0) parts.push(`${data.notFound}件未登録`)
-      if (data.failed > 0) parts.push(`${data.failed}件失敗`)
-      if (data.cancelled) parts.push('中断')
-      irDoneMessage = parts.join(', ')
+      if (data.total === 0) {
+        irDoneMessage = '対象なし'
+      } else {
+        if (data.fetched > 0) parts.push(`${data.fetched}件取得`)
+        if (data.notFound > 0) parts.push(`${data.notFound}件未登録`)
+        if (data.failed > 0) parts.push(`${data.failed}件失敗`)
+        if (data.cancelled) parts.push('中断')
+        irDoneMessage = parts.join(', ') || '完了'
+      }
       irDoneTimer = setTimeout(() => { irDoneMessage = '' }, 5000)
       // 譜面リスト再読み込み
       ListCharts().then(c => { charts = c || [] }).catch(console.error)

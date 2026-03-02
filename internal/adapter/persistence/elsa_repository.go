@@ -215,7 +215,7 @@ func (r *ElsaRepository) DeleteEventMapping(ctx context.Context, id int) error {
 func (r *ElsaRepository) ListUnfetchedChartKeys(ctx context.Context) ([]model.ChartKey, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT DISTINCT s.md5, s.sha256
-		FROM sd.song s
+		FROM songdata.song s
 		LEFT JOIN chart_meta cm ON s.md5 = cm.md5 AND s.sha256 = cm.sha256
 		WHERE cm.id IS NULL OR cm.lr2ir_fetched_at IS NULL
 		ORDER BY s.md5`)
@@ -246,8 +246,8 @@ func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.
 				MIN(s.artist) AS artist,
 				MIN(s.genre) AS genre,
 				COUNT(*) AS chart_count
-			FROM sd.song s
-			JOIN sd.folder f ON s.path = f.path
+			FROM songdata.song s
+			JOIN songdata.folder f ON s.path = f.path
 			GROUP BY f.path
 		),
 		ir_urls AS (
@@ -255,8 +255,8 @@ func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.
 				f.path AS folder_hash,
 				cm.lr2ir_body_url,
 				CASE WHEN cm.lr2ir_fetched_at IS NOT NULL THEN 1 ELSE 0 END AS has_ir
-			FROM sd.song s
-			JOIN sd.folder f ON s.path = f.path
+			FROM songdata.song s
+			JOIN songdata.folder f ON s.path = f.path
 			LEFT JOIN chart_meta cm ON s.md5 = cm.md5
 		)
 		SELECT
