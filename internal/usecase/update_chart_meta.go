@@ -15,6 +15,6 @@ func NewUpdateChartMetaUseCase(metaRepo model.MetaRepository) *UpdateChartMetaUs
 	return &UpdateChartMetaUseCase{metaRepo: metaRepo}
 }
 
-func (u *UpdateChartMetaUseCase) Execute(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error {
-	return u.metaRepo.UpdateWorkingURLs(ctx, md5, sha256, workingBodyURL, workingDiffURL)
+func (u *UpdateChartMetaUseCase) Execute(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error {
+	return u.metaRepo.UpdateWorkingURLs(ctx, md5, workingBodyURL, workingDiffURL)
 }
