@@ -212,6 +212,29 @@ func (r *ElsaRepository) DeleteEventMapping(ctx context.Context, id int) error {
 	return err
 }
 
+func (r *ElsaRepository) ListUnfetchedChartKeys(ctx context.Context) ([]model.ChartKey, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT DISTINCT s.md5, s.sha256
+		FROM songdata.song s
+		LEFT JOIN chart_meta cm ON s.md5 = cm.md5 AND s.sha256 = cm.sha256
+		WHERE cm.id IS NULL OR cm.lr2ir_fetched_at IS NULL
+		ORDER BY s.md5`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var keys []model.ChartKey
+	for rows.Next() {
+		var k model.ChartKey
+		if err := rows.Scan(&k.MD5, &k.SHA256); err != nil {
+			return nil, err
+		}
+		keys = append(keys, k)
+	}
+	return keys, rows.Err()
+}
+
 func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.SongIRURLs, error) {
 	// songdata.db（sdスキーマ）とelsa.dbのクロスDB JOIN
 	// song_metaにレコードがない or (release_year IS NULL AND event_name IS NULL)の曲が対象
@@ -223,8 +246,8 @@ func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.
 				MIN(s.artist) AS artist,
 				MIN(s.genre) AS genre,
 				COUNT(*) AS chart_count
-			FROM sd.song s
-			JOIN sd.folder f ON s.path = f.path
+			FROM songdata.song s
+			JOIN songdata.folder f ON s.path = f.path
 			GROUP BY f.path
 		),
 		ir_urls AS (
@@ -232,8 +255,8 @@ func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.
 				f.path AS folder_hash,
 				cm.lr2ir_body_url,
 				CASE WHEN cm.lr2ir_fetched_at IS NOT NULL THEN 1 ELSE 0 END AS has_ir
-			FROM sd.song s
-			JOIN sd.folder f ON s.path = f.path
+			FROM songdata.song s
+			JOIN songdata.folder f ON s.path = f.path
 			LEFT JOIN chart_meta cm ON s.md5 = cm.md5
 		)
 		SELECT

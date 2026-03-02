@@ -82,6 +82,10 @@ func (m *mockMetaRepo) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.So
 	return m.listUnsetSongsWithIRURLsFunc(ctx)
 }
 
+func (m *mockMetaRepo) ListUnfetchedChartKeys(_ context.Context) ([]model.ChartKey, error) {
+	return nil, nil
+}
+
 type mockIRClient struct {
 	lookupFunc func(ctx context.Context, md5 string) (*port.IRResponse, error)
 }
@@ -265,27 +269,25 @@ func TestLookupIR_Registered(t *testing.T) {
 	}
 }
 
-func TestLookupIR_Unregistered(t *testing.T) {
-	irResp := &port.IRResponse{
-		Registered: false,
-	}
-
+func TestLookupIR_NotRegistered_StillSavesFetchedAt(t *testing.T) {
 	irClient := &mockIRClient{
 		lookupFunc: func(_ context.Context, _ string) (*port.IRResponse, error) {
-			return irResp, nil
+			return &port.IRResponse{Registered: false}, nil
 		},
 	}
 
+	var upsertedMeta model.ChartIRMeta
 	upsertCalled := false
 	metaRepo := &mockMetaRepo{
-		upsertChartMetaFunc: func(_ context.Context, _ model.ChartIRMeta) error {
+		upsertChartMetaFunc: func(_ context.Context, meta model.ChartIRMeta) error {
 			upsertCalled = true
+			upsertedMeta = meta
 			return nil
 		},
 	}
 
 	uc := usecase.NewLookupIRUseCase(irClient, metaRepo)
-	resp, err := uc.Execute(context.Background(), "unknownmd5", "unknownsha256")
+	resp, err := uc.Execute(context.Background(), "md5notfound", "sha256notfound")
 
 	if err != nil {
 		t.Fatalf("予期しないエラー: %v", err)
@@ -293,7 +295,24 @@ func TestLookupIR_Unregistered(t *testing.T) {
 	if resp.Registered {
 		t.Error("resp.Registered = true, want false")
 	}
-	if upsertCalled {
-		t.Error("Registered=falseの場合、UpsertChartMetaは呼ばれるべきではない")
+	// 未登録でもfetched_atを保存する
+	if !upsertCalled {
+		t.Fatal("未登録でもUpsertChartMetaが呼ばれるべき")
+	}
+	if upsertedMeta.FetchedAt == nil {
+		t.Error("FetchedAt should be set even for unregistered")
+	}
+	if upsertedMeta.MD5 != "md5notfound" {
+		t.Errorf("MD5 = %q, want %q", upsertedMeta.MD5, "md5notfound")
+	}
+	if upsertedMeta.SHA256 != "sha256notfound" {
+		t.Errorf("SHA256 = %q, want %q", upsertedMeta.SHA256, "sha256notfound")
+	}
+	// 未登録なのでURLは空
+	if upsertedMeta.LR2IRBodyURL != "" {
+		t.Errorf("BodyURL should be empty, got %q", upsertedMeta.LR2IRBodyURL)
+	}
+	if upsertedMeta.LR2IRDiffURL != "" {
+		t.Errorf("DiffURL should be empty, got %q", upsertedMeta.LR2IRDiffURL)
 	}
 }

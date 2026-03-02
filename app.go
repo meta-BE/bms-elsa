@@ -71,9 +71,10 @@ func (a *App) Init() error {
 	updateSongMeta := usecase.NewUpdateSongMetaUseCase(elsaRepo)
 	updateChartMeta := usecase.NewUpdateChartMetaUseCase(elsaRepo)
 	lookupIR := usecase.NewLookupIRUseCase(irClient, elsaRepo)
+	bulkFetchIR := usecase.NewBulkFetchIRUseCase(irClient, elsaRepo)
 
 	a.SongHandler = internalapp.NewSongHandler(listSongs, getSongDetail, updateSongMeta)
-	a.IRHandler = internalapp.NewIRHandler(lookupIR, updateChartMeta)
+	a.IRHandler = internalapp.NewIRHandler(lookupIR, bulkFetchIR, updateChartMeta)
 
 	inferMeta := usecase.NewInferSongMetaUseCase(elsaRepo)
 	a.InferenceHandler = internalapp.NewInferenceHandler(inferMeta, elsaRepo)

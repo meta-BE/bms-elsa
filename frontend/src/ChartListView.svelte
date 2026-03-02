@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, createEventDispatcher } from 'svelte'
+  import { onMount, onDestroy, createEventDispatcher } from 'svelte'
   import {
     createSvelteTable,
     getCoreRowModel,
@@ -15,6 +15,8 @@
   import type { dto } from '../wailsjs/go/models'
   import SearchInput from './SearchInput.svelte'
   import SortableHeader from './SortableHeader.svelte'
+  import { EventsOn } from '../wailsjs/runtime/runtime'
+  import { StartBulkFetch, StopBulkFetch } from '../wailsjs/go/app/IRHandler'
 
   const dispatch = createEventDispatcher<{
     select: { md5: string }
@@ -23,6 +25,30 @@
 
   let charts: dto.ChartListItemDTO[] = []
   let loading = false
+
+  // IR一括取得の状態
+  let irFetching = false
+  let irProgress = { current: 0, total: 0 }
+  let irDoneMessage = ''
+  let irDoneTimer: ReturnType<typeof setTimeout> | null = null
+
+  function startBulkFetch() {
+    console.log('[IR] startBulkFetch called')
+    irFetching = true
+    irProgress = { current: 0, total: 0 }
+    irDoneMessage = ''
+    if (irDoneTimer) { clearTimeout(irDoneTimer); irDoneTimer = null }
+    StartBulkFetch().then(() => {
+      console.log('[IR] StartBulkFetch resolved')
+    }).catch((e: Error) => {
+      console.error('[IR] StartBulkFetch failed:', e)
+      irFetching = false
+    })
+  }
+
+  function stopBulkFetch() {
+    StopBulkFetch()
+  }
   export let selected: string | null = null
   let scrollElement: HTMLDivElement
   let sorting: SortingState = []
@@ -101,15 +127,43 @@
   $: virtualItems = $virtualizer.getVirtualItems()
   $: totalSize = $virtualizer.getTotalSize()
 
-  onMount(async () => {
+  let offProgress: (() => void) | null = null
+  let offDone: (() => void) | null = null
+
+  onMount(() => {
+    offProgress = EventsOn('ir:progress', (data: { current: number; total: number }) => {
+      console.log('[IR] progress:', data)
+      irProgress = data
+    })
+    offDone = EventsOn('ir:done', (data: { total: number; fetched: number; notFound: number; failed: number; cancelled: boolean }) => {
+      console.log('[IR] done:', data)
+      irFetching = false
+      const parts: string[] = []
+      if (data.total === 0) {
+        irDoneMessage = '対象なし'
+      } else {
+        if (data.fetched > 0) parts.push(`${data.fetched}件取得`)
+        if (data.notFound > 0) parts.push(`${data.notFound}件未登録`)
+        if (data.failed > 0) parts.push(`${data.failed}件失敗`)
+        if (data.cancelled) parts.push('中断')
+        irDoneMessage = parts.join(', ') || '完了'
+      }
+      irDoneTimer = setTimeout(() => { irDoneMessage = '' }, 5000)
+      // 譜面リスト再読み込み
+      ListCharts().then(c => { charts = c || [] }).catch(console.error)
+    })
+
+    // 譜面リスト読み込み
     loading = true
-    try {
-      charts = await ListCharts() || []
-    } catch (e) {
+    ListCharts().then(c => { charts = c || [] }).catch(e => {
       console.error('Failed to load charts:', e)
-    } finally {
-      loading = false
-    }
+    }).finally(() => { loading = false })
+  })
+
+  onDestroy(() => {
+    offProgress?.()
+    offDone?.()
+    if (irDoneTimer) clearTimeout(irDoneTimer)
   })
 
   function handleRowClick(chart: dto.ChartListItemDTO) {
@@ -129,7 +183,19 @@
     <span class="text-sm font-semibold shrink-0">
       {rows.length.toLocaleString()} charts
     </span>
-    <SearchInput bind:value={globalFilter} />
+    <div class="flex items-center gap-2">
+      {#if irFetching}
+        <span class="text-xs text-base-content/70">
+          取得中: {irProgress.current.toLocaleString()} / {irProgress.total.toLocaleString()}
+        </span>
+        <button class="btn btn-xs btn-error btn-outline" on:click|stopPropagation={stopBulkFetch}>停止</button>
+      {:else if irDoneMessage}
+        <span class="text-xs text-success">{irDoneMessage}</span>
+      {:else}
+        <button class="btn btn-xs btn-outline" on:click|stopPropagation={startBulkFetch}>IR取得</button>
+      {/if}
+      <SearchInput bind:value={globalFilter} />
+    </div>
   </div>
 
   {#if loading}
