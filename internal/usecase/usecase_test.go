@@ -82,6 +82,10 @@ func (m *mockMetaRepo) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.So
 	return m.listUnsetSongsWithIRURLsFunc(ctx)
 }
 
+func (m *mockMetaRepo) ListUnfetchedChartKeys(_ context.Context) ([]model.ChartKey, error) {
+	return nil, nil
+}
+
 type mockIRClient struct {
 	lookupFunc func(ctx context.Context, md5 string) (*port.IRResponse, error)
 }

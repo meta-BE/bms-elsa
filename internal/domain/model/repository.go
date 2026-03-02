@@ -38,4 +38,6 @@ type MetaRepository interface {
 	DeleteEventMapping(ctx context.Context, id int) error
 	// 推測用: 未設定曲のfolderHash + 紐づくIR本体URLを取得
 	ListUnsetSongsWithIRURLs(ctx context.Context) ([]SongIRURLs, error)
+	// IR未取得の譜面キー一覧を取得
+	ListUnfetchedChartKeys(ctx context.Context) ([]ChartKey, error)
 }
