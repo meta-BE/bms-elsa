@@ -12,12 +12,7 @@ import (
 // mockMetaRepoForBulk はBulkFetchIRのテスト用モック
 type mockMetaRepoForBulk struct {
 	model.MetaRepository
-	unfetchedKeys        []model.ChartKey
 	upsertChartMetaCalls []model.ChartIRMeta
-}
-
-func (m *mockMetaRepoForBulk) ListUnfetchedChartKeys(_ context.Context) ([]model.ChartKey, error) {
-	return m.unfetchedKeys, nil
 }
 
 func (m *mockMetaRepoForBulk) UpsertChartMeta(_ context.Context, meta model.ChartIRMeta) error {
@@ -26,12 +21,7 @@ func (m *mockMetaRepoForBulk) UpsertChartMeta(_ context.Context, meta model.Char
 }
 
 func TestBulkFetchIR_AllRegistered(t *testing.T) {
-	repo := &mockMetaRepoForBulk{
-		unfetchedKeys: []model.ChartKey{
-			{MD5: "aaa", SHA256: "sha_aaa"},
-			{MD5: "bbb", SHA256: "sha_bbb"},
-		},
-	}
+	repo := &mockMetaRepoForBulk{}
 	client := &mockIRClient{
 		lookupFunc: func(_ context.Context, md5 string) (*port.IRResponse, error) {
 			return &port.IRResponse{
@@ -42,8 +32,9 @@ func TestBulkFetchIR_AllRegistered(t *testing.T) {
 	}
 
 	uc := usecase.NewBulkFetchIRUseCase(client, repo)
+	md5s := []string{"aaa", "bbb"}
 	var progresses []usecase.BulkFetchProgress
-	result, err := uc.Execute(context.Background(), func(p usecase.BulkFetchProgress) {
+	result, err := uc.Execute(context.Background(), md5s, func(p usecase.BulkFetchProgress) {
 		progresses = append(progresses, p)
 	})
 
@@ -68,12 +59,7 @@ func TestBulkFetchIR_AllRegistered(t *testing.T) {
 }
 
 func TestBulkFetchIR_MixedResults(t *testing.T) {
-	repo := &mockMetaRepoForBulk{
-		unfetchedKeys: []model.ChartKey{
-			{MD5: "found", SHA256: "sha1"},
-			{MD5: "notfound", SHA256: "sha2"},
-		},
-	}
+	repo := &mockMetaRepoForBulk{}
 	client := &mockIRClient{
 		lookupFunc: func(_ context.Context, md5 string) (*port.IRResponse, error) {
 			if md5 == "found" {
@@ -84,7 +70,8 @@ func TestBulkFetchIR_MixedResults(t *testing.T) {
 	}
 
 	uc := usecase.NewBulkFetchIRUseCase(client, repo)
-	result, err := uc.Execute(context.Background(), nil)
+	md5s := []string{"found", "notfound"}
+	result, err := uc.Execute(context.Background(), md5s, nil)
 
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -98,13 +85,7 @@ func TestBulkFetchIR_MixedResults(t *testing.T) {
 }
 
 func TestBulkFetchIR_Cancellation(t *testing.T) {
-	repo := &mockMetaRepoForBulk{
-		unfetchedKeys: []model.ChartKey{
-			{MD5: "aaa", SHA256: "sha1"},
-			{MD5: "bbb", SHA256: "sha2"},
-			{MD5: "ccc", SHA256: "sha3"},
-		},
-	}
+	repo := &mockMetaRepoForBulk{}
 	callCount := 0
 	client := &mockIRClient{
 		lookupFunc: func(_ context.Context, _ string) (*port.IRResponse, error) {
@@ -115,7 +96,8 @@ func TestBulkFetchIR_Cancellation(t *testing.T) {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	uc := usecase.NewBulkFetchIRUseCase(client, repo)
-	result, err := uc.Execute(ctx, func(p usecase.BulkFetchProgress) {
+	md5s := []string{"aaa", "bbb", "ccc"}
+	result, err := uc.Execute(ctx, md5s, func(p usecase.BulkFetchProgress) {
 		if p.Current == 1 {
 			cancel() // 1件目完了後にキャンセル
 		}

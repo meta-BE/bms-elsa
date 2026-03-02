@@ -114,7 +114,7 @@ func TestUpsertAndGetChartMeta(t *testing.T) {
 		t.Fatalf("UpsertChartMeta failed: %v", err)
 	}
 
-	got, err := repo.GetChartMeta(ctx, "aaa", "bbb")
+	got, err := repo.GetChartMeta(ctx, "aaa")
 	if err != nil {
 		t.Fatalf("GetChartMeta failed: %v", err)
 	}
@@ -158,12 +158,12 @@ func TestBulkUpsertChartMeta(t *testing.T) {
 
 	// 各レコードが取得できることを検証
 	for _, m := range metas {
-		got, err := repo.GetChartMeta(ctx, m.MD5, m.SHA256)
+		got, err := repo.GetChartMeta(ctx, m.MD5)
 		if err != nil {
-			t.Fatalf("GetChartMeta(%q, %q) failed: %v", m.MD5, m.SHA256, err)
+			t.Fatalf("GetChartMeta(%q) failed: %v", m.MD5, err)
 		}
 		if got == nil {
-			t.Fatalf("GetChartMeta(%q, %q) returned nil", m.MD5, m.SHA256)
+			t.Fatalf("GetChartMeta(%q) returned nil", m.MD5)
 		}
 		if got.LR2IRBodyURL != m.LR2IRBodyURL {
 			t.Errorf("LR2IRBodyURL = %q, want %q", got.LR2IRBodyURL, m.LR2IRBodyURL)
@@ -207,7 +207,7 @@ func TestUpsertChartMeta_PreservesWorkingURLs(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got, err := repo.GetChartMeta(ctx, "aaa", "bbb")
+	got, err := repo.GetChartMeta(ctx, "aaa")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -245,11 +245,11 @@ func TestUpdateWorkingURLs(t *testing.T) {
 	}
 
 	// working URLのみ更新
-	if err := repo.UpdateWorkingURLs(ctx, "aaa", "bbb", "http://working.com/body", "http://working.com/diff"); err != nil {
+	if err := repo.UpdateWorkingURLs(ctx, "aaa", "http://working.com/body", "http://working.com/diff"); err != nil {
 		t.Fatal(err)
 	}
 
-	got, err := repo.GetChartMeta(ctx, "aaa", "bbb")
+	got, err := repo.GetChartMeta(ctx, "aaa")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -295,7 +295,7 @@ func TestUpsertChartMeta_Update(t *testing.T) {
 		t.Fatalf("UpsertChartMeta (update) failed: %v", err)
 	}
 
-	got, err := repo.GetChartMeta(ctx, "aaa", "bbb")
+	got, err := repo.GetChartMeta(ctx, "aaa")
 	if err != nil {
 		t.Fatalf("GetChartMeta after update failed: %v", err)
 	}
