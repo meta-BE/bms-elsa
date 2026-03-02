@@ -266,22 +266,20 @@ func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.
 	rows, err := r.db.QueryContext(ctx, `
 		WITH song_groups AS (
 			SELECT
-				f.path AS folder_hash,
+				s.folder AS folder_hash,
 				MIN(s.title) AS title,
 				MIN(s.artist) AS artist,
 				MIN(s.genre) AS genre,
 				COUNT(*) AS chart_count
 			FROM songdata.song s
-			JOIN songdata.folder f ON s.path = f.path
-			GROUP BY f.path
+			GROUP BY s.folder
 		),
 		ir_urls AS (
 			SELECT
-				f.path AS folder_hash,
+				s.folder AS folder_hash,
 				cm.lr2ir_body_url,
 				CASE WHEN cm.lr2ir_fetched_at IS NOT NULL THEN 1 ELSE 0 END AS has_ir
 			FROM songdata.song s
-			JOIN songdata.folder f ON s.path = f.path
 			LEFT JOIN chart_meta cm ON s.md5 = cm.md5
 		)
 		SELECT
