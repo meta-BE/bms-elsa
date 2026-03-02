@@ -28,16 +28,16 @@ type SongRepository interface {
 type MetaRepository interface {
 	GetSongMeta(ctx context.Context, folderHash string) (*SongMeta, error)
 	UpsertSongMeta(ctx context.Context, meta SongMeta) error
-	GetChartMeta(ctx context.Context, md5, sha256 string) (*ChartIRMeta, error)
+	GetChartMeta(ctx context.Context, md5 string) (*ChartIRMeta, error)
 	UpsertChartMeta(ctx context.Context, meta ChartIRMeta) error
 	BulkUpsertChartMeta(ctx context.Context, metas []ChartIRMeta) error
-	UpdateWorkingURLs(ctx context.Context, md5, sha256, workingBodyURL, workingDiffURL string) error
-	// event_mapping CRUD
+	UpdateWorkingURLs(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error
 	ListEventMappings(ctx context.Context) ([]EventMapping, error)
 	UpsertEventMapping(ctx context.Context, m EventMapping) error
 	DeleteEventMapping(ctx context.Context, id int) error
-	// 推測用: 未設定曲のfolderHash + 紐づくIR本体URLを取得
 	ListUnsetSongsWithIRURLs(ctx context.Context) ([]SongIRURLs, error)
-	// IR未取得の譜面キー一覧を取得
-	ListUnfetchedChartKeys(ctx context.Context) ([]ChartKey, error)
+	// IR未取得の譜面md5一覧（songdata.songベース）
+	ListUnfetchedChartMD5s(ctx context.Context) ([]string, error)
+	// 難易度表の未取得エントリmd5一覧
+	ListUnfetchedDTEntryMD5s(ctx context.Context, tableID int) ([]string, error)
 }
