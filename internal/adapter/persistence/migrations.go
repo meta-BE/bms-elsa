@@ -1,6 +1,16 @@
 package persistence
 
-import "database/sql"
+import (
+	"bytes"
+	"database/sql"
+	_ "embed"
+	"encoding/csv"
+	"fmt"
+	"strconv"
+)
+
+//go:embed event_mappings.csv
+var eventMappingsCSV []byte
 
 // RunMigrations はelsa.dbのスキーマを作成する。冪等。
 func RunMigrations(db *sql.DB) error {
@@ -67,34 +77,25 @@ func RunMigrations(db *sql.DB) error {
 		}
 	}
 
-	// 主要BMSイベントの初期マッピングデータ（冪等）
-	seedMappings := []struct {
-		pattern string
-		name    string
-		year    int
-	}{
-		{"manbow.nothing.sh|&event=17", "BOF2004", 2004},
-		{"manbow.nothing.sh|&event=37", "BOF2006", 2006},
-		{"manbow.nothing.sh|&event=54", "BOF2008", 2008},
-		{"manbow.nothing.sh|&event=65", "BOF2010", 2010},
-		{"manbow.nothing.sh|&event=74", "BOF2011", 2011},
-		{"manbow.nothing.sh|&event=83", "BOF2012", 2012},
-		{"manbow.nothing.sh|&event=88", "BOF2013", 2013},
-		{"manbow.nothing.sh|&event=96", "G2R2014", 2014},
-		{"manbow.nothing.sh|&event=104", "BOFU2015", 2015},
-		{"manbow.nothing.sh|&event=110", "BOFU2016", 2016},
-		{"manbow.nothing.sh|&event=116", "BOFU2017", 2017},
-		{"manbow.nothing.sh|&event=127", "BOFXV", 2019},
-		{"manbow.nothing.sh|&event=133", "BOFXVI", 2020},
-		{"manbow.nothing.sh|&event=137", "BOFXVII", 2021},
-		{"manbow.nothing.sh|&event=140", "BOF:ET", 2022},
-		{"manbow.nothing.sh|&event=142", "BOF:NT", 2023},
-		{"manbow.nothing.sh|&event=146", "BOF:TT", 2024},
+	// 埋め込みCSVからシードデータを投入（冪等）
+	records, err := csv.NewReader(bytes.NewReader(eventMappingsCSV)).ReadAll()
+	if err != nil {
+		return fmt.Errorf("event_mappings.csv パース失敗: %w", err)
 	}
-	for _, m := range seedMappings {
+	for i, rec := range records {
+		if i == 0 {
+			continue // ヘッダー行スキップ
+		}
+		if len(rec) != 3 {
+			return fmt.Errorf("event_mappings.csv 行%d: 列数が不正 (%d)", i+1, len(rec))
+		}
+		year, err := strconv.Atoi(rec[2])
+		if err != nil {
+			return fmt.Errorf("event_mappings.csv 行%d: release_year変換失敗: %w", i+1, err)
+		}
 		if _, err := db.Exec(
 			`INSERT OR IGNORE INTO event_mapping (url_pattern, event_name, release_year) VALUES (?, ?, ?)`,
-			m.pattern, m.name, m.year,
+			rec[0], rec[1], year,
 		); err != nil {
 			return err
 		}

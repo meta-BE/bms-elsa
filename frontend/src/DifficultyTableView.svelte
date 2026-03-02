@@ -179,7 +179,7 @@
         on:click|stopPropagation
       >
         {#each tables as t}
-          <option value={t.id}>{t.symbol} {t.name} ({t.entryCount})</option>
+          <option value={t.id}>{t.symbol} | {t.name} ({t.entryCount})</option>
         {/each}
       </select>
       <span class="text-sm font-semibold shrink-0">{rows.length.toLocaleString()} charts</span>
