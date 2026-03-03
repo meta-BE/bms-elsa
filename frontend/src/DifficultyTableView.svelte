@@ -17,9 +17,10 @@
   import SortableHeader from './SortableHeader.svelte'
   import { EventsOn } from '../wailsjs/runtime/runtime'
   import { StartDifficultyTableBulkFetch, StopBulkFetch } from '../wailsjs/go/app/IRHandler'
+  import { handleArrowNav } from './utils/arrowNav'
 
   const dispatch = createEventDispatcher<{
-    select: { md5: string; entry: main.DifficultyTableEntryDTO }
+    select: { md5: string; tableID: number }
     deselect: void
   }>()
 
@@ -31,6 +32,7 @@
   let loading = false
   let loadingEntries = false
   export let selected: string | null = null
+  export let active = true
   let searchText = ''
 
   // IR一括取得の状態
@@ -201,14 +203,27 @@
     return ''
   }
 
+  function handleKeyNav(e: KeyboardEvent) {
+    if (!active || !selectedTableId) return
+    handleArrowNav(e, {
+      selected,
+      rows,
+      getKey: (o: main.DifficultyTableEntryDTO) => o.md5,
+      onSelect: (o: main.DifficultyTableEntryDTO) => dispatch('select', { md5: o.md5, tableID: selectedTableId! }),
+      scrollToIndex: (i: number) => $virtualizer.scrollToIndex(i, { align: 'auto' }),
+    })
+  }
+
   function handleRowClick(entry: main.DifficultyTableEntryDTO) {
     if (selected === entry.md5) {
       dispatch('deselect')
     } else {
-      dispatch('select', { md5: entry.md5, entry })
+      dispatch('select', { md5: entry.md5, tableID: selectedTableId! })
     }
   }
 </script>
+
+<svelte:window on:keydown={handleKeyNav} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div
@@ -279,7 +294,7 @@
               class="flex absolute w-full border-b border-base-300/50 items-center px-2 cursor-pointer {selected === row.original.md5 ? 'bg-primary/20' : statusBgClass(row.original.status) + ' hover:bg-base-200'}"
               style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
               on:click|stopPropagation={() => handleRowClick(row.original)}
-              on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(row.original) }}
+              on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(row.original) }}
             >
               {#each row.getVisibleCells() as cell}
                 <div

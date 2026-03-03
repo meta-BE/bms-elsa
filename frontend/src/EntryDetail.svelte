@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetChartDetailByMD5, GetChartMetaByMD5 } from '../wailsjs/go/main/App'
+  import { GetChartDetailByMD5, GetChartMetaByMD5, GetDifficultyTableEntry } from '../wailsjs/go/main/App'
   import { LookupByMD5, UpdateChartMeta } from '../wailsjs/go/app/IRHandler'
   import type { dto, main } from '../wailsjs/go/models'
   import { modeLabel, diffLabel } from './utils/chartLabels'
@@ -8,30 +8,32 @@
   const dispatch = createEventDispatcher<{ close: void }>()
 
   export let md5: string
-  export let entryData: main.DifficultyTableEntryDTO
+  export let tableID: number
 
+  let entryData: main.DifficultyTableEntryDTO | null = null
   let chart: dto.ChartDTO | null = null
   let irMeta: dto.ChartIRMetaDTO | null = null
   let loading = false
   let editWorkingBodyUrl = ''
   let editWorkingDiffUrl = ''
 
-  $: if (md5) loadChart(md5)
+  $: if (md5 && tableID) loadEntry(md5, tableID)
 
   // IR情報の統一アクセス（chart or irMeta）
   $: ir = chart ?? irMeta
 
-  async function loadChart(hash: string) {
+  async function loadEntry(hash: string, tid: number) {
     loading = true
+    entryData = null
     chart = null
     irMeta = null
     try {
+      entryData = await GetDifficultyTableEntry(tid, hash)
       chart = await GetChartDetailByMD5(hash)
       if (chart) {
         editWorkingBodyUrl = chart.workingBodyUrl || ''
         editWorkingDiffUrl = chart.workingDiffUrl || ''
       } else {
-        // 未導入: chart_metaから直接IR情報を取得
         irMeta = await GetChartMetaByMD5(hash)
         if (irMeta) {
           editWorkingBodyUrl = irMeta.workingBodyUrl || ''
@@ -39,8 +41,7 @@
         }
       }
     } catch (e) {
-      console.error('Failed to load chart detail:', e)
-      chart = null
+      console.error('Failed to load entry detail:', e)
     } finally {
       loading = false
     }
@@ -48,13 +49,13 @@
 
   async function lookupIR() {
     await LookupByMD5(md5, chart?.sha256 || '')
-    await loadChart(md5)
+    await loadEntry(md5, tableID)
   }
 
   async function saveWorkingUrls() {
     if (!ir) return
     await UpdateChartMeta(md5, editWorkingBodyUrl, editWorkingDiffUrl)
-    await loadChart(md5)
+    await loadEntry(md5, tableID)
   }
 
 </script>
@@ -63,7 +64,7 @@
   <div class="flex items-center justify-center h-full">
     <span class="loading loading-spinner"></span>
   </div>
-{:else}
+{:else if entryData}
   <div class="flex flex-col gap-3">
     <!-- エントリ基本情報 -->
     <div class="bg-base-200 rounded-lg p-3">

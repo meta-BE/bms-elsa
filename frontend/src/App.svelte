@@ -8,8 +8,6 @@
   import SplitPane from './SplitPane.svelte'
   import Settings from './Settings.svelte'
   import EventMappingManager from './EventMappingManager.svelte'
-  import type { main } from '../wailsjs/go/models'
-
   let settingsComponent: Settings
   let eventMappingComponent: EventMappingManager
   let splitRatio = 0.6
@@ -25,7 +23,7 @@
 
   // 難易度表タブの選択状態
   let selectedEntryMD5: string | null = null
-  let selectedEntryData: main.DifficultyTableEntryDTO | null = null
+  let selectedTableID: number | null = null
 
   function switchTab(tab: 'songs' | 'charts' | 'difficulty') {
     activeTab = tab
@@ -47,7 +45,7 @@
       selectedChartMD5 = null
     } else {
       selectedEntryMD5 = null
-      selectedEntryData = null
+      selectedTableID = null
     }
   }
 
@@ -58,7 +56,7 @@
       selectedChartMD5 = null
     } else {
       selectedEntryMD5 = null
-      selectedEntryData = null
+      selectedTableID = null
     }
   }
 
@@ -76,19 +74,19 @@
   }
 
   // 難易度表タブのハンドラ
-  function handleEntrySelect(e: CustomEvent<{ md5: string; entry: main.DifficultyTableEntryDTO }>) {
+  function handleEntrySelect(e: CustomEvent<{ md5: string; tableID: number }>) {
     if (selectedEntryMD5 === e.detail.md5) {
       selectedEntryMD5 = null
-      selectedEntryData = null
+      selectedTableID = null
     } else {
       selectedEntryMD5 = e.detail.md5
-      selectedEntryData = e.detail.entry
+      selectedTableID = e.detail.tableID
     }
   }
 
   function handleEntryDeselect() {
     selectedEntryMD5 = null
-    selectedEntryData = null
+    selectedTableID = null
   }
 
 </script>
@@ -136,7 +134,7 @@
     <!-- 楽曲一覧タブ -->
     <div class="h-full" class:hidden={activeTab !== 'songs'}>
       <SplitPane showDetail={!!selectedFolderHash} bind:splitRatio>
-        <SongTable slot="list" selected={selectedFolderHash} on:select={handleSelect} on:deselect={handleDeselect} />
+        <SongTable slot="list" selected={selectedFolderHash} active={activeTab === 'songs'} on:select={handleSelect} on:deselect={handleDeselect} />
         <svelte:fragment slot="detail">
           {#if selectedFolderHash}
             <SongDetail folderHash={selectedFolderHash} on:close={handleClose} />
@@ -148,7 +146,7 @@
     <!-- 譜面一覧タブ -->
     <div class="h-full" class:hidden={activeTab !== 'charts'}>
       <SplitPane showDetail={!!selectedChartMD5} bind:splitRatio>
-        <ChartListView slot="list" selected={selectedChartMD5} on:select={handleChartSelect} on:deselect={handleChartDeselect} />
+        <ChartListView slot="list" selected={selectedChartMD5} active={activeTab === 'charts'} on:select={handleChartSelect} on:deselect={handleChartDeselect} />
         <svelte:fragment slot="detail">
           {#if selectedChartMD5}
             <ChartDetail md5={selectedChartMD5} on:close={() => { selectedChartMD5 = null }} />
@@ -159,11 +157,11 @@
 
     <!-- 難易度表タブ -->
     <div class="h-full" class:hidden={activeTab !== 'difficulty'}>
-      <SplitPane showDetail={!!(selectedEntryMD5 && selectedEntryData)} bind:splitRatio>
-        <DifficultyTableView slot="list" selected={selectedEntryMD5} on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
+      <SplitPane showDetail={!!(selectedEntryMD5 && selectedTableID)} bind:splitRatio>
+        <DifficultyTableView slot="list" selected={selectedEntryMD5} active={activeTab === 'difficulty'} on:select={handleEntrySelect} on:deselect={handleEntryDeselect} />
         <svelte:fragment slot="detail">
-          {#if selectedEntryMD5 && selectedEntryData}
-            <EntryDetail md5={selectedEntryMD5} entryData={selectedEntryData} on:close={handleClose} />
+          {#if selectedEntryMD5 && selectedTableID}
+            <EntryDetail md5={selectedEntryMD5} tableID={selectedTableID} on:close={handleClose} />
           {/if}
         </svelte:fragment>
       </SplitPane>

@@ -17,6 +17,7 @@
   import SortableHeader from './SortableHeader.svelte'
   import { EventsOn } from '../wailsjs/runtime/runtime'
   import { StartBulkFetch, StopBulkFetch } from '../wailsjs/go/app/IRHandler'
+  import { handleArrowNav } from './utils/arrowNav'
 
   const dispatch = createEventDispatcher<{
     select: { md5: string }
@@ -50,6 +51,7 @@
     StopBulkFetch()
   }
   export let selected: string | null = null
+  export let active = true
   let scrollElement: HTMLDivElement
   let sorting: SortingState = []
   let globalFilter = ''
@@ -166,6 +168,17 @@
     if (irDoneTimer) clearTimeout(irDoneTimer)
   })
 
+  function handleKeyNav(e: KeyboardEvent) {
+    if (!active) return
+    handleArrowNav(e, {
+      selected,
+      rows,
+      getKey: (o: dto.ChartListItemDTO) => o.md5,
+      onSelect: (o: dto.ChartListItemDTO) => dispatch('select', { md5: o.md5 }),
+      scrollToIndex: (i: number) => $virtualizer.scrollToIndex(i, { align: 'auto' }),
+    })
+  }
+
   function handleRowClick(chart: dto.ChartListItemDTO) {
     if (selected === chart.md5) {
       dispatch('deselect')
@@ -174,6 +187,8 @@
     }
   }
 </script>
+
+<svelte:window on:keydown={handleKeyNav} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div class="h-full flex flex-col bg-base-100 rounded-lg border border-base-300" on:click={() => dispatch('deselect')}>
@@ -217,7 +232,7 @@
               {selected === row.original.md5 ? 'bg-primary/20' : 'hover:bg-base-200'}"
             style="height: {ROW_HEIGHT}px; transform: translateY({virtualRow.start}px);"
             on:click|stopPropagation={() => handleRowClick(row.original)}
-            on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(row.original) }}
+            on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(row.original) }}
           >
             {#each row.getVisibleCells() as cell}
               <div

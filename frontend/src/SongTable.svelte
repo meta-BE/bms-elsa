@@ -16,12 +16,14 @@
   import SearchInput from './SearchInput.svelte'
   import SortableHeader from './SortableHeader.svelte'
   import InferenceModal from './InferenceModal.svelte'
+  import { handleArrowNav } from './utils/arrowNav'
 
   let inferenceModal: InferenceModal
 
   const dispatch = createEventDispatcher<{ select: string; deselect: void }>()
 
   export let selected: string | null = null
+  export let active = true
 
   const ROW_HEIGHT = 32
 
@@ -103,8 +105,21 @@
     }
   }
 
+  function handleKeyNav(e: KeyboardEvent) {
+    if (!active) return
+    handleArrowNav(e, {
+      selected,
+      rows,
+      getKey: (o: dto.SongRowDTO) => o.folderHash,
+      onSelect: (o: dto.SongRowDTO) => dispatch('select', o.folderHash),
+      scrollToIndex: (i: number) => $virtualizer.scrollToIndex(i, { align: 'auto' }),
+    })
+  }
+
   onMount(() => { loadSongs() })
 </script>
+
+<svelte:window on:keydown={handleKeyNav} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div
@@ -147,7 +162,7 @@
               {selected === row.original.folderHash ? 'bg-primary/20' : 'hover:bg-base-200'}"
             style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
             on:click|stopPropagation={() => dispatch('select', row.original.folderHash)}
-            on:keydown|stopPropagation={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.original.folderHash) }}
+            on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.original.folderHash) }}
           >
             {#each row.getVisibleCells() as cell}
               <div

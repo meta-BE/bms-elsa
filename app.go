@@ -216,6 +216,39 @@ type DifficultyTableEntryDTO struct {
 	InstalledCount int    `json:"installedCount"`
 }
 
+func (a *App) GetDifficultyTableEntry(tableID int, md5 string) (*DifficultyTableEntryDTO, error) {
+	entry, err := a.dtRepo.GetEntry(a.ctx, tableID, md5)
+	if err != nil {
+		return nil, err
+	}
+	if entry == nil {
+		return nil, nil
+	}
+
+	counts, err := a.songReader.CountChartsByMD5s(a.ctx, []string{md5})
+	if err != nil {
+		return nil, err
+	}
+
+	count := 0
+	if counts != nil {
+		count = counts[md5]
+	}
+	status := "not_installed"
+	if count == 1 {
+		status = "installed"
+	} else if count > 1 {
+		status = "duplicate"
+	}
+
+	result := DifficultyTableEntryDTO{
+		MD5: entry.MD5, Level: entry.Level, Title: entry.Title, Artist: entry.Artist,
+		URL: entry.URL, URLDiff: entry.URLDiff,
+		Status: status, InstalledCount: count,
+	}
+	return &result, nil
+}
+
 func (a *App) ListDifficultyTableEntries(tableID int) ([]DifficultyTableEntryDTO, error) {
 	entries, err := a.dtRepo.ListEntries(a.ctx, tableID)
 	if err != nil {

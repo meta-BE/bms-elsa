@@ -126,6 +126,22 @@ func (r *DifficultyTableRepository) CountEntries(ctx context.Context, tableID in
 	return count, err
 }
 
+func (r *DifficultyTableRepository) GetEntry(ctx context.Context, tableID int, md5 string) (*DifficultyTableEntry, error) {
+	var e DifficultyTableEntry
+	err := r.db.QueryRowContext(ctx, `
+		SELECT table_id, md5, level, COALESCE(title, ''), COALESCE(artist, ''), COALESCE(url, ''), COALESCE(url_diff, '')
+		FROM difficulty_table_entry
+		WHERE table_id = ? AND md5 = ?
+	`, tableID, md5).Scan(&e.TableID, &e.MD5, &e.Level, &e.Title, &e.Artist, &e.URL, &e.URLDiff)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &e, nil
+}
+
 func (r *DifficultyTableRepository) ListEntries(ctx context.Context, tableID int) ([]DifficultyTableEntry, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT table_id, md5, level, COALESCE(title, ''), COALESCE(artist, ''), COALESCE(url, ''), COALESCE(url_diff, '')
