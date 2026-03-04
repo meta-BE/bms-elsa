@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { GetSongDetail } from '../wailsjs/go/app/SongHandler'
+  import type { dto } from '../wailsjs/go/models'
+
   export let group: {
     ID: number
     Score: number
@@ -15,6 +18,29 @@
     }[]
   } | null = null
 
+  // メンバーごとの譜面詳細をキャッシュ
+  let chartsMap: Record<string, dto.ChartDTO[]> = {}
+
+  // groupが変わったら譜面詳細を取得
+  $: if (group) {
+    for (const member of group.Members) {
+      if (!chartsMap[member.FolderHash]) {
+        fetchCharts(member.FolderHash)
+      }
+    }
+  }
+
+  async function fetchCharts(folderHash: string) {
+    try {
+      const detail = await GetSongDetail(folderHash)
+      if (detail?.charts) {
+        chartsMap = { ...chartsMap, [folderHash]: detail.charts }
+      }
+    } catch {
+      // 取得失敗は無視
+    }
+  }
+
   function formatBPM(min: number, max: number): string {
     if (min === max) return String(Math.round(min))
     return `${Math.round(min)}-${Math.round(max)}`
@@ -25,6 +51,12 @@
     const parts = path.split(sep)
     parts.pop()
     return parts.join(sep)
+  }
+
+  function fileName(path: string): string {
+    const sep = path.includes('\\') ? '\\' : '/'
+    const parts = path.split(sep)
+    return parts[parts.length - 1] || path
   }
 </script>
 
@@ -50,6 +82,17 @@
             </div>
           </div>
           <div class="text-xs text-base-content/40 break-all">{folderPath(member.Path)}</div>
+
+          {#if chartsMap[member.FolderHash]}
+            <div class="mt-1 space-y-0.5">
+              {#each chartsMap[member.FolderHash] as chart}
+                <div class="text-xs flex gap-2">
+                  <span class="text-base-content/70">{chart.subtitle || fileName(chart.path || '')}</span>
+                  <span class="text-base-content/30 break-all">{fileName(chart.path || '')}</span>
+                </div>
+              {/each}
+            </div>
+          {/if}
         </div>
       </div>
     {/each}
