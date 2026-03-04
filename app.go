@@ -14,6 +14,7 @@ import (
 	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	internalapp "github.com/meta-BE/bms-elsa/internal/app"
 	"github.com/meta-BE/bms-elsa/internal/app/dto"
+	"github.com/meta-BE/bms-elsa/internal/domain/similarity"
 	"github.com/meta-BE/bms-elsa/internal/usecase"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -486,4 +487,28 @@ func (a *App) refreshTable(t persistence.DifficultyTable) RefreshResult {
 	result.Success = true
 	result.EntryCount = len(entries)
 	return result
+}
+
+// ScanDuplicates は楽曲の重複スキャンを実行する
+func (a *App) ScanDuplicates() ([]similarity.DuplicateGroup, error) {
+	groups, err := a.songReader.ListSongGroupsForDuplicateScan(a.ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	songs := make([]similarity.SongInfo, len(groups))
+	for i, g := range groups {
+		songs[i] = similarity.SongInfo{
+			FolderHash: g.FolderHash,
+			Title:      g.Title,
+			Artist:     g.Artist,
+			Genre:      g.Genre,
+			MinBPM:     g.MinBPM,
+			MaxBPM:     g.MaxBPM,
+			ChartCount: g.ChartCount,
+			Path:       g.Path,
+		}
+	}
+
+	return similarity.FindDuplicateGroups(songs, 60), nil
 }
