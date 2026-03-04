@@ -81,8 +81,7 @@
       <tbody>
         {#each groups as group}
           <tr
-            class="cursor-pointer hover:bg-base-200"
-            class:bg-primary/10={selectedGroupID === group.ID}
+            class="cursor-pointer hover:bg-base-200 {selectedGroupID === group.ID ? 'bg-primary/10' : ''}"
             on:click={() => handleSelect(group)}
           >
             <td class="font-mono">{group.Score}%</td>

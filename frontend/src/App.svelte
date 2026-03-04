@@ -94,6 +94,11 @@
     selectedTableID = null
   }
 
+  // 重複検知タブのハンドラ
+  function handleDuplicateSelect(e: CustomEvent) {
+    selectedDuplicateGroup = e.detail
+  }
+
 </script>
 
 <div data-theme="emerald" class="h-full flex flex-col">
@@ -180,7 +185,7 @@
     <!-- 重複検知タブ -->
     <div class="h-full" class:hidden={activeTab !== 'duplicates'}>
       <SplitPane showDetail={!!selectedDuplicateGroup} bind:splitRatio>
-        <DuplicateView slot="list" active={activeTab === 'duplicates'} on:select={(e) => selectedDuplicateGroup = e.detail} />
+        <DuplicateView slot="list" active={activeTab === 'duplicates'} on:select={handleDuplicateSelect} />
         <svelte:fragment slot="detail">
           {#if selectedDuplicateGroup}
             <DuplicateDetail group={selectedDuplicateGroup} />

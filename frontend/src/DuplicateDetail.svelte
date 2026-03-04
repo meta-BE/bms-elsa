@@ -55,9 +55,9 @@
     {/each}
 
     {#if group.Members.length >= 2}
+      {@const scores = group.Members[0].Scores}
       <div class="text-xs text-base-content/60 space-y-1">
         <div class="font-semibold">類似度内訳</div>
-        {@const scores = group.Members[0].Scores}
         <div class="flex gap-4">
           <span>title {scores.Title}%</span>
           <span>artist {scores.Artist}%</span>
