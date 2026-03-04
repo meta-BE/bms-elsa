@@ -298,6 +298,39 @@ func TestListAllCharts(t *testing.T) {
 	}
 }
 
+func TestListSongGroupsForDuplicateScan(t *testing.T) {
+	reader, _ := setupSongdataReader(t)
+	ctx := context.Background()
+
+	groups, err := reader.ListSongGroupsForDuplicateScan(ctx)
+	if err != nil {
+		t.Fatalf("ListSongGroupsForDuplicateScan failed: %v", err)
+	}
+
+	if len(groups) == 0 {
+		t.Fatal("expected at least one song group")
+	}
+
+	// FolderHashは全グループで非空であること
+	for i, g := range groups {
+		if g.FolderHash == "" {
+			t.Errorf("groups[%d].FolderHash is empty", i)
+		}
+	}
+
+	// タイトルが非空のグループが存在すること
+	hasTitle := false
+	for _, g := range groups {
+		if g.Title != "" {
+			hasTitle = true
+			break
+		}
+	}
+	if !hasTitle {
+		t.Error("expected at least one group with non-empty Title")
+	}
+}
+
 // songTitles はデバッグ用にSongのタイトル一覧を返す
 func songTitles(songs []model.Song) []string {
 	titles := make([]string, len(songs))

@@ -450,6 +450,52 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 	return charts, rows.Err()
 }
 
+// SongGroup は重複スキャン用のfolder単位の楽曲情報
+type SongGroup struct {
+	FolderHash string
+	Title      string
+	Artist     string
+	Genre      string
+	MinBPM     float64
+	MaxBPM     float64
+	ChartCount int
+	Path       string // 代表パス（フォルダまで）
+}
+
+// ListSongGroupsForDuplicateScan はfolder単位で楽曲グループを返す（重複スキャン用）
+func (r *SongdataReader) ListSongGroupsForDuplicateScan(ctx context.Context) ([]SongGroup, error) {
+	query := `
+		SELECT
+			s.folder,
+			s.title,
+			s.artist,
+			s.genre,
+			MIN(s.minbpm) AS minbpm,
+			MAX(s.maxbpm) AS maxbpm,
+			COUNT(*) AS chart_count,
+			MIN(s.path) AS path
+		FROM songdata.song s
+		WHERE s.md5 IS NOT NULL AND s.md5 != ''
+		GROUP BY s.folder
+	`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("ListSongGroupsForDuplicateScan: %w", err)
+	}
+	defer rows.Close()
+
+	var groups []SongGroup
+	for rows.Next() {
+		var g SongGroup
+		if err := rows.Scan(&g.FolderHash, &g.Title, &g.Artist, &g.Genre,
+			&g.MinBPM, &g.MaxBPM, &g.ChartCount, &g.Path); err != nil {
+			return nil, err
+		}
+		groups = append(groups, g)
+	}
+	return groups, rows.Err()
+}
+
 // GetChartByMD5 はmd5で譜面を1件取得し、IRメタ・難易度ラベルを付与して返す
 func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5 string) (*model.Chart, error) {
 	var c model.Chart
