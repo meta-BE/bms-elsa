@@ -5,6 +5,8 @@
   import ChartDetail from './ChartDetail.svelte'
   import ChartListView from './ChartListView.svelte'
   import EntryDetail from './EntryDetail.svelte'
+  import DuplicateView from './DuplicateView.svelte'
+  import DuplicateDetail from './DuplicateDetail.svelte'
   import SplitPane from './SplitPane.svelte'
   import Settings from './Settings.svelte'
   import EventMappingManager from './EventMappingManager.svelte'
@@ -13,7 +15,7 @@
   let splitRatio = 0.6
 
   // タブ状態
-  let activeTab: 'songs' | 'charts' | 'difficulty' = 'songs'
+  let activeTab: 'songs' | 'charts' | 'difficulty' | 'duplicates' = 'songs'
 
   // 楽曲タブの選択状態
   let selectedFolderHash: string | null = null
@@ -25,7 +27,10 @@
   let selectedEntryMD5: string | null = null
   let selectedTableID: number | null = null
 
-  function switchTab(tab: 'songs' | 'charts' | 'difficulty') {
+  // 重複検知タブの選択状態
+  let selectedDuplicateGroup: any = null
+
+  function switchTab(tab: 'songs' | 'charts' | 'difficulty' | 'duplicates') {
     activeTab = tab
   }
 
@@ -127,6 +132,11 @@
       class:tab-active={activeTab === 'difficulty'}
       on:click|stopPropagation={() => switchTab('difficulty')}
     >難易度表</button>
+    <button
+      class="tab"
+      class:tab-active={activeTab === 'duplicates'}
+      on:click|stopPropagation={() => switchTab('duplicates')}
+    >重複検知</button>
   </div>
 
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -162,6 +172,18 @@
         <svelte:fragment slot="detail">
           {#if selectedEntryMD5 && selectedTableID}
             <EntryDetail md5={selectedEntryMD5} tableID={selectedTableID} on:close={handleClose} />
+          {/if}
+        </svelte:fragment>
+      </SplitPane>
+    </div>
+
+    <!-- 重複検知タブ -->
+    <div class="h-full" class:hidden={activeTab !== 'duplicates'}>
+      <SplitPane showDetail={!!selectedDuplicateGroup} bind:splitRatio>
+        <DuplicateView slot="list" active={activeTab === 'duplicates'} on:select={(e) => selectedDuplicateGroup = e.detail} />
+        <svelte:fragment slot="detail">
+          {#if selectedDuplicateGroup}
+            <DuplicateDetail group={selectedDuplicateGroup} />
           {/if}
         </svelte:fragment>
       </SplitPane>
