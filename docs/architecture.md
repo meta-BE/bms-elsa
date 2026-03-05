@@ -1,74 +1,75 @@
-# BMS ELSA (Efficient Library & Storage Agent) クリーンアーキテクチャ設計
+# BMS ELSA (Efficient Library & Storage Agent) アーキテクチャ設計
 
 ## 技術スタック
 
 - バックエンド: Wails v2 + Go
-- フロントエンド: WebView（詳細は別途設計）
+- フロントエンド: Svelte 4 + TypeScript + Vite + DaisyUI/TailwindCSS
 - 永続化: SQLite（`modernc.org/sqlite` — 純Go実装、CGO不要）
-- DI: 手動（main.goで組み立て）
+- DI: 手動（app.go Init()で組み立て）
+- データソース: beatoraja の songdata.db（読み取り専用）+ ELSA独自の elsa.db
 
 ## ディレクトリ構造
 
 ```
 bms-elsa/
-├── main.go                              # Wailsエントリポイント + DI組み立て
-├── app.go                               # App構造体（将来ハンドラーに分割）
+├── main.go                              # Wailsエントリポイント + Bind定義
+├── app.go                               # App構造体・設定管理・DI組み立て
 ├── internal/
 │   ├── domain/                         # ドメイン層（最内層・外部依存なし）
 │   │   ├── model/
-│   │   │   ├── song.go                 # 曲フォルダ エンティティ
-│   │   │   ├── chart.go                # 譜面ファイル エンティティ
-│   │   │   ├── bms_header.go           # ヘッダ情報 Value Object
-│   │   │   ├── bms_definition.go       # WAV/BMP定義 Value Object
-│   │   │   ├── ir_metadata.go          # LR2IRメタデータ
-│   │   │   └── validation_result.go    # 差分検証結果
-│   │   ├── repository/
-│   │   │   ├── song_repository.go      # SongRepository interface
-│   │   │   └── chart_repository.go     # ChartRepository interface
-│   │   └── service/
-│   │       ├── chart_validator.go      # 差分正当性検証
-│   │       └── metadata_matcher.go     # タイトル類似度判定
+│   │   │   ├── song.go                 # Song/Chart エンティティ、ChartIRMeta等
+│   │   │   └── repository.go          # SongRepository/MetaRepository interface
+│   │   └── similarity/
+│   │       ├── similarity.go           # タイトル・アーティスト類似度判定
+│   │       └── grouping.go            # 重複検知・グループ化ロジック
 │   │
 │   ├── usecase/                        # ユースケース層
-│   │   ├── scan_songs.go               # フォルダ走査
 │   │   ├── list_songs.go               # 一覧取得（ページング）
-│   │   ├── import_song.go              # 楽曲導入
-│   │   ├── import_chart.go             # 差分導入
-│   │   ├── validate_chart.go           # 差分検証
-│   │   ├── lookup_ir.go               # LR2IR照合
-│   │   ├── rename_song.go              # リネーム
-│   │   └── move_song.go               # 移動
+│   │   ├── get_song_detail.go          # 楽曲詳細取得
+│   │   ├── bulk_fetch_ir.go            # LR2IR一括取得
+│   │   ├── lookup_ir.go               # LR2IR照合（単一）
+│   │   ├── infer_meta.go              # URLパターン→Event/Year推測
+│   │   ├── infer_working_url.go       # URL書き換えルール適用
+│   │   ├── update_song_meta.go        # 楽曲メタデータ更新
+│   │   └── update_chart_meta.go       # 譜面メタデータ更新
 │   │
 │   ├── port/                           # ポート定義（usecase層が依存するインターフェース）
-│   │   ├── filesystem.go               # FileSystem interface
-│   │   ├── bms_parser.go               # BMSParser interface
-│   │   ├── ir_client.go                # IRClient interface
-│   │   ├── hasher.go                   # Hasher interface
-│   │   └── event_emitter.go            # EventEmitter interface
+│   │   └── ir_client.go                # IRClient interface
 │   │
 │   ├── adapter/                        # アダプタ層（ポート・リポジトリの実装）
-│   │   ├── parser/
-│   │   │   └── bms_parser.go           # BMSパーサー実装
 │   │   ├── gateway/
-│   │   │   └── lr2ir_client.go         # LR2IRスクレイピング実装
-│   │   ├── filesystem/
-│   │   │   ├── scanner.go              # ディレクトリ走査
-│   │   │   ├── file_ops.go             # ファイル移動・リネーム
-│   │   │   └── hasher.go               # MD5計算
+│   │   │   ├── lr2ir_client.go         # LR2IRスクレイピング実装
+│   │   │   ├── lr2ir_parser.go         # HTML解析・メタデータ抽出
+│   │   │   └── difficulty_table_fetcher.go # 難易度表フェッチ・解析
 │   │   └── persistence/
-│   │       ├── sqlite_repository.go    # SQLiteリポジトリ実装
-│   │       └── migrations.go           # スキーマ定義・マイグレーション
+│   │       ├── migrations.go           # SQLiteスキーマ定義・マイグレーション
+│   │       ├── elsa_repository.go      # elsa.db操作（chart_meta, rewrite_rule等）
+│   │       ├── songdata_reader.go      # beatoraja songdata.db読み取り
+│   │       └── difficulty_table_repository.go # 難易度表テーブル操作
 │   │
 │   └── app/                            # Wailsバインディング層（最外層）
-│       ├── scan_handler.go             # 走査API
-│       ├── song_handler.go             # 楽曲API
-│       ├── chart_handler.go            # 譜面/差分API
-│       ├── ir_handler.go               # LR2IR API
-│       ├── dto/                        # フロントエンド向けDTO群
-│       └── event/
-│           └── wails_emitter.go        # Wailsイベント実装
+│       ├── song_handler.go             # 楽曲API（ListSongs, GetDetail等）
+│       ├── chart_handler.go            # 譜面API（ListCharts, GetChartDetail等）
+│       ├── ir_handler.go               # LR2IR API（BulkFetch, Lookup等）
+│       ├── difficulty_table_handler.go # 難易度表API（CRUD, Refresh等）
+│       ├── inference_handler.go        # メタデータ推測API
+│       ├── rewrite_handler.go          # URL書き換えルールAPI
+│       └── dto/
+│           └── dto.go                  # フロントエンド向けDTO群
 │
-├── frontend/                           # フロントエンド（別途設計）
+├── cmd/
+│   └── gen-testdata/
+│       └── main.go                     # テストデータ生成ツール
+│
+├── frontend/                           # Svelteフロントエンド
+│   └── src/
+│       ├── components/                 # 共有UIコンポーネント
+│       ├── views/                      # タブ画面・詳細パネル
+│       ├── settings/                   # 設定系モーダル
+│       └── utils/                      # ユーティリティ関数
+│
+├── testdata/                           # テスト用songdata.db等
+├── docs/                              # ドキュメント・計画書
 ├── go.mod
 └── wails.json
 ```
@@ -78,7 +79,7 @@ bms-elsa/
 依存は常に外側から内側への一方向。
 
 ```
-cmd/app (DI組み立て・全層を参照)
+app.go (DI組み立て・全層を参照)
   ┌──────────────────────────────────────┐
   │ app (Wailsバインディング)            │ → usecase, dto
   │   ┌──────────────────────────────┐   │
@@ -92,8 +93,8 @@ cmd/app (DI組み立て・全層を参照)
 ```
 
 依存性逆転の適用:
-- `usecase` → `port`（interface） ← `adapter`（実装）
-- `usecase` → `domain/repository`（interface） ← `adapter/persistence`（実装）
+- `usecase` → `port`（interface） ← `adapter/gateway`（実装）
+- `usecase` → `domain/model`（Repository interface） ← `adapter/persistence`（実装）
 
 ## 主要インターフェース
 
@@ -101,119 +102,78 @@ cmd/app (DI組み立て・全層を参照)
 
 | ポート | 責務 | 実装 |
 |---|---|---|
-| FileSystem | フォルダ走査、ファイル存在確認、移動、リネーム、読み込み | adapter/filesystem |
-| BMSParser | `[]byte` → BMSHeader + BMSDefinitions への変換（I/Oなし） | adapter/parser |
-| IRClient | MD5指定でLR2IRメタデータ取得（レートリミット・バッチ対応） | adapter/gateway |
-| Hasher | ファイルパス → MD5ハッシュ | adapter/filesystem |
-| EventEmitter | `Emit(eventName, data)` でフロントエンドへプッシュ通知 | app/event |
+| IRClient | MD5指定でLR2IRメタデータ取得（レートリミット対応） | adapter/gateway/lr2ir_client.go |
+
+### ドメインリポジトリ（domain/model/repository.go）
+
+| インターフェース | 責務 | 実装 |
+|---|---|---|
+| SongRepository | songdata.dbからの楽曲・譜面読み取り（読み取り専用） | adapter/persistence/songdata_reader.go |
+| MetaRepository | elsa.dbのメタデータCRUD（chart_meta, rewrite_rule, event_mapping等） | adapter/persistence/elsa_repository.go |
 
 ### ドメインモデル
 
 | モデル | 説明 |
 |---|---|
-| Song | 曲フォルダ（DirPath, Charts[], 代表Title/Artist） |
-| Chart | 譜面ファイル（FilePath, BMSHeader, BMSDefinitions, MD5） |
-| BMSHeader | #TITLE, #SUBTITLE, #ARTIST, #SUBARTIST, #GENRE, #BPM, #PLAYLEVEL, #DIFFICULTY, #RANK, #TOTAL等 |
-| BMSDefinitions | WAV定義一覧 + BMP定義一覧 |
-| IRMetadata | LR2IRから取得した情報（BMSID, Title, Artist, Tags, BodyURL等） |
-| ValidationResult | 検証合否, メタデータ一致, 欠損ファイル一覧, 参照ファイル存在率 |
+| Song | 曲フォルダ（FolderHash, Charts[], 代表Title/Artist, ReleaseYear, EventName） |
+| Chart | 譜面ファイル（MD5, SHA256, Title, Subtitle, Artist, SubArtist, Path, DifficultyLabels） |
+| ChartIRMeta | LR2IR取得結果 + 動作URL（WorkingBodyURL, WorkingDiffURL） |
+| EventMapping | URLパターン→イベント名・リリース年マッピング |
+| RewriteRule | URL書き換えルール（replace/regex型、優先度付き） |
 
-### ドメインサービス
+### ドメインサービス（domain/similarity/）
 
 | サービス | 責務 |
 |---|---|
-| ChartValidator | メタデータ一致判定 + 参照ファイル存在確認 + 総合判定 |
-| MetadataMatcher | タイトルからサブタイトル除去、ベース部分の一致判定 |
+| similarity.go | Levenshtein距離によるタイトル・アーティスト類似度判定 |
+| grouping.go | 類似度に基づく重複グループ化・スコアリング |
 
 ## Wailsバインディング層
 
 ### ハンドラー → フロントエンドに公開するAPI
 
-| ハンドラー | メソッド | 説明 |
+| ハンドラー | 主なメソッド | 説明 |
 |---|---|---|
-| ScanHandler | StartScan(rootPath) | フォルダ走査開始（非同期、進捗はイベント通知） |
-| ScanHandler | CancelScan() | 走査キャンセル |
-| SongHandler | ListSongs(PageRequest) | ページング付き楽曲一覧 |
-| SongHandler | ImportSong(sourcePath, targetDir) | 楽曲導入 |
-| SongHandler | RenameSong(dirPath, newName) | リネーム |
-| SongHandler | MoveSong(dirPath, targetDir) | 移動 |
-| ChartHandler | ValidateChart(chartPath, targetSongDir) | 差分正当性検証 |
-| ChartHandler | ImportChart(chartPath, targetSongDir) | 差分導入 |
-| IRHandler | LookupByMD5(md5) | LR2IRメタデータ取得 |
-| IRHandler | LookupByChart(chartPath) | ローカル譜面からLR2IR照合 |
+| SongHandler | ListSongs, GetSongDetail, UpdateSongMeta | 楽曲一覧・詳細・メタ更新 |
+| ChartHandler | ListCharts, GetChartDetailByMD5, GetChartMetaByMD5 | 譜面一覧・詳細 |
+| IRHandler | LookupByMD5, StartBulkFetch, StartDifficultyTableBulkFetch | LR2IR照合・一括取得 |
+| DifficultyTableHandler | ListDifficultyTables, AddDifficultyTable, RefreshAll, ListEntries | 難易度表CRUD・更新 |
+| InferenceHandler | InferMeta, ListEventMappings | メタデータ推測・マッピング管理 |
+| RewriteHandler | InferWorkingURLs, ListRewriteRules | URL書き換えルール管理・一括適用 |
+| App | GetConfig, SaveConfig, OpenFolder, OpenURL, ScanDuplicates | 設定・システム操作 |
 
 ### Wailsイベント
 
 | イベント名 | データ | タイミング |
 |---|---|---|
-| `scan:progress` | ScanProgressDTO | 走査進捗更新 |
-| `scan:complete` | nil | 走査完了 |
-| `scan:error` | {message} | 走査エラー |
+| `ir:progress` | {current, total} | IR一括取得の進捗更新 |
+| `ir:done` | {total, fetched, notFound, failed, cancelled} | IR一括取得完了 |
 
 ## SQLiteスキーマ
 
-```sql
-CREATE TABLE songs (
-    dir_path TEXT PRIMARY KEY,
-    dir_name TEXT NOT NULL,
-    title    TEXT,
-    artist   TEXT
-);
+### songdata.db（beatoraja管理、読み取り専用）
 
-CREATE TABLE charts (
-    file_path  TEXT PRIMARY KEY,
-    song_dir   TEXT NOT NULL REFERENCES songs(dir_path),
-    file_name  TEXT NOT NULL,
-    md5        TEXT NOT NULL,
-    title      TEXT,
-    subtitle   TEXT,
-    artist     TEXT,
-    subartist  TEXT,
-    genre      TEXT,
-    bpm        REAL,
-    play_level INTEGER,
-    difficulty INTEGER,
-    rank       INTEGER,
-    total      REAL,
-    file_size  INTEGER
-);
+beatorajaが管理するsongdata.dbからsong・chartデータを読み取る。ELSAはこのDBを変更しない。
 
-CREATE TABLE chart_refs (
-    chart_path TEXT NOT NULL REFERENCES charts(file_path),
-    ref_type   TEXT NOT NULL,  -- 'wav' or 'bmp'
-    ref_index  TEXT NOT NULL,
-    filename   TEXT NOT NULL,
-    PRIMARY KEY (chart_path, ref_type, ref_index)
-);
+### elsa.db（ELSA専用）
 
-CREATE TABLE ir_cache (
-    md5        TEXT PRIMARY KEY,
-    bms_id     INTEGER,
-    title      TEXT,
-    artist     TEXT,
-    genre      TEXT,
-    tags       TEXT,  -- JSON配列
-    body_url   TEXT,
-    fetched_at DATETIME NOT NULL
-);
-
-CREATE INDEX idx_charts_song_dir ON charts(song_dir);
-CREATE INDEX idx_charts_md5 ON charts(md5);
-CREATE INDEX idx_songs_title ON songs(title);
-```
-
-- `ir_cache` でLR2IR取得結果をキャッシュし、再問い合わせを回避
-- 走査時は既存レコードとファイルシステムの差分を検出し、差分のみ更新（増分走査）
+| テーブル | 用途 |
+|---|---|
+| chart_meta | 譜面ごとのLR2IRメタ・動作URL |
+| song_meta | 楽曲ごとのイベント名・リリース年 |
+| url_rewrite_rule | URL書き換えルール（replace/regex、優先度付き） |
+| event_mapping | URLパターン→イベント名・年マッピング |
+| difficulty_table | 難易度表メタデータ（URL・更新日時） |
+| difficulty_entry | 難易度表エントリ（レベル・曲情報） |
 
 ## 設計判断
 
 | 項目 | 決定 | 理由 |
 |---|---|---|
 | 永続化 | SQLite（`modernc.org/sqlite`） | 純Go実装でCGO不要。2回目以降の起動が高速 |
-| DI | 手動（main.goで組み立て） | 依存ゼロ。起動オーバーヘッドゼロ |
-| BMSパーサー入力 | `[]byte` | ファイルI/Oと分離。テスト容易 |
+| データソース | beatoraja songdata.db読み取り | 自前でBMSパース・フォルダ走査せず既存データを活用 |
+| DI | 手動（app.go Init()） | 依存ゼロ。起動オーバーヘッドゼロ |
 | LR2IRアクセス | HTMLスクレイピング | 公式APIなし。adapter層で閉じるので将来差し替え可 |
-| 走査並列化 | goroutine worker pool | 数千〜数万フォルダに対応。contextキャンセル対応 |
 | 進捗通知 | Wailsイベント（push型） | ポーリング不要。リアルタイム更新 |
-| 大量データ表示 | ページングAPI（offset/limit） | JSON転送量とUI再描画コスト制御 |
+| 大量データ表示 | 仮想スクロール + フロントエンドフィルタ | JSON転送量とUI再描画コスト制御 |
 | フロントエンド公開 | DTOのみ | ドメインモデルを隠蔽 |
