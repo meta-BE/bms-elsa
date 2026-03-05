@@ -5,6 +5,8 @@
     getCoreRowModel,
     getSortedRowModel,
     getFilteredRowModel,
+    getFacetedRowModel,
+    getFacetedUniqueValues,
     flexRender,
     type ColumnDef,
     type SortingState,
@@ -108,12 +110,18 @@
       header: 'Event',
       size: 140,
       accessorFn: (row) => row.eventName || '',
+      enableSorting: false,
+      filterFn: 'equalsString',
+      meta: { filterType: 'select' },
     },
     {
       id: 'releaseYear',
       header: 'Year',
       size: 60,
-      accessorFn: (row) => row.releaseYear || '',
+      accessorFn: (row) => row.releaseYear ? String(row.releaseYear) : '',
+      enableSorting: false,
+      filterFn: 'equalsString',
+      meta: { filterType: 'select' },
     },
     {
       id: 'ir',
@@ -134,6 +142,8 @@
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
   })
 
   $: rows = $table.getRowModel().rows
