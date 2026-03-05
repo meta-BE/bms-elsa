@@ -120,8 +120,8 @@ func (a *App) OpenURL(url string) error {
 // OpenFolder は譜面ファイルのパスを受け取り、その親ディレクトリをOSのファイルマネージャで開く
 func (a *App) OpenFolder(filePath string) error {
 	dir := filepath.Dir(filePath)
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		return fmt.Errorf("フォルダが存在しません: %s", dir)
+	if _, err := os.Stat(dir); err != nil {
+		return fmt.Errorf("フォルダにアクセスできません: %s (%w)", dir, err)
 	}
 	switch runtime.GOOS {
 	case "darwin":
