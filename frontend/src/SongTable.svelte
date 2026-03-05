@@ -16,9 +16,14 @@
   import SearchInput from './SearchInput.svelte'
   import SortableHeader from './SortableHeader.svelte'
   import InferenceModal from './InferenceModal.svelte'
+  import RewriteRuleManager from './RewriteRuleManager.svelte'
+  import { InferWorkingURLs } from '../wailsjs/go/app/RewriteHandler'
   import { handleArrowNav } from './utils/arrowNav'
 
   let inferenceModal: InferenceModal
+  let rewriteRuleModal: RewriteRuleManager
+  let inferringUrls = false
+  let inferUrlResult = ''
 
   const dispatch = createEventDispatcher<{ select: string; deselect: void }>()
 
@@ -116,6 +121,21 @@
     })
   }
 
+  async function runInferWorkingURLs() {
+    inferringUrls = true
+    inferUrlResult = ''
+    try {
+      const result = await InferWorkingURLs()
+      inferUrlResult = `${result.applied}件適用 / ${result.skipped}件スキップ / ${result.total}件中`
+      setTimeout(() => inferUrlResult = '', 5000)
+      loadSongs()
+    } catch (e: any) {
+      inferUrlResult = e?.message || '推定に失敗しました'
+    } finally {
+      inferringUrls = false
+    }
+  }
+
   onMount(() => { loadSongs() })
 </script>
 
@@ -132,6 +152,17 @@
       {#if loading}Loading...{:else}{rows.length.toLocaleString()} songs{/if}
     </span>
     <div class="flex items-center gap-2">
+      <button class="btn btn-xs btn-outline" on:click|stopPropagation={() => rewriteRuleModal.open()}>URL書き換え設定</button>
+      {#if inferUrlResult}
+        <span class="text-xs text-success">{inferUrlResult}</span>
+      {/if}
+      <button
+        class="btn btn-xs btn-outline"
+        on:click|stopPropagation={runInferWorkingURLs}
+        disabled={inferringUrls}
+      >
+        {inferringUrls ? '推定中...' : '動作URL推定'}
+      </button>
       <button class="btn btn-xs btn-outline" on:click|stopPropagation={() => inferenceModal.open()}>メタ推測</button>
       <SearchInput bind:value={globalFilter} />
     </div>
@@ -181,3 +212,4 @@
   {/if}
 </div>
 <InferenceModal bind:this={inferenceModal} on:close={loadSongs} />
+<RewriteRuleManager bind:this={rewriteRuleModal} />
