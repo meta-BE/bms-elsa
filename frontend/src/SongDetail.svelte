@@ -2,6 +2,7 @@
   import { createEventDispatcher } from 'svelte'
   import { GetSongDetail, UpdateSongMeta } from '../wailsjs/go/app/SongHandler'
   import { LookupByMD5, UpdateChartMeta } from '../wailsjs/go/app/IRHandler'
+  import { OpenFolder } from '../wailsjs/go/main/App'
   import type { dto } from '../wailsjs/go/models'
   import { modeLabel, diffLabel } from './utils/chartLabels'
 
@@ -81,10 +82,19 @@
           <h2 class="text-lg font-bold truncate">{detail.title}</h2>
           <p class="text-sm text-base-content/70">{detail.artist}</p>
         </div>
-        <button
-          class="btn btn-ghost btn-xs shrink-0 ml-2"
-          on:click={() => dispatch('close')}
-        >✕</button>
+        <div class="flex items-center shrink-0 ml-2">
+          {#if detail.charts[0]?.path}
+            <button
+              class="btn btn-ghost btn-xs"
+              title="インストール先フォルダを開く"
+              on:click={() => OpenFolder(detail.charts[0].path)}
+            >📁</button>
+          {/if}
+          <button
+            class="btn btn-ghost btn-xs"
+            on:click={() => dispatch('close')}
+          >✕</button>
+        </div>
       </div>
       <div class="divider my-1"></div>
       <div class="flex gap-2 items-center">
