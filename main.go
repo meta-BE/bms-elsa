@@ -33,6 +33,7 @@ func main() {
 			app.SongHandler,
 			app.IRHandler,
 			app.InferenceHandler,
+			app.RewriteHandler,
 		},
 	})
 
