@@ -12,14 +12,14 @@
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function getFilterOptions(column: Column<any, unknown>): string[] {
-    const meta = column.columnDef.meta as { filterOptions?: string[] } | undefined
+    const meta = column.columnDef.meta as { filterOptions?: string[]; filterSort?: 'asc' | 'desc' } | undefined
     if (meta?.filterOptions) return meta.filterOptions
     try {
       const values = column.getFacetedUniqueValues()
-      return Array.from(values.keys())
+      const opts = Array.from(values.keys())
         .filter((v) => v != null && v !== '')
         .map(String)
-        .sort()
+      return meta?.filterSort === 'desc' ? opts.sort().reverse() : opts.sort()
     } catch {
       return []
     }

@@ -76,7 +76,7 @@
       accessorFn: (row) => row.releaseYear ? String(row.releaseYear) : '',
       enableSorting: false,
       filterFn: 'equalsString',
-      meta: { filterType: 'select' },
+      meta: { filterType: 'select', filterSort: 'desc' },
     },
     {
       id: 'ir',
