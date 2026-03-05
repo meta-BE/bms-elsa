@@ -5,6 +5,12 @@
   export let table: Table<any>
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function isFilterColumn(column: Column<any, unknown>): boolean {
+    const meta = column.columnDef.meta as { filterType?: string } | undefined
+    return meta?.filterType === 'select'
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function getFilterOptions(column: Column<any, unknown>): string[] {
     const meta = column.columnDef.meta as { filterOptions?: string[] } | undefined
     if (meta?.filterOptions) return meta.filterOptions
@@ -24,7 +30,7 @@
   {#each table.getHeaderGroups() as headerGroup}
     <div class="flex">
       {#each headerGroup.headers as header}
-        {#if (header.column.columnDef.meta as any)?.filterType === 'select'}
+        {#if isFilterColumn(header.column)}
           <div
             class="px-1 py-1 text-xs truncate"
             style="width: {header.getSize()}px; min-width: {header.getSize()}px"
