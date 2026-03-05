@@ -4,6 +4,7 @@
     flexRender,
     getCoreRowModel,
     getSortedRowModel,
+    getFilteredRowModel,
     type ColumnDef,
     type SortingState,
     type TableOptions,
@@ -86,6 +87,9 @@
         if (row.status === 'duplicate') return '重複'
         return row.status
       },
+      enableSorting: false,
+      filterFn: 'equalsString',
+      meta: { filterType: 'select', filterOptions: ['導入済', '未導入', '重複'] },
     },
   ]
 
@@ -105,6 +109,7 @@
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
   })
 
   const table = createSvelteTable(options)
