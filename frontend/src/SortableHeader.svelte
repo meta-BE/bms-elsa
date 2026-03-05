@@ -24,34 +24,73 @@
       return []
     }
   }
+
+  let openFilterColumnId: string | null = null
+
+  function toggleFilterMenu(columnId: string) {
+    openFilterColumnId = openFilterColumnId === columnId ? null : columnId
+  }
+
+  function closeFilterMenu() {
+    openFilterColumnId = null
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function selectFilterValue(column: Column<any, unknown>, value: string | undefined) {
+    column.setFilterValue(value)
+    openFilterColumnId = null
+  }
 </script>
+
+<svelte:window on:click={closeFilterMenu} />
 
 <div class="bg-base-200 border-b border-base-300 px-2 shrink-0">
   {#each table.getHeaderGroups() as headerGroup}
     <div class="flex">
       {#each headerGroup.headers as header}
         {#if isFilterColumn(header.column)}
+          <!-- フィルタヘッダー -->
           <div
-            class="px-1 py-1 text-xs truncate"
+            class="relative"
             style="width: {header.getSize()}px; min-width: {header.getSize()}px"
           >
             <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-            <select
-              class="select select-xs w-full min-h-0 h-6 font-bold uppercase"
-              value={String(header.column.getFilterValue() ?? '')}
-              on:change={(e) => {
-                const val = e.currentTarget.value
-                header.column.setFilterValue(val || undefined)
-              }}
-              on:click|stopPropagation
+            <div
+              class="px-2 py-1.5 text-xs font-bold uppercase cursor-pointer select-none hover:bg-base-300 transition-colors truncate"
+              on:click|stopPropagation={() => toggleFilterMenu(header.column.id)}
             >
-              <option value="">{header.column.columnDef.header}</option>
-              {#each getFilterOptions(header.column) as opt}
-                <option value={opt}>{opt}</option>
-              {/each}
-            </select>
+              <span class="flex items-center gap-1">
+                {header.column.columnDef.header}
+                {#if header.column.getFilterValue()}
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
+                  </svg>
+                {/if}
+              </span>
+            </div>
+            {#if openFilterColumnId === header.column.id}
+              <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+              <div
+                class="absolute top-full left-0 z-50 bg-base-100 border border-base-300 rounded shadow-lg py-1 min-w-[120px] max-h-[300px] overflow-auto"
+                on:click|stopPropagation
+              >
+                <button
+                  class="w-full text-left px-3 py-1 text-xs hover:bg-base-200 transition-colors"
+                  class:font-bold={!header.column.getFilterValue()}
+                  on:click={() => selectFilterValue(header.column, undefined)}
+                >すべて</button>
+                {#each getFilterOptions(header.column) as opt}
+                  <button
+                    class="w-full text-left px-3 py-1 text-xs hover:bg-base-200 transition-colors"
+                    class:font-bold={header.column.getFilterValue() === opt}
+                    on:click={() => selectFilterValue(header.column, opt)}
+                  >{opt}</button>
+                {/each}
+              </div>
+            {/if}
           </div>
         {:else}
+          <!-- ソートヘッダー -->
           <div
             role="columnheader"
             tabindex="0"
