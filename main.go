@@ -34,6 +34,8 @@ func main() {
 			app.IRHandler,
 			app.InferenceHandler,
 			app.RewriteHandler,
+			app.ChartHandler,
+			app.DifficultyTableHandler,
 		},
 	})
 

@@ -13,7 +13,7 @@
     type FilterFn,
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
-  import { ListCharts } from '../../wailsjs/go/main/App'
+  import { ListCharts } from '../../wailsjs/go/app/ChartHandler'
   import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
   import SortableHeader from '../components/SortableHeader.svelte'

@@ -1,0 +1,237 @@
+package app
+
+import (
+	"context"
+
+	"github.com/meta-BE/bms-elsa/internal/adapter/gateway"
+	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
+	"github.com/meta-BE/bms-elsa/internal/app/dto"
+)
+
+type DifficultyTableHandler struct {
+	ctx        context.Context
+	dtRepo     *persistence.DifficultyTableRepository
+	dtFetcher  *gateway.DifficultyTableFetcher
+	songReader *persistence.SongdataReader
+}
+
+func NewDifficultyTableHandler(
+	dtRepo *persistence.DifficultyTableRepository,
+	dtFetcher *gateway.DifficultyTableFetcher,
+	songReader *persistence.SongdataReader,
+) *DifficultyTableHandler {
+	return &DifficultyTableHandler{
+		dtRepo:     dtRepo,
+		dtFetcher:  dtFetcher,
+		songReader: songReader,
+	}
+}
+
+func (h *DifficultyTableHandler) SetContext(ctx context.Context) { h.ctx = ctx }
+
+func (h *DifficultyTableHandler) GetDifficultyTableEntry(tableID int, md5 string) (*dto.DifficultyTableEntryDTO, error) {
+	entry, err := h.dtRepo.GetEntry(h.ctx, tableID, md5)
+	if err != nil {
+		return nil, err
+	}
+	if entry == nil {
+		return nil, nil
+	}
+
+	counts, err := h.songReader.CountChartsByMD5s(h.ctx, []string{md5})
+	if err != nil {
+		return nil, err
+	}
+
+	count := 0
+	if counts != nil {
+		count = counts[md5]
+	}
+	status := "not_installed"
+	if count == 1 {
+		status = "installed"
+	} else if count > 1 {
+		status = "duplicate"
+	}
+
+	result := dto.DifficultyTableEntryDTO{
+		MD5: entry.MD5, Level: entry.Level, Title: entry.Title, Artist: entry.Artist,
+		URL: entry.URL, URLDiff: entry.URLDiff,
+		Status: status, InstalledCount: count,
+	}
+	return &result, nil
+}
+
+func (h *DifficultyTableHandler) ListDifficultyTableEntries(tableID int) ([]dto.DifficultyTableEntryDTO, error) {
+	entries, err := h.dtRepo.ListEntries(h.ctx, tableID)
+	if err != nil {
+		return nil, err
+	}
+
+	md5s := make([]string, len(entries))
+	for i, e := range entries {
+		md5s[i] = e.MD5
+	}
+
+	counts, err := h.songReader.CountChartsByMD5s(h.ctx, md5s)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]dto.DifficultyTableEntryDTO, len(entries))
+	for i, e := range entries {
+		count := 0
+		if counts != nil {
+			count = counts[e.MD5]
+		}
+		status := "not_installed"
+		if count == 1 {
+			status = "installed"
+		} else if count > 1 {
+			status = "duplicate"
+		}
+		result[i] = dto.DifficultyTableEntryDTO{
+			MD5: e.MD5, Level: e.Level, Title: e.Title, Artist: e.Artist,
+			URL: e.URL, URLDiff: e.URLDiff,
+			Status: status, InstalledCount: count,
+		}
+	}
+	return result, nil
+}
+
+func (h *DifficultyTableHandler) ListDifficultyTables() ([]dto.DifficultyTableDTO, error) {
+	tables, err := h.dtRepo.ListTables(h.ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]dto.DifficultyTableDTO, len(tables))
+	for i, t := range tables {
+		count, _ := h.dtRepo.CountEntries(h.ctx, t.ID)
+		var fetchedAt *string
+		if t.FetchedAt != nil {
+			s := t.FetchedAt.Local().Format("2006-01-02 15:04")
+			fetchedAt = &s
+		}
+		result[i] = dto.DifficultyTableDTO{
+			ID: t.ID, URL: t.URL, Name: t.Name, Symbol: t.Symbol,
+			EntryCount: count, FetchedAt: fetchedAt,
+		}
+	}
+	return result, nil
+}
+
+func (h *DifficultyTableHandler) AddDifficultyTable(tableURL string) error {
+	headerURL, err := h.dtFetcher.FetchHeaderURL(tableURL)
+	if err != nil {
+		return err
+	}
+
+	header, err := h.dtFetcher.FetchHeader(headerURL)
+	if err != nil {
+		return err
+	}
+
+	entries, err := h.dtFetcher.FetchBody(header.DataURL)
+	if err != nil {
+		return err
+	}
+
+	tableID, err := h.dtRepo.InsertTable(h.ctx, persistence.DifficultyTable{
+		URL: tableURL, HeaderURL: headerURL, DataURL: header.DataURL,
+		Name: header.Name, Symbol: header.Symbol,
+	})
+	if err != nil {
+		return err
+	}
+
+	dbEntries := make([]persistence.DifficultyTableEntry, len(entries))
+	for i, e := range entries {
+		dbEntries[i] = persistence.DifficultyTableEntry{
+			TableID: tableID, MD5: e.MD5, Level: e.Level,
+			Title: e.Title, Artist: e.Artist,
+			URL: e.URL, URLDiff: e.URLDiff,
+		}
+	}
+	return h.dtRepo.ReplaceEntries(h.ctx, tableID, dbEntries)
+}
+
+func (h *DifficultyTableHandler) RemoveDifficultyTable(id int) error {
+	return h.dtRepo.DeleteTable(h.ctx, id)
+}
+
+func (h *DifficultyTableHandler) RefreshDifficultyTable(id int) dto.DifficultyTableRefreshResult {
+	tables, err := h.dtRepo.ListTables(h.ctx)
+	if err != nil {
+		return dto.DifficultyTableRefreshResult{Success: false, Error: err.Error()}
+	}
+
+	var target *persistence.DifficultyTable
+	for _, t := range tables {
+		if t.ID == id {
+			target = &t
+			break
+		}
+	}
+	if target == nil {
+		return dto.DifficultyTableRefreshResult{Success: false, Error: "テーブルが見つかりません"}
+	}
+
+	return h.refreshTable(*target)
+}
+
+func (h *DifficultyTableHandler) RefreshAllDifficultyTables() []dto.DifficultyTableRefreshResult {
+	tables, err := h.dtRepo.ListTables(h.ctx)
+	if err != nil {
+		return []dto.DifficultyTableRefreshResult{{Success: false, Error: err.Error()}}
+	}
+
+	results := make([]dto.DifficultyTableRefreshResult, len(tables))
+	for i, t := range tables {
+		results[i] = h.refreshTable(t)
+	}
+	return results
+}
+
+func (h *DifficultyTableHandler) refreshTable(t persistence.DifficultyTable) dto.DifficultyTableRefreshResult {
+	result := dto.DifficultyTableRefreshResult{TableName: t.Name}
+
+	header, err := h.dtFetcher.FetchHeader(t.HeaderURL)
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+
+	if header.DataURL != t.DataURL {
+		t.DataURL = header.DataURL
+	}
+	t.Name = header.Name
+	t.Symbol = header.Symbol
+
+	entries, err := h.dtFetcher.FetchBody(t.DataURL)
+	if err != nil {
+		result.Error = err.Error()
+		return result
+	}
+
+	if err := h.dtRepo.UpdateTable(h.ctx, t); err != nil {
+		result.Error = err.Error()
+		return result
+	}
+
+	dbEntries := make([]persistence.DifficultyTableEntry, len(entries))
+	for i, e := range entries {
+		dbEntries[i] = persistence.DifficultyTableEntry{
+			TableID: t.ID, MD5: e.MD5, Level: e.Level,
+			Title: e.Title, Artist: e.Artist,
+			URL: e.URL, URLDiff: e.URLDiff,
+		}
+	}
+	if err := h.dtRepo.ReplaceEntries(h.ctx, t.ID, dbEntries); err != nil {
+		result.Error = err.Error()
+		return result
+	}
+
+	result.Success = true
+	result.EntryCount = len(entries)
+	return result
+}

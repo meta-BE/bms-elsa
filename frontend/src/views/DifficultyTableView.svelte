@@ -12,8 +12,8 @@
   import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { writable } from 'svelte/store'
   import { onMount, onDestroy, createEventDispatcher } from 'svelte'
-  import { ListDifficultyTables, ListDifficultyTableEntries } from '../../wailsjs/go/main/App'
-  import type { main } from '../../wailsjs/go/models'
+  import { ListDifficultyTables, ListDifficultyTableEntries } from '../../wailsjs/go/app/DifficultyTableHandler'
+  import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
   import SortableHeader from '../components/SortableHeader.svelte'
   import { EventsOn } from '../../wailsjs/runtime/runtime'
@@ -27,9 +27,9 @@
 
   const ROW_HEIGHT = 32
 
-  let tables: main.DifficultyTableDTO[] = []
+  let tables: dto.DifficultyTableDTO[] = []
   let selectedTableId: number | null = null
-  let entries: main.DifficultyTableEntryDTO[] = []
+  let entries: dto.DifficultyTableEntryDTO[] = []
   let loading = false
   let loadingEntries = false
   export let selected: string | null = null
@@ -58,7 +58,7 @@
     StopBulkFetch()
   }
 
-  const columns: ColumnDef<main.DifficultyTableEntryDTO>[] = [
+  const columns: ColumnDef<dto.DifficultyTableEntryDTO>[] = [
     {
       accessorKey: 'level',
       header: 'Level',
@@ -95,7 +95,7 @@
 
   let sorting: SortingState = []
 
-  const options = writable<TableOptions<main.DifficultyTableEntryDTO>>({
+  const options = writable<TableOptions<dto.DifficultyTableEntryDTO>>({
     data: entries,
     columns,
     state: { sorting },
@@ -213,13 +213,13 @@
     handleArrowNav(e, {
       selected,
       rows,
-      getKey: (o: main.DifficultyTableEntryDTO) => o.md5,
-      onSelect: (o: main.DifficultyTableEntryDTO) => dispatch('select', { md5: o.md5, tableID: selectedTableId! }),
+      getKey: (o: dto.DifficultyTableEntryDTO) => o.md5,
+      onSelect: (o: dto.DifficultyTableEntryDTO) => dispatch('select', { md5: o.md5, tableID: selectedTableId! }),
       scrollToIndex: (i: number) => $virtualizer.scrollToIndex(i, { align: 'auto' }),
     })
   }
 
-  function handleRowClick(entry: main.DifficultyTableEntryDTO) {
+  function handleRowClick(entry: dto.DifficultyTableEntryDTO) {
     if (selected === entry.md5) {
       dispatch('deselect')
     } else {

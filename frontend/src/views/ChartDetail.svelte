@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetChartDetailByMD5, OpenFolder } from '../../wailsjs/go/main/App'
+  import { GetChartDetailByMD5 } from '../../wailsjs/go/app/ChartHandler'
+  import { OpenFolder } from '../../wailsjs/go/main/App'
   import { LookupByMD5, UpdateChartMeta } from '../../wailsjs/go/app/IRHandler'
   import type { dto } from '../../wailsjs/go/models'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'

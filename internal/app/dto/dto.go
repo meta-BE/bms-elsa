@@ -182,6 +182,33 @@ func ChartToDTO(c model.Chart) ChartDTO {
 	return d
 }
 
+type DifficultyTableDTO struct {
+	ID         int     `json:"id"`
+	URL        string  `json:"url"`
+	Name       string  `json:"name"`
+	Symbol     string  `json:"symbol"`
+	EntryCount int     `json:"entryCount"`
+	FetchedAt  *string `json:"fetchedAt"`
+}
+
+type DifficultyTableRefreshResult struct {
+	TableName  string `json:"tableName"`
+	Success    bool   `json:"success"`
+	EntryCount int    `json:"entryCount"`
+	Error      string `json:"error,omitempty"`
+}
+
+type DifficultyTableEntryDTO struct {
+	MD5            string `json:"md5"`
+	Level          string `json:"level"`
+	Title          string `json:"title"`
+	Artist         string `json:"artist"`
+	URL            string `json:"url"`
+	URLDiff        string `json:"urlDiff"`
+	Status         string `json:"status"`
+	InstalledCount int    `json:"installedCount"`
+}
+
 type RewriteRuleDTO struct {
 	ID          int    `json:"id"`
 	RuleType    string `json:"ruleType"`

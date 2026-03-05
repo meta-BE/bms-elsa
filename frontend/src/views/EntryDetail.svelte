@@ -1,8 +1,10 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetChartDetailByMD5, GetChartMetaByMD5, GetDifficultyTableEntry, OpenFolder } from '../../wailsjs/go/main/App'
+  import { GetChartDetailByMD5, GetChartMetaByMD5 } from '../../wailsjs/go/app/ChartHandler'
+  import { GetDifficultyTableEntry } from '../../wailsjs/go/app/DifficultyTableHandler'
+  import { OpenFolder } from '../../wailsjs/go/main/App'
   import { LookupByMD5, UpdateChartMeta } from '../../wailsjs/go/app/IRHandler'
-  import type { dto, main } from '../../wailsjs/go/models'
+  import type { dto } from '../../wailsjs/go/models'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
 
@@ -11,7 +13,7 @@
   export let md5: string
   export let tableID: number
 
-  let entryData: main.DifficultyTableEntryDTO | null = null
+  let entryData: dto.DifficultyTableEntryDTO | null = null
   let chart: dto.ChartDTO | null = null
   let irMeta: dto.ChartIRMetaDTO | null = null
   let loading = false
