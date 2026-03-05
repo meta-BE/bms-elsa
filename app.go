@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	_ "modernc.org/sqlite"
@@ -101,6 +102,11 @@ func (a *App) shutdown(ctx context.Context) {
 	if a.db != nil {
 		a.db.Close()
 	}
+}
+
+// OpenURL はシステムブラウザでURLを開く（Wails v2.11.0のURL検証バイパス用）
+func (a *App) OpenURL(url string) error {
+	return exec.Command("open", url).Start()
 }
 
 // GetConfig は現在のconfig.jsonを読んで返す

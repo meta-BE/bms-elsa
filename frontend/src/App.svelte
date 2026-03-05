@@ -11,7 +11,7 @@
   import Settings from './Settings.svelte'
   import EventMappingManager from './EventMappingManager.svelte'
   import RewriteRuleManager from './RewriteRuleManager.svelte'
-  import { BrowserOpenURL } from '../wailsjs/runtime/runtime'
+  import { OpenURL } from '../wailsjs/go/main/App'
   import { onMount } from 'svelte'
   let settingsComponent: Settings
   let eventMappingComponent: EventMappingManager
@@ -111,7 +111,7 @@
       const href = anchor.getAttribute('href')
       if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
         e.preventDefault()
-        BrowserOpenURL(href)
+        OpenURL(href)
       }
     })
   })
