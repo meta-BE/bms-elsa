@@ -80,6 +80,11 @@ bms-elsa/
 │   │   └── persistence/        # SQLiteリポジトリ（elsa.db + songdata.db）
 │   └── app/                    # Wailsバインディング層（ハンドラー + DTO）
 ├── frontend/                   # Svelte + TypeScript
+│   └── src/
+│       ├── components/         # 共有UIコンポーネント
+│       ├── views/              # タブ画面・詳細パネル
+│       ├── settings/           # 設定系モーダル
+│       └── utils/              # ユーティリティ関数
 ├── build/                      # Wailsビルド設定
 ├── testdata/                   # テスト用データ（songdata.db等）
 └── docs/                       # ドキュメント
