@@ -237,6 +237,7 @@
     {:else if tables.length === 0}
       <span class="text-sm text-base-content/50">Settings画面から難易度表を追加してください</span>
     {:else}
+      <span class="text-sm font-semibold shrink-0">{rows.length.toLocaleString()} charts</span>
       <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
       <select
         class="select select-bordered select-sm"
@@ -245,10 +246,9 @@
         on:click|stopPropagation
       >
         {#each tables as t}
-          <option value={t.id}>{t.symbol} | {t.name} ({t.entryCount})</option>
+          <option value={t.id}>{t.symbol} / {t.name} ({t.entryCount})</option>
         {/each}
       </select>
-      <span class="text-sm font-semibold shrink-0">{rows.length.toLocaleString()} charts</span>
       <div class="flex items-center gap-2">
         {#if irFetching}
           <span class="text-xs text-base-content/70">

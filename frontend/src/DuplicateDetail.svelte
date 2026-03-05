@@ -72,23 +72,23 @@
         <div class="card-body">
           <div class="flex items-start justify-between">
             <div>
-              <div class="font-semibold">{member.Title}</div>
+              <div class="text-lg font-bold">{member.Title}</div>
               <div class="text-sm text-base-content/70">{member.Artist}</div>
             </div>
-            <div class="text-right text-xs text-base-content/50">
+            <div class="text-right text-sm text-base-content/50">
               <div>{member.Genre}</div>
               <div>BPM {formatBPM(member.MinBPM, member.MaxBPM)}</div>
               <div>{member.ChartCount}譜面</div>
             </div>
           </div>
-          <div class="text-xs text-base-content/40 break-all">{folderPath(member.Path)}</div>
+          <div class="text-sm text-base-content/50 break-all">{folderPath(member.Path)}</div>
 
           {#if chartsMap[member.FolderHash]}
             <div class="mt-1 space-y-0.5">
               {#each chartsMap[member.FolderHash] as chart}
-                <div class="text-xs flex gap-2">
+                <div class="text-sm flex gap-2">
                   <span class="text-base-content/70">{chart.subtitle || fileName(chart.path || '')}</span>
-                  <span class="text-base-content/30 break-all">{fileName(chart.path || '')}</span>
+                  <span class="text-xs text-base-content/50 break-all">{fileName(chart.path || '')}</span>
                 </div>
               {/each}
             </div>
@@ -99,9 +99,9 @@
 
     {#if group.Members.length >= 2}
       {@const scores = group.Members[0].Scores}
-      <div class="text-xs text-base-content/60 space-y-1">
-        <div class="font-semibold">類似度内訳</div>
-        <div class="flex gap-4">
+      <div class="text-base-content/60 space-y-1">
+        <div class="text-sm font-semibold">類似度内訳</div>
+        <div class="text-sm flex gap-4">
           <span>title {scores.Title}%</span>
           <span>artist {scores.Artist}%</span>
           <span>genre {scores.Genre}%</span>

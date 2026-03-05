@@ -68,7 +68,7 @@
     )
   }
 
-  const ROW_HEIGHT = 48
+  const ROW_HEIGHT = 52
   const columns: ColumnDef<dto.ChartListItemDTO>[] = [
     { accessorKey: 'title', header: 'Title', size: 300 },
     { accessorKey: 'artist', header: 'Artist', size: 200 },
@@ -228,7 +228,7 @@
           <div
             role="row"
             tabindex="0"
-            class="flex absolute w-full items-center px-2 text-xs cursor-pointer transition-colors
+            class="flex absolute w-full items-center px-2 text-sm cursor-pointer transition-colors
               {selected === row.original.md5 ? 'bg-primary/20' : 'hover:bg-base-200'}"
             style="height: {ROW_HEIGHT}px; transform: translateY({virtualRow.start}px);"
             on:click|stopPropagation={() => handleRowClick(row.original)}
@@ -241,10 +241,10 @@
               >
                 {#if cell.column.id === 'title'}
                   <div class="truncate">{cell.row.original.title}</div>
-                  <div class="truncate text-[10px] text-base-content/70">{cell.row.original.subtitle || ''}</div>
+                  <div class="truncate text-xs text-base-content/70">{cell.row.original.subtitle || ''}</div>
                 {:else if cell.column.id === 'artist'}
                   <div class="truncate">{cell.row.original.artist}</div>
-                  <div class="truncate text-[10px] text-base-content/70">{cell.row.original.subArtist || ''}</div>
+                  <div class="truncate text-xs text-base-content/70">{cell.row.original.subArtist || ''}</div>
                 {:else}
                   <svelte:component
                     this={flexRender(cell.column.columnDef.cell, cell.getContext())}

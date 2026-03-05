@@ -63,7 +63,7 @@
     </button>
   </div>
 {:else}
-  <div class="flex items-center gap-2 px-2 py-1 text-xs text-base-content/60 border-b border-base-300">
+  <div class="flex items-center gap-2 px-2 py-1 text-sm text-base-content/60 border-b border-base-300">
     <button class="btn btn-xs btn-ghost" on:click={handleScan} disabled={scanning}>
       {scanning ? '...' : '再スキャン'}
     </button>
@@ -84,9 +84,9 @@
             class="cursor-pointer hover:bg-base-200 {selectedGroupID === group.ID ? 'bg-primary/10' : ''}"
             on:click={() => handleSelect(group)}
           >
-            <td class="font-mono">{group.Score}%</td>
-            <td>{group.Members[0]?.Title || ''}</td>
-            <td>{group.Members.length}</td>
+            <td class="text-sm font-mono">{group.Score}%</td>
+            <td class="text-sm">{group.Members[0]?.Title || ''}</td>
+            <td class="text-sm">{group.Members.length}</td>
           </tr>
         {/each}
       </tbody>
