@@ -40,4 +40,10 @@ type MetaRepository interface {
 	ListUnfetchedChartMD5s(ctx context.Context) ([]string, error)
 	// 難易度表の未取得エントリmd5一覧
 	ListUnfetchedDTEntryMD5s(ctx context.Context, tableID int) ([]string, error)
+	// URL書き換えルール
+	ListRewriteRules(ctx context.Context) ([]RewriteRule, error)
+	UpsertRewriteRule(ctx context.Context, rule RewriteRule) error
+	DeleteRewriteRule(ctx context.Context, id int) error
+	// 動作URL未設定の譜面（lr2ir URLあり）を取得
+	ListChartsForWorkingURLInference(ctx context.Context) ([]ChartIRMeta, error)
 }

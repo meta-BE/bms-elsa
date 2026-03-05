@@ -67,6 +67,16 @@ func RunMigrations(db *sql.DB) error {
 			event_name   TEXT NOT NULL,
 			release_year INTEGER NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS url_rewrite_rule (
+			id          INTEGER PRIMARY KEY AUTOINCREMENT,
+			rule_type   TEXT NOT NULL CHECK(rule_type IN ('replace', 'regex')),
+			pattern     TEXT NOT NULL,
+			replacement TEXT NOT NULL,
+			priority    INTEGER NOT NULL DEFAULT 0,
+			created_at  TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
+			UNIQUE(rule_type, pattern)
+		)`,
 	}
 
 	for _, stmt := range statements {
