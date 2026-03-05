@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 
 	_ "modernc.org/sqlite"
 
@@ -104,9 +105,16 @@ func (a *App) shutdown(ctx context.Context) {
 	}
 }
 
-// OpenURL はシステムブラウザでURLを開く（Wails v2.11.0のURL検証バイパス用）
+// OpenURL はシステムブラウザでURLを開く（Wails v2.11.0のURL検証が~等を拒否するためバイパス）
 func (a *App) OpenURL(url string) error {
-	return exec.Command("open", url).Start()
+	switch runtime.GOOS {
+	case "darwin":
+		return exec.Command("open", url).Start()
+	case "windows":
+		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+	default:
+		return exec.Command("xdg-open", url).Start()
+	}
 }
 
 // GetConfig は現在のconfig.jsonを読んで返す
