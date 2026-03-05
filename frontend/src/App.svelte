@@ -11,6 +11,8 @@
   import Settings from './Settings.svelte'
   import EventMappingManager from './EventMappingManager.svelte'
   import RewriteRuleManager from './RewriteRuleManager.svelte'
+  import { BrowserOpenURL } from '../wailsjs/runtime/runtime'
+  import { onMount } from 'svelte'
   let settingsComponent: Settings
   let eventMappingComponent: EventMappingManager
   let rewriteRuleComponent: RewriteRuleManager
@@ -100,6 +102,19 @@
   function handleDuplicateSelect(e: CustomEvent) {
     selectedDuplicateGroup = e.detail
   }
+
+  // 外部リンクをシステムブラウザで開く
+  onMount(() => {
+    document.addEventListener('click', (e) => {
+      const anchor = (e.target as Element).closest('a[href]')
+      if (!anchor) return
+      const href = anchor.getAttribute('href')
+      if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
+        e.preventDefault()
+        BrowserOpenURL(href)
+      }
+    })
+  })
 
 </script>
 
