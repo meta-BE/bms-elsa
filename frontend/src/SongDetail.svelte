@@ -5,6 +5,8 @@
   import { OpenFolder } from '../wailsjs/go/main/App'
   import type { dto } from '../wailsjs/go/models'
   import { modeLabel, diffLabel } from './utils/chartLabels'
+  import ChartInfoCard from './ChartInfoCard.svelte'
+  import IRInfoCard from './IRInfoCard.svelte'
 
   const dispatch = createEventDispatcher<{ close: void }>()
 
@@ -16,9 +18,6 @@
 
   let editEventName = ''
   let editReleaseYear = ''
-  let editWorkingBodyUrl = ''
-  let editWorkingDiffUrl = ''
-  let editingWorkingUrl = false
 
   $: if (folderHash) loadDetail(folderHash)
 
@@ -53,16 +52,11 @@
 
   function selectChart(chart: dto.ChartDTO) {
     selectedChart = chart
-    editingWorkingUrl = false
-    if (chart) {
-      editWorkingBodyUrl = chart.workingBodyUrl || ''
-      editWorkingDiffUrl = chart.workingDiffUrl || ''
-    }
   }
 
-  async function saveWorkingUrls() {
+  async function saveWorkingUrls(e: CustomEvent<{ bodyUrl: string; diffUrl: string }>) {
     if (!selectedChart) return
-    await UpdateChartMeta(selectedChart.md5, editWorkingBodyUrl, editWorkingDiffUrl)
+    await UpdateChartMeta(selectedChart.md5, e.detail.bodyUrl, e.detail.diffUrl)
     if (detail) await loadDetail(detail.folderHash)
   }
 
@@ -88,12 +82,20 @@
               class="btn btn-ghost btn-xs"
               title="インストール先フォルダを開く"
               on:click={() => OpenFolder(detail.charts[0].path)}
-            >📁</button>
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
+              </svg>
+            </button>
           {/if}
           <button
             class="btn btn-ghost btn-xs"
             on:click={() => dispatch('close')}
-          >✕</button>
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
       </div>
       <div class="divider my-1"></div>
@@ -162,64 +164,10 @@
       </table>
     </div>
 
-    <!-- 選択中の譜面のIR情報 -->
-    {#if selectedChart && selectedChart.hasIrMeta}
-      <div class="bg-base-200 rounded-lg p-3">
-        <h3 class="text-sm font-semibold mb-2"><a href="http://www.dream-pro.info/~lavalse/LR2IR/search.cgi?mode=ranking&bmsmd5={selectedChart.md5}" target="_blank" rel="noopener noreferrer" class="link link-primary">LR2IR情報</a></h3>
-        <div class="text-xs space-y-1">
-          {#if selectedChart.lr2irTags}
-            <p><span class="font-semibold">タグ:</span> {selectedChart.lr2irTags}</p>
-          {/if}
-          {#if selectedChart.lr2irBodyUrl}
-            <p>
-              <span class="font-semibold">本体URL:</span>
-              <a href={selectedChart.lr2irBodyUrl} target="_blank" rel="noopener noreferrer" class="link link-primary">{selectedChart.lr2irBodyUrl}</a>
-            </p>
-          {/if}
-          {#if selectedChart.lr2irDiffUrl}
-            <p>
-              <span class="font-semibold">差分URL:</span>
-              <a href={selectedChart.lr2irDiffUrl} target="_blank" rel="noopener noreferrer" class="link link-primary">{selectedChart.lr2irDiffUrl}</a>
-            </p>
-          {/if}
-          {#if selectedChart.lr2irNotes}
-            <p><span class="font-semibold">備考:</span> {selectedChart.lr2irNotes}</p>
-          {/if}
-          <div class="divider my-1"></div>
-          {#if editingWorkingUrl}
-            <div class="flex gap-2 items-center">
-              <label class="font-semibold" for="working-body-url">動作URL(本体):</label>
-              <input id="working-body-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingBodyUrl} on:blur={() => { saveWorkingUrls(); editingWorkingUrl = false }} />
-            </div>
-            <div class="flex gap-2 items-center">
-              <label class="font-semibold" for="working-diff-url">動作URL(差分):</label>
-              <input id="working-diff-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingDiffUrl} on:blur={() => { saveWorkingUrls(); editingWorkingUrl = false }} />
-            </div>
-          {:else}
-            <div class="flex gap-2 items-center">
-              <span class="font-semibold">動作URL(本体):</span>
-              {#if editWorkingBodyUrl}
-                <a href={editWorkingBodyUrl} target="_blank" rel="noopener noreferrer" class="link link-primary text-xs truncate flex-1">{editWorkingBodyUrl}</a>
-              {:else}
-                <span class="text-base-content/30 text-xs">未設定</span>
-              {/if}
-            </div>
-            <div class="flex gap-2 items-center justify-between">
-              <div class="flex gap-2 items-center flex-1 min-w-0">
-                <span class="font-semibold">動作URL(差分):</span>
-                {#if editWorkingDiffUrl}
-                  <a href={editWorkingDiffUrl} target="_blank" rel="noopener noreferrer" class="link link-primary text-xs truncate flex-1">{editWorkingDiffUrl}</a>
-                {:else}
-                  <span class="text-base-content/30 text-xs">未設定</span>
-                {/if}
-              </div>
-              <button class="btn btn-ghost btn-xs" on:click|stopPropagation={() => editingWorkingUrl = true}>
-                編集
-              </button>
-            </div>
-          {/if}
-        </div>
-      </div>
+    <!-- 選択中の譜面の詳細情報 -->
+    {#if selectedChart}
+      <ChartInfoCard chart={selectedChart} />
+      <IRInfoCard md5={selectedChart.md5} ir={selectedChart} on:lookup={() => selectedChart && lookupIR(selectedChart)} on:save={saveWorkingUrls} />
     {/if}
   </div>
 {/if}
