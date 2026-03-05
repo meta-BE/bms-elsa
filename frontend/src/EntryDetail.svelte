@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetChartDetailByMD5, GetChartMetaByMD5, GetDifficultyTableEntry } from '../wailsjs/go/main/App'
+  import { GetChartDetailByMD5, GetChartMetaByMD5, GetDifficultyTableEntry, OpenFolder } from '../wailsjs/go/main/App'
   import { LookupByMD5, UpdateChartMeta } from '../wailsjs/go/app/IRHandler'
   import type { dto, main } from '../wailsjs/go/models'
   import { modeLabel, diffLabel } from './utils/chartLabels'
@@ -85,10 +85,19 @@
             {/if}
           </div>
         </div>
-        <button
-          class="btn btn-ghost btn-xs shrink-0 ml-2"
-          on:click={() => dispatch('close')}
-        >✕</button>
+        <div class="flex items-center shrink-0 ml-2">
+          {#if chart?.path}
+            <button
+              class="btn btn-ghost btn-xs"
+              title="インストール先フォルダを開く"
+              on:click={() => OpenFolder(chart.path)}
+            >📁</button>
+          {/if}
+          <button
+            class="btn btn-ghost btn-xs"
+            on:click={() => dispatch('close')}
+          >✕</button>
+        </div>
       </div>
       {#if entryData.url || entryData.urlDiff}
         <div class="divider my-1"></div>
