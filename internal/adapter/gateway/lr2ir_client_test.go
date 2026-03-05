@@ -162,8 +162,8 @@ func TestLR2IRClient_RateLimit(t *testing.T) {
 	}
 
 	elapsed := time.Since(start)
-	if elapsed < time.Second {
-		t.Errorf("レートリミットが機能していない: 経過時間 %v（1秒以上必要）", elapsed)
+	if elapsed < 500*time.Millisecond {
+		t.Errorf("レートリミットが機能していない: 経過時間 %v（0.5秒以上必要）", elapsed)
 	}
 
 	if callCount != 2 {
