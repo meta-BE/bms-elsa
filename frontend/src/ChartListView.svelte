@@ -17,6 +17,8 @@
   import SortableHeader from './SortableHeader.svelte'
   import { EventsOn } from '../wailsjs/runtime/runtime'
   import { StartBulkFetch, StopBulkFetch } from '../wailsjs/go/app/IRHandler'
+  import RewriteRuleManager from './RewriteRuleManager.svelte'
+  import { InferWorkingURLs } from '../wailsjs/go/app/RewriteHandler'
   import { handleArrowNav } from './utils/arrowNav'
 
   const dispatch = createEventDispatcher<{
@@ -32,6 +34,25 @@
   let irProgress = { current: 0, total: 0 }
   let irDoneMessage = ''
   let irDoneTimer: ReturnType<typeof setTimeout> | null = null
+
+  let rewriteRuleModal: RewriteRuleManager
+  let inferringUrls = false
+  let inferUrlResult = ''
+
+  async function runInferWorkingURLs() {
+    inferringUrls = true
+    inferUrlResult = ''
+    try {
+      const result = await InferWorkingURLs()
+      inferUrlResult = `${result.applied}件適用 / ${result.skipped}件スキップ / ${result.total}件中`
+      setTimeout(() => inferUrlResult = '', 5000)
+      ListCharts().then(c => { charts = c || [] }).catch(console.error)
+    } catch (e: any) {
+      inferUrlResult = e?.message || '推定に失敗しました'
+    } finally {
+      inferringUrls = false
+    }
+  }
 
   function startBulkFetch() {
     console.log('[IR] startBulkFetch called')
@@ -199,6 +220,17 @@
       {rows.length.toLocaleString()} charts
     </span>
     <div class="flex items-center gap-2">
+      <button class="btn btn-xs btn-outline" on:click|stopPropagation={() => rewriteRuleModal.open()}>URL書き換え設定</button>
+      {#if inferUrlResult}
+        <span class="text-xs text-success">{inferUrlResult}</span>
+      {/if}
+      <button
+        class="btn btn-xs btn-outline"
+        on:click|stopPropagation={runInferWorkingURLs}
+        disabled={inferringUrls}
+      >
+        {inferringUrls ? '推定中...' : '動作URL推定'}
+      </button>
       {#if irFetching}
         <span class="text-xs text-base-content/70">
           取得中: {irProgress.current.toLocaleString()} / {irProgress.total.toLocaleString()}
@@ -258,3 +290,4 @@
     </div>
   {/if}
 </div>
+<RewriteRuleManager bind:this={rewriteRuleModal} />
