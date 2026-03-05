@@ -17,7 +17,6 @@
   import SortableHeader from './SortableHeader.svelte'
   import { EventsOn } from '../wailsjs/runtime/runtime'
   import { StartBulkFetch, StopBulkFetch } from '../wailsjs/go/app/IRHandler'
-  import RewriteRuleManager from './RewriteRuleManager.svelte'
   import { InferWorkingURLs } from '../wailsjs/go/app/RewriteHandler'
   import { handleArrowNav } from './utils/arrowNav'
 
@@ -35,7 +34,6 @@
   let irDoneMessage = ''
   let irDoneTimer: ReturnType<typeof setTimeout> | null = null
 
-  let rewriteRuleModal: RewriteRuleManager
   let inferringUrls = false
   let inferUrlResult = ''
 
@@ -220,7 +218,6 @@
       {rows.length.toLocaleString()} charts
     </span>
     <div class="flex items-center gap-2">
-      <button class="btn btn-xs btn-outline" on:click|stopPropagation={() => rewriteRuleModal.open()}>URL書き換え設定</button>
       {#if inferUrlResult}
         <span class="text-xs text-success">{inferUrlResult}</span>
       {/if}
@@ -290,4 +287,3 @@
     </div>
   {/if}
 </div>
-<RewriteRuleManager bind:this={rewriteRuleModal} />

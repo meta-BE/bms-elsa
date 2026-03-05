@@ -16,12 +16,10 @@
   import SearchInput from './SearchInput.svelte'
   import SortableHeader from './SortableHeader.svelte'
   import InferenceModal from './InferenceModal.svelte'
-  import RewriteRuleManager from './RewriteRuleManager.svelte'
   import { InferWorkingURLs } from '../wailsjs/go/app/RewriteHandler'
   import { handleArrowNav } from './utils/arrowNav'
 
   let inferenceModal: InferenceModal
-  let rewriteRuleModal: RewriteRuleManager
   let inferringUrls = false
   let inferUrlResult = ''
 
@@ -152,7 +150,6 @@
       {#if loading}Loading...{:else}{rows.length.toLocaleString()} songs{/if}
     </span>
     <div class="flex items-center gap-2">
-      <button class="btn btn-xs btn-outline" on:click|stopPropagation={() => rewriteRuleModal.open()}>URL書き換え設定</button>
       {#if inferUrlResult}
         <span class="text-xs text-success">{inferUrlResult}</span>
       {/if}
@@ -212,4 +209,3 @@
   {/if}
 </div>
 <InferenceModal bind:this={inferenceModal} on:close={loadSongs} />
-<RewriteRuleManager bind:this={rewriteRuleModal} />
