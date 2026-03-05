@@ -535,7 +535,41 @@ func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5 string) (*model.
 }
 
 func (r *SongdataReader) FindChartFoldersByTitle(ctx context.Context, title string) ([]model.InstallCandidate, error) {
-	return nil, nil
+	if title == "" {
+		return nil, nil
+	}
+
+	query := `
+		SELECT
+			s.folder,
+			MIN(s.title) AS title,
+			MIN(s.artist) AS artist,
+			MIN(s.path) AS path
+		FROM songdata.song s
+		WHERE LOWER(s.title) = LOWER(?)
+		GROUP BY s.folder
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, title)
+	if err != nil {
+		return nil, fmt.Errorf("FindChartFoldersByTitle: %w", err)
+	}
+	defer rows.Close()
+
+	var candidates []model.InstallCandidate
+	for rows.Next() {
+		var folder, t, a, path string
+		if err := rows.Scan(&folder, &t, &a, &path); err != nil {
+			return nil, fmt.Errorf("FindChartFoldersByTitle scan: %w", err)
+		}
+		candidates = append(candidates, model.InstallCandidate{
+			FolderPath: path,
+			Title:      t,
+			Artist:     a,
+			MatchTypes: []string{"title"},
+		})
+	}
+	return candidates, rows.Err()
 }
 
 func (r *SongdataReader) FindChartFoldersByBodyURL(ctx context.Context, bodyURL string) ([]model.InstallCandidate, error) {
