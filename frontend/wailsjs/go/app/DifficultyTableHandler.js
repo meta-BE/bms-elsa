@@ -6,6 +6,10 @@ export function AddDifficultyTable(arg1) {
   return window['go']['app']['DifficultyTableHandler']['AddDifficultyTable'](arg1);
 }
 
+export function EstimateInstallLocation(arg1, arg2) {
+  return window['go']['app']['DifficultyTableHandler']['EstimateInstallLocation'](arg1, arg2);
+}
+
 export function GetDifficultyTableEntry(arg1, arg2) {
   return window['go']['app']['DifficultyTableHandler']['GetDifficultyTableEntry'](arg1, arg2);
 }

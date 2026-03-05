@@ -303,6 +303,24 @@ export namespace dto {
 		    return a;
 		}
 	}
+	export class InstallCandidateDTO {
+	    folderPath: string;
+	    title: string;
+	    artist: string;
+	    matchTypes: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new InstallCandidateDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.folderPath = source["folderPath"];
+	        this.title = source["title"];
+	        this.artist = source["artist"];
+	        this.matchTypes = source["matchTypes"];
+	    }
+	}
 	export class RewriteRuleDTO {
 	    id: number;
 	    ruleType: string;

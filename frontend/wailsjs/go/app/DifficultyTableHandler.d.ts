@@ -5,6 +5,8 @@ import {context} from '../models';
 
 export function AddDifficultyTable(arg1:string):Promise<void>;
 
+export function EstimateInstallLocation(arg1:string,arg2:number):Promise<Array<dto.InstallCandidateDTO>>;
+
 export function GetDifficultyTableEntry(arg1:number,arg2:string):Promise<dto.DifficultyTableEntryDTO>;
 
 export function ListDifficultyTableEntries(arg1:number):Promise<Array<dto.DifficultyTableEntryDTO>>;
