@@ -7,6 +7,7 @@
   import type { dto } from '../../wailsjs/go/models'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
+  import InstallCandidateCard from '../components/InstallCandidateCard.svelte'
 
   const dispatch = createEventDispatcher<{ close: void }>()
 
@@ -120,6 +121,11 @@
     <!-- 譜面メタデータ（導入済の場合のみ） -->
     {#if chart}
       <ChartInfoCard {chart} />
+    {/if}
+
+    <!-- 導入先推定（未導入の場合のみ） -->
+    {#if !chart}
+      <InstallCandidateCard {md5} {tableID} />
     {/if}
 
     <!-- IR情報（導入済・未導入共通） -->
