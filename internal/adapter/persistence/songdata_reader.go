@@ -573,5 +573,41 @@ func (r *SongdataReader) FindChartFoldersByTitle(ctx context.Context, title stri
 }
 
 func (r *SongdataReader) FindChartFoldersByBodyURL(ctx context.Context, bodyURL string) ([]model.InstallCandidate, error) {
-	return nil, nil
+	if bodyURL == "" {
+		return nil, nil
+	}
+
+	// chart_meta.lr2ir_body_urlが一致する譜面のmd5を取得し、songdata.songと突合
+	query := `
+		SELECT
+			s.folder,
+			MIN(s.title) AS title,
+			MIN(s.artist) AS artist,
+			MIN(s.path) AS path
+		FROM main.chart_meta cm
+		INNER JOIN songdata.song s ON s.md5 = cm.md5
+		WHERE cm.lr2ir_body_url = ?
+		GROUP BY s.folder
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, bodyURL)
+	if err != nil {
+		return nil, fmt.Errorf("FindChartFoldersByBodyURL: %w", err)
+	}
+	defer rows.Close()
+
+	var candidates []model.InstallCandidate
+	for rows.Next() {
+		var folder, t, a, path string
+		if err := rows.Scan(&folder, &t, &a, &path); err != nil {
+			return nil, fmt.Errorf("FindChartFoldersByBodyURL scan: %w", err)
+		}
+		candidates = append(candidates, model.InstallCandidate{
+			FolderPath: path,
+			Title:      t,
+			Artist:     a,
+			MatchTypes: []string{"body_url"},
+		})
+	}
+	return candidates, rows.Err()
 }
