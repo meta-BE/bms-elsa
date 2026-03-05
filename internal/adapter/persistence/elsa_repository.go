@@ -260,6 +260,75 @@ func (r *ElsaRepository) ListUnfetchedDTEntryMD5s(ctx context.Context, tableID i
 	return md5s, rows.Err()
 }
 
+func (r *ElsaRepository) ListRewriteRules(ctx context.Context) ([]model.RewriteRule, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT id, rule_type, pattern, replacement, priority FROM url_rewrite_rule ORDER BY priority DESC, id`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var rules []model.RewriteRule
+	for rows.Next() {
+		var rule model.RewriteRule
+		if err := rows.Scan(&rule.ID, &rule.RuleType, &rule.Pattern, &rule.Replacement, &rule.Priority); err != nil {
+			return nil, err
+		}
+		rules = append(rules, rule)
+	}
+	return rules, rows.Err()
+}
+
+func (r *ElsaRepository) UpsertRewriteRule(ctx context.Context, rule model.RewriteRule) error {
+	if rule.ID > 0 {
+		_, err := r.db.ExecContext(ctx,
+			`UPDATE url_rewrite_rule SET rule_type = ?, pattern = ?, replacement = ?, priority = ?, updated_at = datetime('now') WHERE id = ?`,
+			rule.RuleType, rule.Pattern, rule.Replacement, rule.Priority, rule.ID,
+		)
+		return err
+	}
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO url_rewrite_rule (rule_type, pattern, replacement, priority) VALUES (?, ?, ?, ?)
+		 ON CONFLICT(rule_type, pattern) DO UPDATE SET replacement = excluded.replacement, priority = excluded.priority, updated_at = datetime('now')`,
+		rule.RuleType, rule.Pattern, rule.Replacement, rule.Priority,
+	)
+	return err
+}
+
+func (r *ElsaRepository) DeleteRewriteRule(ctx context.Context, id int) error {
+	_, err := r.db.ExecContext(ctx, `DELETE FROM url_rewrite_rule WHERE id = ?`, id)
+	return err
+}
+
+func (r *ElsaRepository) ListChartsForWorkingURLInference(ctx context.Context) ([]model.ChartIRMeta, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT md5, sha256, lr2ir_body_url, lr2ir_diff_url
+		 FROM chart_meta
+		 WHERE (working_body_url IS NULL OR working_body_url = '')
+		   AND (working_diff_url IS NULL OR working_diff_url = '')
+		   AND (lr2ir_body_url IS NOT NULL AND lr2ir_body_url != ''
+		        OR lr2ir_diff_url IS NOT NULL AND lr2ir_diff_url != '')`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var charts []model.ChartIRMeta
+	for rows.Next() {
+		var c model.ChartIRMeta
+		var bodyURL, diffURL sql.NullString
+		if err := rows.Scan(&c.MD5, &c.SHA256, &bodyURL, &diffURL); err != nil {
+			return nil, err
+		}
+		c.LR2IRBodyURL = bodyURL.String
+		c.LR2IRDiffURL = diffURL.String
+		charts = append(charts, c)
+	}
+	return charts, rows.Err()
+}
+
 func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.SongIRURLs, error) {
 	// songdata.db（sdスキーマ）とelsa.dbのクロスDB JOIN
 	// song_metaにレコードがない or (release_year IS NULL AND event_name IS NULL)の曲が対象

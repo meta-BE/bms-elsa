@@ -182,6 +182,20 @@ func ChartToDTO(c model.Chart) ChartDTO {
 	return d
 }
 
+type RewriteRuleDTO struct {
+	ID          int    `json:"id"`
+	RuleType    string `json:"ruleType"`
+	Pattern     string `json:"pattern"`
+	Replacement string `json:"replacement"`
+	Priority    int    `json:"priority"`
+}
+
+type InferWorkingURLResultDTO struct {
+	Applied int `json:"applied"`
+	Skipped int `json:"skipped"`
+	Total   int `json:"total"`
+}
+
 func ChartIRMetaToDTO(m model.ChartIRMeta) ChartIRMetaDTO {
 	hasIR := m.FetchedAt != nil
 	d := ChartIRMetaDTO{

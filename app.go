@@ -25,6 +25,7 @@ type App struct {
 	SongHandler      *internalapp.SongHandler
 	IRHandler        *internalapp.IRHandler
 	InferenceHandler *internalapp.InferenceHandler
+	RewriteHandler   *internalapp.RewriteHandler
 	dtRepo      *persistence.DifficultyTableRepository
 	dtFetcher   *gateway.DifficultyTableFetcher
 	songReader  *persistence.SongdataReader
@@ -82,6 +83,9 @@ func (a *App) Init() error {
 	inferMeta := usecase.NewInferSongMetaUseCase(elsaRepo)
 	a.InferenceHandler = internalapp.NewInferenceHandler(inferMeta, elsaRepo)
 
+	inferWorkingURLs := usecase.NewInferWorkingURLUseCase(elsaRepo)
+	a.RewriteHandler = internalapp.NewRewriteHandler(inferWorkingURLs, elsaRepo)
+
 	return nil
 }
 
@@ -90,6 +94,7 @@ func (a *App) startup(ctx context.Context) {
 	a.SongHandler.SetContext(ctx)
 	a.IRHandler.SetContext(ctx)
 	a.InferenceHandler.SetContext(ctx)
+	a.RewriteHandler.SetContext(ctx)
 }
 
 func (a *App) shutdown(ctx context.Context) {

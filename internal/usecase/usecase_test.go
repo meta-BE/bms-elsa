@@ -90,6 +90,22 @@ func (m *mockMetaRepo) ListUnfetchedDTEntryMD5s(_ context.Context, _ int) ([]str
 	return nil, nil
 }
 
+func (m *mockMetaRepo) ListRewriteRules(_ context.Context) ([]model.RewriteRule, error) {
+	return nil, nil
+}
+
+func (m *mockMetaRepo) UpsertRewriteRule(_ context.Context, _ model.RewriteRule) error {
+	return nil
+}
+
+func (m *mockMetaRepo) DeleteRewriteRule(_ context.Context, _ int) error {
+	return nil
+}
+
+func (m *mockMetaRepo) ListChartsForWorkingURLInference(_ context.Context) ([]model.ChartIRMeta, error) {
+	return nil, nil
+}
+
 type mockIRClient struct {
 	lookupFunc func(ctx context.Context, md5 string) (*port.IRResponse, error)
 }

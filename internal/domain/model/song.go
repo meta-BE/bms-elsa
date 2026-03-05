@@ -84,3 +84,12 @@ type SongIRURLs struct {
 	ChartCount int      // 総譜面数
 	IRCount    int      // IR取得済み譜面数
 }
+
+// RewriteRule はURL書き換えルール
+type RewriteRule struct {
+	ID          int
+	RuleType    string // "replace" or "regex"
+	Pattern     string
+	Replacement string
+	Priority    int
+}

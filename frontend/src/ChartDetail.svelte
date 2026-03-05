@@ -13,12 +13,14 @@
   let loading = false
   let editWorkingBodyUrl = ''
   let editWorkingDiffUrl = ''
+  let editingWorkingUrl = false
 
   $: if (md5) loadChart(md5)
 
   async function loadChart(hash: string) {
     loading = true
     chart = null
+    editingWorkingUrl = false
     try {
       chart = await GetChartDetailByMD5(hash)
       if (chart) {
@@ -123,14 +125,38 @@
               <p><span class="font-semibold">備考:</span> {chart.lr2irNotes}</p>
             {/if}
             <div class="divider my-1"></div>
-            <div class="flex gap-2 items-center">
-              <label class="font-semibold" for="chart-working-body-url">動作URL(本体):</label>
-              <input id="chart-working-body-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingBodyUrl} on:blur={saveWorkingUrls} />
-            </div>
-            <div class="flex gap-2 items-center">
-              <label class="font-semibold" for="chart-working-diff-url">動作URL(差分):</label>
-              <input id="chart-working-diff-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingDiffUrl} on:blur={saveWorkingUrls} />
-            </div>
+            {#if editingWorkingUrl}
+              <div class="flex gap-2 items-center">
+                <label class="font-semibold" for="chart-working-body-url">動作URL(本体):</label>
+                <input id="chart-working-body-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingBodyUrl} on:blur={() => { saveWorkingUrls(); editingWorkingUrl = false }} />
+              </div>
+              <div class="flex gap-2 items-center">
+                <label class="font-semibold" for="chart-working-diff-url">動作URL(差分):</label>
+                <input id="chart-working-diff-url" class="input input-xs input-bordered flex-1" bind:value={editWorkingDiffUrl} on:blur={() => { saveWorkingUrls(); editingWorkingUrl = false }} />
+              </div>
+            {:else}
+              <div class="flex gap-2 items-center">
+                <span class="font-semibold">動作URL(本体):</span>
+                {#if editWorkingBodyUrl}
+                  <a href={editWorkingBodyUrl} target="_blank" rel="noopener noreferrer" class="link link-primary text-xs truncate flex-1">{editWorkingBodyUrl}</a>
+                {:else}
+                  <span class="text-base-content/30 text-xs">未設定</span>
+                {/if}
+              </div>
+              <div class="flex gap-2 items-center justify-between">
+                <div class="flex gap-2 items-center flex-1 min-w-0">
+                  <span class="font-semibold">動作URL(差分):</span>
+                  {#if editWorkingDiffUrl}
+                    <a href={editWorkingDiffUrl} target="_blank" rel="noopener noreferrer" class="link link-primary text-xs truncate flex-1">{editWorkingDiffUrl}</a>
+                  {:else}
+                    <span class="text-base-content/30 text-xs">未設定</span>
+                  {/if}
+                </div>
+                <button class="btn btn-ghost btn-xs" on:click|stopPropagation={() => editingWorkingUrl = true}>
+                  編集
+                </button>
+              </div>
+            {/if}
           </div>
         {:else}
           <p class="text-xs text-base-content/50">IR情報がありません。「IR取得」ボタンで取得してください。</p>
