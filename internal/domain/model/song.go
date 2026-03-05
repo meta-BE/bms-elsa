@@ -93,3 +93,11 @@ type RewriteRule struct {
 	Replacement string
 	Priority    int
 }
+
+// InstallCandidate は導入先推定の候補
+type InstallCandidate struct {
+	FolderPath string   // 楽曲フォルダのパス（songdata.songのpath/folderから導出）
+	Title      string   // フォルダ内の代表タイトル
+	Artist     string   // フォルダ内の代表アーティスト
+	MatchTypes []string // マッチ理由: "title", "body_url"
+}
