@@ -533,3 +533,11 @@ func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5 string) (*model.
 
 	return &c, nil
 }
+
+func (r *SongdataReader) FindChartFoldersByTitle(ctx context.Context, title string) ([]model.InstallCandidate, error) {
+	return nil, nil
+}
+
+func (r *SongdataReader) FindChartFoldersByBodyURL(ctx context.Context, bodyURL string) ([]model.InstallCandidate, error) {
+	return nil, nil
+}
