@@ -104,6 +104,7 @@
   }
 
   // 外部リンクをシステムブラウザで開く
+  // capture: true でstopPropagationより先に実行する
   onMount(() => {
     document.addEventListener('click', (e) => {
       const anchor = (e.target as Element).closest('a[href]')
@@ -111,9 +112,10 @@
       const href = anchor.getAttribute('href')
       if (href && (href.startsWith('http://') || href.startsWith('https://'))) {
         e.preventDefault()
+        e.stopPropagation()
         OpenURL(href)
       }
-    })
+    }, true)
   })
 
 </script>
