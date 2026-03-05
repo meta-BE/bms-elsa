@@ -5,6 +5,8 @@
     getCoreRowModel,
     getSortedRowModel,
     getFilteredRowModel,
+    getFacetedRowModel,
+    getFacetedUniqueValues,
     type ColumnDef,
     type SortingState,
     type FilterFn,
@@ -58,8 +60,24 @@
         return `${Math.round(row.minBpm)}-${Math.round(row.maxBpm)}`
       },
     },
-    { accessorKey: 'eventName', header: 'Event', size: 140 },
-    { accessorKey: 'releaseYear', header: 'Year', size: 60 },
+    {
+      id: 'eventName',
+      header: 'Event',
+      size: 140,
+      accessorFn: (row) => row.eventName || '',
+      enableSorting: false,
+      filterFn: 'equalsString',
+      meta: { filterType: 'select' },
+    },
+    {
+      id: 'releaseYear',
+      header: 'Year',
+      size: 60,
+      accessorFn: (row) => row.releaseYear ? String(row.releaseYear) : '',
+      enableSorting: false,
+      filterFn: 'equalsString',
+      meta: { filterType: 'select' },
+    },
     {
       id: 'ir',
       header: 'IR',
@@ -82,6 +100,8 @@
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
   })
 
   let scrollElement: HTMLDivElement
