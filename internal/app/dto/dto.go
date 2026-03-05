@@ -223,6 +223,13 @@ type InferWorkingURLResultDTO struct {
 	Total   int `json:"total"`
 }
 
+type InstallCandidateDTO struct {
+	FolderPath string   `json:"folderPath"`
+	Title      string   `json:"title"`
+	Artist     string   `json:"artist"`
+	MatchTypes []string `json:"matchTypes"`
+}
+
 func ChartIRMetaToDTO(m model.ChartIRMeta) ChartIRMetaDTO {
 	hasIR := m.FetchedAt != nil
 	d := ChartIRMetaDTO{

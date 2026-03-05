@@ -6,24 +6,28 @@ import (
 	"github.com/meta-BE/bms-elsa/internal/adapter/gateway"
 	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	"github.com/meta-BE/bms-elsa/internal/app/dto"
+	"github.com/meta-BE/bms-elsa/internal/usecase"
 )
 
 type DifficultyTableHandler struct {
-	ctx        context.Context
-	dtRepo     *persistence.DifficultyTableRepository
-	dtFetcher  *gateway.DifficultyTableFetcher
-	songReader *persistence.SongdataReader
+	ctx             context.Context
+	dtRepo          *persistence.DifficultyTableRepository
+	dtFetcher       *gateway.DifficultyTableFetcher
+	songReader      *persistence.SongdataReader
+	estimateUseCase *usecase.EstimateInstallLocationUseCase
 }
 
 func NewDifficultyTableHandler(
 	dtRepo *persistence.DifficultyTableRepository,
 	dtFetcher *gateway.DifficultyTableFetcher,
 	songReader *persistence.SongdataReader,
+	estimateUseCase *usecase.EstimateInstallLocationUseCase,
 ) *DifficultyTableHandler {
 	return &DifficultyTableHandler{
-		dtRepo:     dtRepo,
-		dtFetcher:  dtFetcher,
-		songReader: songReader,
+		dtRepo:          dtRepo,
+		dtFetcher:       dtFetcher,
+		songReader:      songReader,
+		estimateUseCase: estimateUseCase,
 	}
 }
 
@@ -190,6 +194,33 @@ func (h *DifficultyTableHandler) RefreshAllDifficultyTables() []dto.DifficultyTa
 		results[i] = h.refreshTable(t)
 	}
 	return results
+}
+
+func (h *DifficultyTableHandler) EstimateInstallLocation(md5 string, tableID int) ([]dto.InstallCandidateDTO, error) {
+	// 難易度表エントリからtitleを取得
+	entry, err := h.dtRepo.GetEntry(h.ctx, tableID, md5)
+	if err != nil {
+		return nil, err
+	}
+	if entry == nil {
+		return nil, nil
+	}
+
+	candidates, err := h.estimateUseCase.Execute(h.ctx, entry.Title, md5)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]dto.InstallCandidateDTO, len(candidates))
+	for i, c := range candidates {
+		result[i] = dto.InstallCandidateDTO{
+			FolderPath: c.FolderPath,
+			Title:      c.Title,
+			Artist:     c.Artist,
+			MatchTypes: c.MatchTypes,
+		}
+	}
+	return result, nil
 }
 
 func (h *DifficultyTableHandler) refreshTable(t persistence.DifficultyTable) dto.DifficultyTableRefreshResult {

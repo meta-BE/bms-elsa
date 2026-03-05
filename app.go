@@ -88,7 +88,8 @@ func (a *App) Init() error {
 	a.RewriteHandler = internalapp.NewRewriteHandler(inferWorkingURLs, elsaRepo)
 
 	a.ChartHandler = internalapp.NewChartHandler(songdataReader, elsaRepo)
-	a.DifficultyTableHandler = internalapp.NewDifficultyTableHandler(dtRepo, dtFetcher, songdataReader)
+	estimateInstallLocation := usecase.NewEstimateInstallLocationUseCase(songdataReader, elsaRepo)
+	a.DifficultyTableHandler = internalapp.NewDifficultyTableHandler(dtRepo, dtFetcher, songdataReader, estimateInstallLocation)
 
 	return nil
 }
