@@ -155,7 +155,7 @@
     <!-- 選択中の譜面のIR情報 -->
     {#if selectedChart && selectedChart.hasIrMeta}
       <div class="bg-base-200 rounded-lg p-3">
-        <h3 class="text-sm font-semibold mb-2">LR2IR情報</h3>
+        <h3 class="text-sm font-semibold mb-2"><a href="http://www.dream-pro.info/~lavalse/LR2IR/search.cgi?mode=ranking&bmsmd5={selectedChart.md5}" target="_blank" rel="noopener noreferrer" class="link link-primary">LR2IR情報</a></h3>
         <div class="text-xs space-y-1">
           {#if selectedChart.lr2irTags}
             <p><span class="font-semibold">タグ:</span> {selectedChart.lr2irTags}</p>

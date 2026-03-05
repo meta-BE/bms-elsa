@@ -142,7 +142,7 @@
     <!-- IR情報（導入済・未導入共通） -->
     <div class="bg-base-200 rounded-lg p-3">
       <div class="flex items-center justify-between mb-2">
-        <h3 class="text-sm font-semibold">LR2IR情報</h3>
+        <h3 class="text-sm font-semibold"><a href="http://www.dream-pro.info/~lavalse/LR2IR/search.cgi?mode=ranking&bmsmd5={md5}" target="_blank" rel="noopener noreferrer" class="link link-primary">LR2IR情報</a></h3>
         <button class="btn btn-ghost btn-xs" on:click={lookupIR}>IR取得</button>
       </div>
       {#if ir?.hasIrMeta}
