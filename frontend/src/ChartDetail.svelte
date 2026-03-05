@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetChartDetailByMD5 } from '../wailsjs/go/main/App'
+  import { GetChartDetailByMD5, OpenFolder } from '../wailsjs/go/main/App'
   import { LookupByMD5, UpdateChartMeta } from '../wailsjs/go/app/IRHandler'
   import type { dto } from '../wailsjs/go/models'
   import { modeLabel, diffLabel } from './utils/chartLabels'
@@ -62,10 +62,19 @@
           <h2 class="text-lg font-bold truncate">{chart?.title ?? ''}{chart?.subtitle ? ' ' + chart.subtitle : ''}</h2>
           <p class="text-sm text-base-content/70">{chart?.artist ?? ''}{chart?.subArtist ? ' ' + chart.subArtist : ''}</p>
         </div>
-        <button
-          class="btn btn-ghost btn-xs shrink-0 ml-2"
-          on:click={() => dispatch('close')}
-        >✕</button>
+        <div class="flex items-center shrink-0 ml-2">
+          {#if chart?.path}
+            <button
+              class="btn btn-ghost btn-xs"
+              title="インストール先フォルダを開く"
+              on:click={() => OpenFolder(chart.path)}
+            >📁</button>
+          {/if}
+          <button
+            class="btn btn-ghost btn-xs"
+            on:click={() => dispatch('close')}
+          >✕</button>
+        </div>
       </div>
     </div>
 
