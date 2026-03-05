@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { ScanDuplicates } from '../wailsjs/go/main/App'
+  import { ScanDuplicates } from '../../wailsjs/go/main/App'
 
   const dispatch = createEventDispatcher()
 

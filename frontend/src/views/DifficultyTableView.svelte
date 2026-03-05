@@ -12,13 +12,13 @@
   import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { writable } from 'svelte/store'
   import { onMount, onDestroy, createEventDispatcher } from 'svelte'
-  import { ListDifficultyTables, ListDifficultyTableEntries } from '../wailsjs/go/main/App'
-  import type { main } from '../wailsjs/go/models'
-  import SearchInput from './SearchInput.svelte'
-  import SortableHeader from './SortableHeader.svelte'
-  import { EventsOn } from '../wailsjs/runtime/runtime'
-  import { StartDifficultyTableBulkFetch, StopBulkFetch } from '../wailsjs/go/app/IRHandler'
-  import { handleArrowNav } from './utils/arrowNav'
+  import { ListDifficultyTables, ListDifficultyTableEntries } from '../../wailsjs/go/main/App'
+  import type { main } from '../../wailsjs/go/models'
+  import SearchInput from '../components/SearchInput.svelte'
+  import SortableHeader from '../components/SortableHeader.svelte'
+  import { EventsOn } from '../../wailsjs/runtime/runtime'
+  import { StartDifficultyTableBulkFetch, StopBulkFetch } from '../../wailsjs/go/app/IRHandler'
+  import { handleArrowNav } from '../utils/arrowNav'
 
   const dispatch = createEventDispatcher<{
     select: { md5: string; tableID: number }

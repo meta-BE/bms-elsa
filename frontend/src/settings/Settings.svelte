@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { GetConfig, SaveConfig, SelectFile } from '../wailsjs/go/main/App'
-  import { ListDifficultyTables, AddDifficultyTable, RemoveDifficultyTable, RefreshAllDifficultyTables } from '../wailsjs/go/main/App'
+  import { GetConfig, SaveConfig, SelectFile } from '../../wailsjs/go/main/App'
+  import { ListDifficultyTables, AddDifficultyTable, RemoveDifficultyTable, RefreshAllDifficultyTables } from '../../wailsjs/go/main/App'
 
   let dialog: HTMLDialogElement
   let songdataDBPath = ''

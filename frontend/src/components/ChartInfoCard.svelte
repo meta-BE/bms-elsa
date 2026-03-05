@@ -1,6 +1,6 @@
 <script lang="ts">
-  import type { dto } from '../wailsjs/go/models'
-  import { modeLabel, diffLabel } from './utils/chartLabels'
+  import type { dto } from '../../wailsjs/go/models'
+  import { modeLabel, diffLabel } from '../utils/chartLabels'
 
   export let chart: dto.ChartDTO
 </script>

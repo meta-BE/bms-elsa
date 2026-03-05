@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { ListRewriteRules, UpsertRewriteRule, DeleteRewriteRule } from '../wailsjs/go/app/RewriteHandler'
-  import type { dto } from '../wailsjs/go/models'
+  import { ListRewriteRules, UpsertRewriteRule, DeleteRewriteRule } from '../../wailsjs/go/app/RewriteHandler'
+  import type { dto } from '../../wailsjs/go/models'
 
   let dialog: HTMLDialogElement
   let mouseDownOnBackdrop = false

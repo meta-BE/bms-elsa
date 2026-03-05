@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { GetSongDetail } from '../wailsjs/go/app/SongHandler'
-  import type { dto } from '../wailsjs/go/models'
+  import { GetSongDetail } from '../../wailsjs/go/app/SongHandler'
+  import type { dto } from '../../wailsjs/go/models'
 
   export let group: {
     ID: number

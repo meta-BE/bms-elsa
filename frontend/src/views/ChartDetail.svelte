@@ -1,10 +1,10 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetChartDetailByMD5, OpenFolder } from '../wailsjs/go/main/App'
-  import { LookupByMD5, UpdateChartMeta } from '../wailsjs/go/app/IRHandler'
-  import type { dto } from '../wailsjs/go/models'
-  import ChartInfoCard from './ChartInfoCard.svelte'
-  import IRInfoCard from './IRInfoCard.svelte'
+  import { GetChartDetailByMD5, OpenFolder } from '../../wailsjs/go/main/App'
+  import { LookupByMD5, UpdateChartMeta } from '../../wailsjs/go/app/IRHandler'
+  import type { dto } from '../../wailsjs/go/models'
+  import ChartInfoCard from '../components/ChartInfoCard.svelte'
+  import IRInfoCard from '../components/IRInfoCard.svelte'
 
   const dispatch = createEventDispatcher<{ close: void }>()
 

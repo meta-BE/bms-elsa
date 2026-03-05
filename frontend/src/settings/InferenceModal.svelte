@@ -1,8 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { RunAutoInference } from '../wailsjs/go/app/InferenceHandler'
-  import { UpdateSongMeta } from '../wailsjs/go/app/SongHandler'
-  import type { dto } from '../wailsjs/go/models'
+  import { RunAutoInference } from '../../wailsjs/go/app/InferenceHandler'
+  import { UpdateSongMeta } from '../../wailsjs/go/app/SongHandler'
+  import type { dto } from '../../wailsjs/go/models'
 
   const dispatch = createEventDispatcher<{ close: void }>()
 

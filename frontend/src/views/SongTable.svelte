@@ -13,13 +13,13 @@
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { onMount, createEventDispatcher } from 'svelte'
-  import { ListAllSongs } from '../wailsjs/go/app/SongHandler'
-  import type { dto } from '../wailsjs/go/models'
-  import SearchInput from './SearchInput.svelte'
-  import SortableHeader from './SortableHeader.svelte'
-  import InferenceModal from './InferenceModal.svelte'
-  import { InferWorkingURLs } from '../wailsjs/go/app/RewriteHandler'
-  import { handleArrowNav } from './utils/arrowNav'
+  import { ListAllSongs } from '../../wailsjs/go/app/SongHandler'
+  import type { dto } from '../../wailsjs/go/models'
+  import SearchInput from '../components/SearchInput.svelte'
+  import SortableHeader from '../components/SortableHeader.svelte'
+  import InferenceModal from '../settings/InferenceModal.svelte'
+  import { InferWorkingURLs } from '../../wailsjs/go/app/RewriteHandler'
+  import { handleArrowNav } from '../utils/arrowNav'
 
   let inferenceModal: InferenceModal
   let inferringUrls = false

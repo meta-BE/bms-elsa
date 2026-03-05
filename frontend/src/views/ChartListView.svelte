@@ -13,14 +13,14 @@
     type FilterFn,
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
-  import { ListCharts } from '../wailsjs/go/main/App'
-  import type { dto } from '../wailsjs/go/models'
-  import SearchInput from './SearchInput.svelte'
-  import SortableHeader from './SortableHeader.svelte'
-  import { EventsOn } from '../wailsjs/runtime/runtime'
-  import { StartBulkFetch, StopBulkFetch } from '../wailsjs/go/app/IRHandler'
-  import { InferWorkingURLs } from '../wailsjs/go/app/RewriteHandler'
-  import { handleArrowNav } from './utils/arrowNav'
+  import { ListCharts } from '../../wailsjs/go/main/App'
+  import type { dto } from '../../wailsjs/go/models'
+  import SearchInput from '../components/SearchInput.svelte'
+  import SortableHeader from '../components/SortableHeader.svelte'
+  import { EventsOn } from '../../wailsjs/runtime/runtime'
+  import { StartBulkFetch, StopBulkFetch } from '../../wailsjs/go/app/IRHandler'
+  import { InferWorkingURLs } from '../../wailsjs/go/app/RewriteHandler'
+  import { handleArrowNav } from '../utils/arrowNav'
 
   const dispatch = createEventDispatcher<{
     select: { md5: string }

@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { ListEventMappings, UpsertEventMapping, DeleteEventMapping } from '../wailsjs/go/app/InferenceHandler'
-  import type { dto } from '../wailsjs/go/models'
+  import { ListEventMappings, UpsertEventMapping, DeleteEventMapping } from '../../wailsjs/go/app/InferenceHandler'
+  import type { dto } from '../../wailsjs/go/models'
 
   let dialog: HTMLDialogElement
   let mouseDownOnBackdrop = false
