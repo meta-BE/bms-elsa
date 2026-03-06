@@ -49,6 +49,7 @@ type ChartDTO struct {
 	MinBPM         float64 `json:"minBpm"`
 	MaxBPM         float64 `json:"maxBpm"`
 	Path           string  `json:"path,omitempty"`
+	Notes          int     `json:"notes"`
 	HasIRMeta      bool    `json:"hasIrMeta"`
 	LR2IRTags      string  `json:"lr2irTags,omitempty"`
 	LR2IRBodyURL   string  `json:"lr2irBodyUrl,omitempty"`
@@ -82,6 +83,7 @@ type ChartListItemDTO struct {
 	MinBPM      float64 `json:"minBpm"`
 	MaxBPM      float64 `json:"maxBpm"`
 	Difficulty  int     `json:"difficulty"`
+	Notes       int     `json:"notes"`
 	EventName   string  `json:"eventName,omitempty"`
 	ReleaseYear int     `json:"releaseYear,omitempty"`
 	HasIRMeta   bool    `json:"hasIrMeta"`
@@ -161,6 +163,7 @@ func ChartToDTO(c model.Chart) ChartDTO {
 		MinBPM:     c.MinBPM,
 		MaxBPM:     c.MaxBPM,
 		Path:       c.Path,
+		Notes:      c.Notes,
 		HasIRMeta:  c.IRMeta != nil,
 	}
 	if c.IRMeta != nil {

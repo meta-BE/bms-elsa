@@ -391,6 +391,7 @@ type ChartListItem struct {
 	MinBPM      float64
 	MaxBPM      float64
 	Difficulty  int
+	Notes       int
 	EventName   *string
 	ReleaseYear *int
 	HasIRMeta   bool

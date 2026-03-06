@@ -34,6 +34,7 @@ type Chart struct {
 	MinBPM     float64
 	MaxBPM     float64
 	Path       string
+	Notes      int
 	// elsa.db メタデータ
 	IRMeta           *ChartIRMeta
 	DifficultyLabels []DifficultyLabel

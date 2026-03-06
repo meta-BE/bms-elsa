@@ -42,6 +42,7 @@ func (h *ChartHandler) ListCharts() ([]dto.ChartListItemDTO, error) {
 			MinBPM:     c.MinBPM,
 			MaxBPM:     c.MaxBPM,
 			Difficulty: c.Difficulty,
+			Notes:      c.Notes,
 			HasIRMeta:  c.HasIRMeta,
 		}
 		if c.EventName != nil {
