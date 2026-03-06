@@ -331,6 +331,31 @@ func TestListSongGroupsForDuplicateScan(t *testing.T) {
 	}
 }
 
+func TestListChartsWithoutMinhash(t *testing.T) {
+	_, db := setupSongdataReader(t)
+	repo := persistence.NewElsaRepository(db)
+
+	targets, err := repo.ListChartsWithoutMinhash(context.Background())
+	if err != nil {
+		t.Fatalf("ListChartsWithoutMinhash failed: %v", err)
+	}
+
+	// songdata.dbには譜面が存在するので、chart_metaが空の状態では全譜面が対象
+	if len(targets) == 0 {
+		t.Fatal("expected non-empty targets, got 0")
+	}
+
+	// 各ターゲットにMD5とPathが設定されていることを確認
+	for _, tgt := range targets {
+		if tgt.MD5 == "" {
+			t.Error("target has empty MD5")
+		}
+		if tgt.Path == "" {
+			t.Error("target has empty Path")
+		}
+	}
+}
+
 // songTitles はデバッグ用にSongのタイトル一覧を返す
 func songTitles(songs []model.Song) []string {
 	titles := make([]string, len(songs))

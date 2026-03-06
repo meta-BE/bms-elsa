@@ -329,6 +329,37 @@ func (r *ElsaRepository) ListChartsForWorkingURLInference(ctx context.Context) (
 	return charts, rows.Err()
 }
 
+// ChartScanTarget はMinHashスキャン対象の譜面情報
+type ChartScanTarget struct {
+	MD5  string
+	Path string
+}
+
+// ListChartsWithoutMinhash はwav_minhashが未計算の譜面リストを返す
+func (r *ElsaRepository) ListChartsWithoutMinhash(ctx context.Context) ([]ChartScanTarget, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT DISTINCT s.md5, s.path
+		FROM songdata.song s
+		LEFT JOIN chart_meta cm ON s.md5 = cm.md5
+		WHERE s.md5 != ''
+		  AND (cm.id IS NULL OR cm.wav_minhash IS NULL)
+		ORDER BY s.md5`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var targets []ChartScanTarget
+	for rows.Next() {
+		var t ChartScanTarget
+		if err := rows.Scan(&t.MD5, &t.Path); err != nil {
+			return nil, err
+		}
+		targets = append(targets, t)
+	}
+	return targets, rows.Err()
+}
+
 func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.SongIRURLs, error) {
 	// songdata.db（sdスキーマ）とelsa.dbのクロスDB JOIN
 	// song_metaにレコードがない or (release_year IS NULL AND event_name IS NULL)の曲が対象
