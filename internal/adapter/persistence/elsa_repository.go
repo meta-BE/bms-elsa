@@ -360,6 +360,19 @@ func (r *ElsaRepository) ListChartsWithoutMinhash(ctx context.Context) ([]ChartS
 	return targets, rows.Err()
 }
 
+// UpdateWavMinhash はchart_metaのwav_minhashを更新する。レコードが存在しない場合はINSERTする。
+func (r *ElsaRepository) UpdateWavMinhash(ctx context.Context, md5 string, minhash []byte) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO chart_meta (md5, wav_minhash)
+		 VALUES (?, ?)
+		 ON CONFLICT(md5) DO UPDATE SET
+		   wav_minhash = excluded.wav_minhash,
+		   updated_at  = datetime('now')`,
+		md5, minhash,
+	)
+	return err
+}
+
 func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.SongIRURLs, error) {
 	// songdata.db（sdスキーマ）とelsa.dbのクロスDB JOIN
 	// song_metaにレコードがない or (release_year IS NULL AND event_name IS NULL)の曲が対象

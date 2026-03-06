@@ -356,6 +356,55 @@ func TestListChartsWithoutMinhash(t *testing.T) {
 	}
 }
 
+func TestUpdateWavMinhash(t *testing.T) {
+	_, db := setupSongdataReader(t)
+	repo := persistence.NewElsaRepository(db)
+
+	// テスト用のMinHashデータ（256バイト）
+	minhash := make([]byte, 256)
+	for i := range minhash {
+		minhash[i] = byte(i)
+	}
+
+	// songdata.dbから実在するMD5を1つ取得
+	targets, err := repo.ListChartsWithoutMinhash(context.Background())
+	if err != nil || len(targets) == 0 {
+		t.Fatal("ListChartsWithoutMinhash failed or empty")
+	}
+	md5 := targets[0].MD5
+
+	// UpdateWavMinhashを実行
+	if err := repo.UpdateWavMinhash(context.Background(), md5, minhash); err != nil {
+		t.Fatalf("UpdateWavMinhash failed: %v", err)
+	}
+
+	// wav_minhashが保存されたことを確認
+	var stored []byte
+	err = db.QueryRow(`SELECT wav_minhash FROM chart_meta WHERE md5 = ?`, md5).Scan(&stored)
+	if err != nil {
+		t.Fatalf("failed to read wav_minhash: %v", err)
+	}
+	if len(stored) != 256 {
+		t.Fatalf("expected 256 bytes, got %d", len(stored))
+	}
+	for i, b := range stored {
+		if b != byte(i) {
+			t.Fatalf("byte %d: expected %d, got %d", i, byte(i), b)
+		}
+	}
+
+	// 更新後はListChartsWithoutMinhashから除外されることを確認
+	targets2, err := repo.ListChartsWithoutMinhash(context.Background())
+	if err != nil {
+		t.Fatalf("ListChartsWithoutMinhash after update failed: %v", err)
+	}
+	for _, tgt := range targets2 {
+		if tgt.MD5 == md5 {
+			t.Errorf("md5 %s should not appear after minhash update", md5)
+		}
+	}
+}
+
 // songTitles はデバッグ用にSongのタイトル一覧を返す
 func songTitles(songs []model.Song) []string {
 	titles := make([]string, len(songs))
