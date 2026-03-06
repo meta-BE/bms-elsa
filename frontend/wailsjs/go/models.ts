@@ -308,6 +308,7 @@ export namespace dto {
 	    title: string;
 	    artist: string;
 	    matchTypes: string[];
+	    score: number;
 	
 	    static createFrom(source: any = {}) {
 	        return new InstallCandidateDTO(source);
@@ -319,6 +320,7 @@ export namespace dto {
 	        this.title = source["title"];
 	        this.artist = source["artist"];
 	        this.matchTypes = source["matchTypes"];
+	        this.score = source["score"];
 	    }
 	}
 	export class RewriteRuleDTO {
