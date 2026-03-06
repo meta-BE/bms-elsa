@@ -256,7 +256,7 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 		SELECT
 			s.md5, s.sha256, s.title, COALESCE(s.subtitle, ''), s.artist, COALESCE(s.subartist, ''),
 			s.genre, s.mode, s.difficulty, s.level,
-			s.minbpm, s.maxbpm, s.path
+			s.minbpm, s.maxbpm, s.path, s.notes
 		FROM songdata.song s
 		WHERE s.folder = ?
 		ORDER BY s.difficulty, s.level
@@ -272,7 +272,7 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 		if err := rows.Scan(
 			&c.MD5, &c.SHA256, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist,
 			&c.Genre, &c.Mode, &c.Difficulty, &c.Level,
-			&c.MinBPM, &c.MaxBPM, &c.Path,
+			&c.MinBPM, &c.MaxBPM, &c.Path, &c.Notes,
 		); err != nil {
 			return nil, fmt.Errorf("GetSongByFolder scan chart: %w", err)
 		}
@@ -410,6 +410,7 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 			s.minbpm,
 			s.maxbpm,
 			s.difficulty,
+			s.notes,
 			sm.event_name,
 			sm.release_year,
 			EXISTS(
@@ -434,7 +435,7 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 		var releaseYear sql.NullInt64
 		if err := rows.Scan(
 			&c.MD5, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist, &c.Genre,
-			&c.MinBPM, &c.MaxBPM, &c.Difficulty,
+			&c.MinBPM, &c.MaxBPM, &c.Difficulty, &c.Notes,
 			&eventName, &releaseYear, &c.HasIRMeta,
 		); err != nil {
 			return nil, fmt.Errorf("ListAllCharts scan: %w", err)
@@ -502,14 +503,14 @@ func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5 string) (*model.
 	var c model.Chart
 	err := r.db.QueryRowContext(ctx, `
 		SELECT md5, sha256, title, COALESCE(subtitle, ''), artist, COALESCE(subartist, ''),
-			genre, mode, difficulty, level, minbpm, maxbpm, path
+			genre, mode, difficulty, level, minbpm, maxbpm, path, notes
 		FROM songdata.song
 		WHERE md5 = ?
 		LIMIT 1
 	`, md5).Scan(
 		&c.MD5, &c.SHA256, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist,
 		&c.Genre, &c.Mode, &c.Difficulty, &c.Level,
-		&c.MinBPM, &c.MaxBPM, &c.Path,
+		&c.MinBPM, &c.MaxBPM, &c.Path, &c.Notes,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
