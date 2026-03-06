@@ -13,6 +13,9 @@ import (
 //go:embed event_mappings.csv
 var eventMappingsCSV []byte
 
+//go:embed rewrite_rules.csv
+var rewriteRulesCSV []byte
+
 // RunMigrations はelsa.dbのスキーマを作成する。冪等。
 func RunMigrations(db *sql.DB) error {
 	statements := []string{
@@ -104,6 +107,30 @@ func RunMigrations(db *sql.DB) error {
 		if _, err := db.Exec(
 			`INSERT OR IGNORE INTO event_mapping (url_pattern, event_name, release_year) VALUES (?, ?, ?)`,
 			rec[0], rec[1], year,
+		); err != nil {
+			return err
+		}
+	}
+
+	// URL書き換えルールのシードデータ投入（冪等）
+	rwRecords, err := csv.NewReader(bytes.NewReader(rewriteRulesCSV)).ReadAll()
+	if err != nil {
+		return fmt.Errorf("rewrite_rules.csv パース失敗: %w", err)
+	}
+	for i, rec := range rwRecords {
+		if i == 0 {
+			continue // ヘッダー行スキップ
+		}
+		if len(rec) != 4 {
+			return fmt.Errorf("rewrite_rules.csv 行%d: 列数が不正 (%d)", i+1, len(rec))
+		}
+		priority, err := strconv.Atoi(rec[3])
+		if err != nil {
+			return fmt.Errorf("rewrite_rules.csv 行%d: priority変換失敗: %w", i+1, err)
+		}
+		if _, err := db.Exec(
+			`INSERT OR IGNORE INTO url_rewrite_rule (rule_type, pattern, replacement, priority) VALUES (?, ?, ?, ?)`,
+			rec[0], rec[1], rec[2], priority,
 		); err != nil {
 			return err
 		}

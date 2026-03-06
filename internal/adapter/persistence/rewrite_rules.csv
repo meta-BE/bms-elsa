@@ -1,0 +1,5 @@
+rule_type,pattern,replacement,priority
+regex,http://gnqg\.rosx\.net/upload/upload\.cgi\?get=(\d+),https://bms.hexlataia.xyz/mirror/gnqg-upload/$1.zip,0
+replace,http://absolute.pv.land.to/uploader/src/,https://darksabun.club/mirror/absolute/uploader/,0
+replace,http://akred.web.fc2.com/,https://darksabun.club/mirror/akred/bmsfile/,5
+replace,http://akred.web.fc2.com/baecon/,https://darksabun.club/mirror/akred/baecon/,10
