@@ -176,5 +176,14 @@ func RunMigrations(db *sql.DB) error {
 		}
 	}
 
+	// wav_minhashカラムの追加（冪等）
+	var hasWavMinhash int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('chart_meta') WHERE name='wav_minhash'`).Scan(&hasWavMinhash)
+	if hasWavMinhash == 0 {
+		if _, err := db.Exec(`ALTER TABLE chart_meta ADD COLUMN wav_minhash BLOB`); err != nil {
+			return fmt.Errorf("add wav_minhash column: %w", err)
+		}
+	}
+
 	return nil
 }
