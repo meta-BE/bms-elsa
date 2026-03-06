@@ -12,6 +12,7 @@
       <span><span class="font-semibold">Mode:</span> {modeLabel(chart.mode)}</span>
       <span><span class="font-semibold">Difficulty:</span> {diffLabel(chart.difficulty)}</span>
       <span><span class="font-semibold">Level:</span> ☆{chart.level}</span>
+      <span><span class="font-semibold">Notes:</span> {chart.notes?.toLocaleString() ?? '-'}</span>
     </div>
     <p>
       <span class="font-semibold">BPM:</span>
