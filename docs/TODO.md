@@ -41,7 +41,9 @@
   - [ ] WAV定義などを比較して、導入先推定に活用
 - [ ] MD5/SHA256計算
 - [ ] フォルダ走査（ScanSongs: worker pool）
+  - [ ] MinHash計算・保存の実行
 - [ ] 走査進捗表示（Wailsイベント受信）
+- [ ] 導入先推定へのMinHashスコアリング統合（走査後に追加）
 
 ## 改善
 - [ ] BPM検知の改善（songdata.dbのminbpm/maxbpmにギミックBPMが含まれるケースへの対応）
