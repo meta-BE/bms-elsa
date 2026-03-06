@@ -95,6 +95,12 @@
     { accessorKey: 'artist', header: 'Artist', size: 200 },
     { accessorKey: 'genre', header: 'Genre', size: 140 },
     {
+      id: 'notes',
+      header: 'Notes',
+      size: 80,
+      accessorFn: (row) => row.notes || 0,
+    },
+    {
       id: 'bpm',
       header: 'BPM',
       size: 100,
