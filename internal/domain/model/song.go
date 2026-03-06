@@ -99,5 +99,6 @@ type InstallCandidate struct {
 	FolderPath string   // 楽曲フォルダのパス（songdata.songのpath/folderから導出）
 	Title      string   // フォルダ内の代表タイトル
 	Artist     string   // フォルダ内の代表アーティスト
-	MatchTypes []string // マッチ理由: "title", "body_url"
+	MatchTypes []string // マッチ理由: "title", "base_title", "body_url", "artist"
+	Score      int      // マッチ手法のスコア合算
 }

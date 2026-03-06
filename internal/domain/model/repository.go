@@ -26,6 +26,8 @@ type SongRepository interface {
 	FindChartFoldersByTitle(ctx context.Context, title string) ([]InstallCandidate, error)
 	// LR2IR本体URLが一致する導入済み譜面をfolder単位で検索
 	FindChartFoldersByBodyURL(ctx context.Context, bodyURL string) ([]InstallCandidate, error)
+	// アーティスト完全一致（大文字小文字無視）で導入済み譜面をfolder単位で検索
+	FindChartFoldersByArtist(ctx context.Context, artist string) ([]InstallCandidate, error)
 }
 
 // MetaRepository はelsa.dbのメタデータCRUD

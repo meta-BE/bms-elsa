@@ -10,6 +10,7 @@
     title: string
     artist: string
     matchTypes: string[]
+    score: number
   }
 
   let candidates: Candidate[] = []
@@ -30,7 +31,13 @@
   }
 
   function matchLabel(mt: string): string {
-    return mt === 'title' ? 'タイトル一致' : 'URL一致'
+    switch (mt) {
+      case 'title': return 'タイトル一致'
+      case 'base_title': return 'タイトル類似'
+      case 'body_url': return 'URL一致'
+      case 'artist': return 'アーティスト一致'
+      default: return mt
+    }
   }
 </script>
 

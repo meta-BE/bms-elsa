@@ -611,3 +611,41 @@ func (r *SongdataReader) FindChartFoldersByBodyURL(ctx context.Context, bodyURL 
 	}
 	return candidates, rows.Err()
 }
+
+func (r *SongdataReader) FindChartFoldersByArtist(ctx context.Context, artist string) ([]model.InstallCandidate, error) {
+	if artist == "" {
+		return nil, nil
+	}
+
+	query := `
+		SELECT
+			s.folder,
+			MIN(s.title) AS title,
+			MIN(s.artist) AS artist,
+			MIN(s.path) AS path
+		FROM songdata.song s
+		WHERE LOWER(s.artist) = LOWER(?)
+		GROUP BY s.folder
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, artist)
+	if err != nil {
+		return nil, fmt.Errorf("FindChartFoldersByArtist: %w", err)
+	}
+	defer rows.Close()
+
+	var candidates []model.InstallCandidate
+	for rows.Next() {
+		var folder, t, a, path string
+		if err := rows.Scan(&folder, &t, &a, &path); err != nil {
+			return nil, fmt.Errorf("FindChartFoldersByArtist scan: %w", err)
+		}
+		candidates = append(candidates, model.InstallCandidate{
+			FolderPath: path,
+			Title:      t,
+			Artist:     a,
+			MatchTypes: []string{"artist"},
+		})
+	}
+	return candidates, rows.Err()
+}

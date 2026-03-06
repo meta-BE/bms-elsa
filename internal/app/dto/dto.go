@@ -228,6 +228,7 @@ type InstallCandidateDTO struct {
 	Title      string   `json:"title"`
 	Artist     string   `json:"artist"`
 	MatchTypes []string `json:"matchTypes"`
+	Score      int      `json:"score"`
 }
 
 func ChartIRMetaToDTO(m model.ChartIRMeta) ChartIRMetaDTO {

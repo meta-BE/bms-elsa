@@ -206,7 +206,7 @@ func (h *DifficultyTableHandler) EstimateInstallLocation(md5 string, tableID int
 		return nil, nil
 	}
 
-	candidates, err := h.estimateUseCase.Execute(h.ctx, entry.Title, md5)
+	candidates, err := h.estimateUseCase.Execute(h.ctx, entry.Title, entry.Artist, md5)
 	if err != nil {
 		return nil, err
 	}
@@ -218,6 +218,7 @@ func (h *DifficultyTableHandler) EstimateInstallLocation(md5 string, tableID int
 			Title:      c.Title,
 			Artist:     c.Artist,
 			MatchTypes: c.MatchTypes,
+			Score:      c.Score,
 		}
 	}
 	return result, nil

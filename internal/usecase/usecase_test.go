@@ -29,6 +29,18 @@ func (m *mockSongRepo) GetSongByFolder(ctx context.Context, folderHash string) (
 	return m.getSongByFolderFunc(ctx, folderHash)
 }
 
+func (m *mockSongRepo) FindChartFoldersByTitle(_ context.Context, _ string) ([]model.InstallCandidate, error) {
+	return nil, nil
+}
+
+func (m *mockSongRepo) FindChartFoldersByBodyURL(_ context.Context, _ string) ([]model.InstallCandidate, error) {
+	return nil, nil
+}
+
+func (m *mockSongRepo) FindChartFoldersByArtist(_ context.Context, _ string) ([]model.InstallCandidate, error) {
+	return nil, nil
+}
+
 type mockMetaRepo struct {
 	getSongMetaFunc              func(ctx context.Context, folderHash string) (*model.SongMeta, error)
 	upsertSongMetaFunc           func(ctx context.Context, meta model.SongMeta) error
