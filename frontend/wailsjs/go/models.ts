@@ -29,6 +29,7 @@ export namespace dto {
 	    minBpm: number;
 	    maxBpm: number;
 	    path?: string;
+	    notes: number;
 	    hasIrMeta: boolean;
 	    lr2irTags?: string;
 	    lr2irBodyUrl?: string;
@@ -56,6 +57,7 @@ export namespace dto {
 	        this.minBpm = source["minBpm"];
 	        this.maxBpm = source["maxBpm"];
 	        this.path = source["path"];
+	        this.notes = source["notes"];
 	        this.hasIrMeta = source["hasIrMeta"];
 	        this.lr2irTags = source["lr2irTags"];
 	        this.lr2irBodyUrl = source["lr2irBodyUrl"];
@@ -120,6 +122,7 @@ export namespace dto {
 	    minBpm: number;
 	    maxBpm: number;
 	    difficulty: number;
+	    notes: number;
 	    eventName?: string;
 	    releaseYear?: number;
 	    hasIrMeta: boolean;
@@ -139,6 +142,7 @@ export namespace dto {
 	        this.minBpm = source["minBpm"];
 	        this.maxBpm = source["maxBpm"];
 	        this.difficulty = source["difficulty"];
+	        this.notes = source["notes"];
 	        this.eventName = source["eventName"];
 	        this.releaseYear = source["releaseYear"];
 	        this.hasIrMeta = source["hasIrMeta"];
