@@ -29,6 +29,7 @@ type App struct {
 	RewriteHandler         *internalapp.RewriteHandler
 	ChartHandler           *internalapp.ChartHandler
 	DifficultyTableHandler *internalapp.DifficultyTableHandler
+	ScanHandler            *internalapp.ScanHandler
 	songReader             *persistence.SongdataReader
 	elsaRepo               *persistence.ElsaRepository
 }
@@ -91,6 +92,8 @@ func (a *App) Init() error {
 	estimateInstallLocation := usecase.NewEstimateInstallLocationUseCase(songdataReader, elsaRepo)
 	a.DifficultyTableHandler = internalapp.NewDifficultyTableHandler(dtRepo, dtFetcher, songdataReader, estimateInstallLocation)
 
+	a.ScanHandler = internalapp.NewScanHandler(elsaRepo)
+
 	return nil
 }
 
@@ -102,6 +105,7 @@ func (a *App) startup(ctx context.Context) {
 	a.RewriteHandler.SetContext(ctx)
 	a.ChartHandler.SetContext(ctx)
 	a.DifficultyTableHandler.SetContext(ctx)
+	a.ScanHandler.SetContext(ctx)
 }
 
 func (a *App) shutdown(ctx context.Context) {

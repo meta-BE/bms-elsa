@@ -36,6 +36,7 @@ func main() {
 			app.RewriteHandler,
 			app.ChartHandler,
 			app.DifficultyTableHandler,
+			app.ScanHandler,
 		},
 	})
 
