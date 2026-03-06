@@ -6,3 +6,7 @@ frontend/package.json.md5
 *.db
 .DS_Store
 .worktrees/
+testdata/*/
+!testdata/*/*.bms
+!testdata/*/*.bme
+!testdata/*/*.bml
