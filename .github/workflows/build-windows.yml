@@ -28,10 +28,8 @@ jobs:
       - name: Build
         run: wails build -platform windows/amd64
 
-      - name: Convert manual to readme.txt
-        run: |
-          sed -e 's/^### //' -e 's/^## //' -e 's/^# //' -e 's/\*\*\([^*]*\)\*\*/\1/g' -e 's/^- /・/' docs/manual.md > build/bin/readme.txt
-        shell: bash
+      - name: Copy manual as readme.txt
+        run: Copy-Item docs/manual.md build/bin/readme.txt
 
       - name: Create ZIP
         run: |
