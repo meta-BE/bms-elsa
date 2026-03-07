@@ -37,6 +37,7 @@ func main() {
 			app.ChartHandler,
 			app.DifficultyTableHandler,
 			app.ScanHandler,
+			app.DiffImportHandler,
 		},
 	})
 

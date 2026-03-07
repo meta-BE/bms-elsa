@@ -30,6 +30,7 @@ type App struct {
 	ChartHandler           *internalapp.ChartHandler
 	DifficultyTableHandler *internalapp.DifficultyTableHandler
 	ScanHandler            *internalapp.ScanHandler
+	DiffImportHandler      *internalapp.DiffImportHandler
 	songReader             *persistence.SongdataReader
 	elsaRepo               *persistence.ElsaRepository
 }
@@ -94,6 +95,10 @@ func (a *App) Init() error {
 
 	a.ScanHandler = internalapp.NewScanHandler(elsaRepo)
 
+	estimateDiffInstall := usecase.NewEstimateDiffInstallUseCase(elsaRepo, songdataReader, elsaRepo, irClient, estimateInstallLocation)
+	executeDiffImport := usecase.NewExecuteDiffImportUseCase()
+	a.DiffImportHandler = internalapp.NewDiffImportHandler(estimateDiffInstall, executeDiffImport)
+
 	return nil
 }
 
@@ -106,6 +111,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ChartHandler.SetContext(ctx)
 	a.DifficultyTableHandler.SetContext(ctx)
 	a.ScanHandler.SetContext(ctx)
+	a.DiffImportHandler.SetContext(ctx)
 }
 
 func (a *App) shutdown(ctx context.Context) {
