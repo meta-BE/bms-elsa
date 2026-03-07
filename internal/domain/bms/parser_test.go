@@ -17,45 +17,45 @@ func testdataDir(t *testing.T) string {
 	return filepath.Join(filepath.Dir(file), "..", "..", "..", "testdata")
 }
 
-func TestParseWAVFiles_DstorvEgo(t *testing.T) {
+func TestParseBMSFile_DstorvEgo(t *testing.T) {
 	path := filepath.Join(testdataDir(t), "[Feryquitous]Distorv", "Dstorv_act1_ego.bme")
-	result, err := bms.ParseWAVFiles(path)
+	parsed, err := bms.ParseBMSFile(path)
 	if err != nil {
-		t.Fatalf("ParseWAVFiles failed: %v", err)
+		t.Fatalf("ParseBMSFile failed: %v", err)
 	}
-	if len(result) == 0 {
+	if len(parsed.WAVFiles) == 0 {
 		t.Fatal("WAV files should not be empty")
 	}
 	// Dstorv [Ego] は631件のWAV定義を持つ
-	if len(result) != 631 {
-		t.Errorf("expected 631 WAV files, got %d", len(result))
+	if len(parsed.WAVFiles) != 631 {
+		t.Errorf("expected 631 WAV files, got %d", len(parsed.WAVFiles))
 	}
 }
 
-func TestParseWAVFiles_DstorvFalseFix(t *testing.T) {
+func TestParseBMSFile_DstorvFalseFix(t *testing.T) {
 	path := filepath.Join(testdataDir(t), "[Feryquitous]Distorv", "Dstorv_act1_single4_fix.bme")
-	result, err := bms.ParseWAVFiles(path)
+	parsed, err := bms.ParseBMSFile(path)
 	if err != nil {
-		t.Fatalf("ParseWAVFiles failed: %v", err)
+		t.Fatalf("ParseBMSFile failed: %v", err)
 	}
-	if len(result) != 630 {
-		t.Errorf("expected 630 WAV files, got %d", len(result))
+	if len(parsed.WAVFiles) != 630 {
+		t.Errorf("expected 630 WAV files, got %d", len(parsed.WAVFiles))
 	}
 }
 
-func TestParseWAVFiles_RandomSPAnother(t *testing.T) {
+func TestParseBMSFile_RandomSPAnother(t *testing.T) {
 	// RANDOMブロック内は#IF 1のみ処理。#IF 1ルートで定義されるWAV数を検証。
 	path := filepath.Join(testdataDir(t), "[Clue]Random", "_random_s4.bms")
-	result, err := bms.ParseWAVFiles(path)
+	parsed, err := bms.ParseBMSFile(path)
 	if err != nil {
-		t.Fatalf("ParseWAVFiles failed: %v", err)
+		t.Fatalf("ParseBMSFile failed: %v", err)
 	}
-	if len(result) == 0 {
+	if len(parsed.WAVFiles) == 0 {
 		t.Fatal("WAV files should not be empty")
 	}
 	// RANDOM内の#IF 1のみを処理した場合のWAV定義数: 1063件
-	if len(result) != 1063 {
-		t.Errorf("expected 1063 WAV files, got %d", len(result))
+	if len(parsed.WAVFiles) != 1063 {
+		t.Errorf("expected 1063 WAV files, got %d", len(parsed.WAVFiles))
 	}
 }
 
@@ -63,17 +63,17 @@ func TestMinHash_SameSongHighSimilarity(t *testing.T) {
 	egoPath := filepath.Join(testdataDir(t), "[Feryquitous]Distorv", "Dstorv_act1_ego.bme")
 	fixPath := filepath.Join(testdataDir(t), "[Feryquitous]Distorv", "Dstorv_act1_single4_fix.bme")
 
-	egoWAVs, err := bms.ParseWAVFiles(egoPath)
+	egoParsed, err := bms.ParseBMSFile(egoPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fixWAVs, err := bms.ParseWAVFiles(fixPath)
+	fixParsed, err := bms.ParseBMSFile(fixPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	egoSig := bms.ComputeMinHash(egoWAVs)
-	fixSig := bms.ComputeMinHash(fixWAVs)
+	egoSig := bms.ComputeMinHash(egoParsed.WAVFiles)
+	fixSig := bms.ComputeMinHash(fixParsed.WAVFiles)
 	sim := egoSig.Similarity(fixSig)
 
 	t.Logf("Dstorv [Ego] vs [false_fix] similarity: %.4f", sim)
@@ -86,17 +86,17 @@ func TestMinHash_DifferentSongLowSimilarity(t *testing.T) {
 	dstorvPath := filepath.Join(testdataDir(t), "[Feryquitous]Distorv", "Dstorv_act1_ego.bme")
 	randomPath := filepath.Join(testdataDir(t), "[Clue]Random", "_random_s4.bms")
 
-	dstorvWAVs, err := bms.ParseWAVFiles(dstorvPath)
+	dstorvParsed, err := bms.ParseBMSFile(dstorvPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	randomWAVs, err := bms.ParseWAVFiles(randomPath)
+	randomParsed, err := bms.ParseBMSFile(randomPath)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	dstorvSig := bms.ComputeMinHash(dstorvWAVs)
-	randomSig := bms.ComputeMinHash(randomWAVs)
+	dstorvSig := bms.ComputeMinHash(dstorvParsed.WAVFiles)
+	randomSig := bms.ComputeMinHash(randomParsed.WAVFiles)
 	sim := dstorvSig.Similarity(randomSig)
 
 	t.Logf("Dstorv vs Random similarity: %.4f", sim)
@@ -116,11 +116,11 @@ func TestMinHash_EmptySet(t *testing.T) {
 
 func TestMinHash_SerializeRoundtrip(t *testing.T) {
 	path := filepath.Join(testdataDir(t), "[Feryquitous]Distorv", "Dstorv_act1_ego.bme")
-	wavs, err := bms.ParseWAVFiles(path)
+	parsed, err := bms.ParseBMSFile(path)
 	if err != nil {
 		t.Fatal(err)
 	}
-	sig := bms.ComputeMinHash(wavs)
+	sig := bms.ComputeMinHash(parsed.WAVFiles)
 
 	// シリアライズ→デシリアライズ
 	blob := sig.Bytes()
@@ -136,17 +136,69 @@ func TestMinHash_SerializeRoundtrip(t *testing.T) {
 	}
 }
 
-func TestParseWAVFiles_ExtensionNormalization(t *testing.T) {
+func TestParseBMSFile_ExtensionNormalization(t *testing.T) {
 	// WAV定義のファイル名は拡張子除去されたベース名であること
 	path := filepath.Join(testdataDir(t), "[Feryquitous]Distorv", "Dstorv_act1_ego.bme")
-	result, err := bms.ParseWAVFiles(path)
+	parsed, err := bms.ParseBMSFile(path)
 	if err != nil {
-		t.Fatalf("ParseWAVFiles failed: %v", err)
+		t.Fatalf("ParseBMSFile failed: %v", err)
 	}
-	for _, f := range result {
+	for _, f := range parsed.WAVFiles {
 		if filepath.Ext(f) != "" {
 			t.Errorf("expected no extension, got %q", f)
 			break
 		}
+	}
+}
+
+func TestParseBMSFile_HeaderFields(t *testing.T) {
+	path := filepath.Join(testdataDir(t), "[Clue]Random", "_random_s4.bms")
+	parsed, err := bms.ParseBMSFile(path)
+	if err != nil {
+		t.Fatalf("ParseBMSFile failed: %v", err)
+	}
+	// #TITLE はRANDOM外で定義
+	if parsed.Title != "Random [SP ANOTHER]" {
+		t.Errorf("expected title 'Random [SP ANOTHER]', got %q", parsed.Title)
+	}
+	// #ARTIST はRANDOM内の#IF 1で定義
+	if parsed.Artist == "" {
+		t.Error("artist should not be empty")
+	}
+	// #SUBARTIST はRANDOM外で定義
+	if parsed.Subartist == "" {
+		t.Error("subartist should not be empty")
+	}
+	// #GENRE はRANDOM内の#IF 1で定義（文字化けした値）
+	if parsed.Genre == "" {
+		t.Error("genre should not be empty")
+	}
+	// WAVFiles は既存テストと同じ件数
+	if len(parsed.WAVFiles) != 1063 {
+		t.Errorf("expected 1063 WAV files, got %d", len(parsed.WAVFiles))
+	}
+	// MD5は空でないことを確認
+	if parsed.MD5 == "" {
+		t.Error("MD5 should not be empty")
+	}
+	if len(parsed.MD5) != 32 {
+		t.Errorf("MD5 should be 32 hex chars, got %d", len(parsed.MD5))
+	}
+}
+
+func TestParseBMSFile_NonRandomHeaders(t *testing.T) {
+	path := filepath.Join(testdataDir(t), "[Feryquitous]Distorv", "Dstorv_act1_ego.bme")
+	parsed, err := bms.ParseBMSFile(path)
+	if err != nil {
+		t.Fatalf("ParseBMSFile failed: %v", err)
+	}
+	if parsed.Title == "" {
+		t.Error("title should not be empty")
+	}
+	if parsed.Artist == "" {
+		t.Error("artist should not be empty")
+	}
+	if len(parsed.WAVFiles) != 631 {
+		t.Errorf("expected 631 WAV files, got %d", len(parsed.WAVFiles))
 	}
 }

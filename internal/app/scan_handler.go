@@ -81,7 +81,7 @@ func (h *ScanHandler) StartMinHashScan() error {
 			}
 
 			// BMSパース
-			wavFiles, err := bms.ParseWAVFiles(tgt.Path)
+			parsed, err := bms.ParseBMSFile(tgt.Path)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "scan: parse error %s: %v\n", tgt.Path, err)
 				failed++
@@ -92,7 +92,7 @@ func (h *ScanHandler) StartMinHashScan() error {
 			}
 
 			// MinHash計算・保存
-			sig := bms.ComputeMinHash(wavFiles)
+			sig := bms.ComputeMinHash(parsed.WAVFiles)
 			if err := h.elsaRepo.UpdateWavMinhash(h.ctx, tgt.MD5, sig.Bytes()); err != nil {
 				fmt.Fprintf(os.Stderr, "scan: db error %s: %v\n", tgt.MD5, err)
 				failed++

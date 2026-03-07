@@ -2,24 +2,42 @@ package bms
 
 import (
 	"bufio"
+	"bytes"
+	"crypto/md5"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 )
 
-// ParseWAVFiles はBMSファイルからWAV定義のファイル名集合を抽出する。
+// ParsedBMS はBMSファイルのパース結果を保持する。
+type ParsedBMS struct {
+	MD5       string   // ファイル全体のMD5ハッシュ（16進小文字32文字）
+	Title     string   // #TITLE
+	Subtitle  string   // #SUBTITLE
+	Artist    string   // #ARTIST
+	Subartist string   // #SUBARTIST
+	Genre     string   // #GENRE
+	WAVFiles  []string // WAV定義リスト（拡張子除去・小文字正規化済み）
+}
+
+// ParseBMSFile はBMSファイルをパースし、ヘッダー・WAV定義・MD5を抽出する。
 // RANDOM内は#IF 1のブロックのみ処理する。
-// ファイル名は拡張子を除去したベース名で返す（大文字小文字を保持しない：小文字正規化）。
-func ParseWAVFiles(path string) ([]string, error) {
-	f, err := os.Open(path)
+// ヘッダーフィールドは最初にヒットした値を採用する。
+func ParseBMSFile(path string) (*ParsedBMS, error) {
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+
+	hash := md5.Sum(data)
+	result := &ParsedBMS{
+		MD5: fmt.Sprintf("%x", hash),
+	}
 
 	seen := make(map[string]struct{})
-	scanner := bufio.NewScanner(f)
+	scanner := bufio.NewScanner(bytes.NewReader(data))
 
 	// RANDOM処理用: スキップ中のネスト深さ（0=スキップしていない）
 	type randomState struct {
@@ -85,6 +103,28 @@ func ParseWAVFiles(path string) ([]string, error) {
 			continue
 		}
 
+		// ヘッダーフィールドの抽出（最初にヒットした値を採用）
+		if strings.HasPrefix(upper, "#TITLE ") && result.Title == "" {
+			result.Title = strings.TrimSpace(line[7:])
+			continue
+		}
+		if strings.HasPrefix(upper, "#SUBTITLE ") && result.Subtitle == "" {
+			result.Subtitle = strings.TrimSpace(line[10:])
+			continue
+		}
+		if strings.HasPrefix(upper, "#ARTIST ") && result.Artist == "" {
+			result.Artist = strings.TrimSpace(line[8:])
+			continue
+		}
+		if strings.HasPrefix(upper, "#SUBARTIST ") && result.Subartist == "" {
+			result.Subartist = strings.TrimSpace(line[11:])
+			continue
+		}
+		if strings.HasPrefix(upper, "#GENRE ") && result.Genre == "" {
+			result.Genre = strings.TrimSpace(line[7:])
+			continue
+		}
+
 		// #WAVxx の処理
 		if len(upper) >= 6 && upper[:4] == "#WAV" && upper[4] != ' ' {
 			rest := line[4:]
@@ -111,10 +151,12 @@ func ParseWAVFiles(path string) ([]string, error) {
 		return nil, err
 	}
 
-	result := make([]string, 0, len(seen))
+	wavFiles := make([]string, 0, len(seen))
 	for name := range seen {
-		result = append(result, name)
+		wavFiles = append(wavFiles, name)
 	}
-	sort.Strings(result)
+	sort.Strings(wavFiles)
+	result.WAVFiles = wavFiles
+
 	return result, nil
 }
