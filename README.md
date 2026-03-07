@@ -4,6 +4,8 @@
 
 **[ユーザーマニュアル](docs/manual.md)** — インストール・設定・機能説明はこちら
 
+**[ダウンロード](https://github.com/meta-BE/bms-elsa/releases/latest)** — 最新版のZIPファイル
+
 ## 機能
 
 - 4タブ構成：楽曲一覧・譜面一覧・難易度表・重複検知
