@@ -7,6 +7,7 @@
   import EntryDetail from './views/EntryDetail.svelte'
   import DuplicateView from './views/DuplicateView.svelte'
   import DuplicateDetail from './views/DuplicateDetail.svelte'
+  import DiffImportView from './views/DiffImportView.svelte'
   import SplitPane from './components/SplitPane.svelte'
   import Settings from './settings/Settings.svelte'
   import EventMappingManager from './settings/EventMappingManager.svelte'
@@ -19,7 +20,7 @@
   let splitRatio = 0.6
 
   // タブ状態
-  let activeTab: 'songs' | 'charts' | 'difficulty' | 'duplicates' = 'songs'
+  let activeTab: 'songs' | 'charts' | 'difficulty' | 'duplicates' | 'diff-import' = 'songs'
 
   // 楽曲タブの選択状態
   let selectedFolderHash: string | null = null
@@ -34,7 +35,7 @@
   // 重複検知タブの選択状態
   let selectedDuplicateGroup: any = null
 
-  function switchTab(tab: 'songs' | 'charts' | 'difficulty' | 'duplicates') {
+  function switchTab(tab: 'songs' | 'charts' | 'difficulty' | 'duplicates' | 'diff-import') {
     activeTab = tab
   }
 
@@ -166,6 +167,11 @@
       class:tab-active={activeTab === 'duplicates'}
       on:click|stopPropagation={() => switchTab('duplicates')}
     >重複検知</button>
+    <button
+      class="tab"
+      class:tab-active={activeTab === 'diff-import'}
+      on:click|stopPropagation={() => switchTab('diff-import')}
+    >差分導入</button>
   </div>
 
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -216,6 +222,11 @@
           {/if}
         </svelte:fragment>
       </SplitPane>
+    </div>
+
+    <!-- 差分導入タブ -->
+    <div class="h-full" class:hidden={activeTab !== 'diff-import'}>
+      <DiffImportView active={activeTab === 'diff-import'} />
     </div>
   </div>
   <Settings bind:this={settingsComponent} />
