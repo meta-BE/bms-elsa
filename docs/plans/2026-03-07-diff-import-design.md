@@ -34,11 +34,22 @@ type ParsedBMS struct {
 
 ## 導入先推定ロジック
 
-### 推定順序（優先度順）
+### 統一スコア方式
 
-1. **WAV MinHash類似度検索**: パースしたWAV定義からMinHash署名を計算し、elsa.dbの既存chart_metaと比較。最も類似度の高いレコードのフォルダパスを候補とする（閾値以上の場合）
-2. **LR2IR問い合わせ**: MD5でLR2IRに問い合わせ。登録があれば既存の `EstimateInstallLocationUseCase` にtitle/artist/bodyURLを渡して推定
-3. **タイトル・アーティスト一致**: パースしたTITLE/ARTISTで `EstimateInstallLocationUseCase` に渡して推定
+複数の推定手段の結果をフォルダ単位でマージし、統合スコアで最上位候補を選択する。
+
+**スコア算出:**
+- MinHashスコア = MinHash類似度（0.0〜1.0）× 10（最大10点）
+- メタデータスコア = EstimateInstallLocationUseCaseのスコア（title=3, base_title=2, body_url=3, artist=1）
+- 統合スコア = MinHashスコア + メタデータスコア
+
+**推定フロー:**
+1. WAV MinHash類似度検索を実行 → フォルダごとにMinHashスコアを付与
+2. MinHashスコア ≥ 8.0（類似度0.8以上）→ IR問い合わせスキップ、最上位候補を採用
+3. MinHashスコア < 8.0 → LR2IRにMD5で問い合わせ（IR登録があれば情報を保存）
+4. IR情報またはパースしたTITLE/ARTISTで EstimateInstallLocationUseCase を実行 → メタデータスコアを取得
+5. 同一フォルダに複数手段がヒットした場合はスコアを加算
+6. 統合スコア最上位のフォルダを推定先とする
 
 ### MinHash類似度検索の実装
 
@@ -58,8 +69,8 @@ type ImportCandidate struct {
     FilePath    string     // ドロップされたファイルのパス
     Parsed      *ParsedBMS
     DestFolder  string     // 推定先フォルダ（空なら未推定）
-    MatchMethod string     // "minhash" / "ir" / "title"
-    Similarity  float64    // MinHash類似度（minhashの場合）
+    Score       float64    // 統合スコア
+    MatchMethod string     // 最もスコアに寄与した手段: "minhash" / "ir" / "title"
 }
 ```
 
@@ -81,6 +92,7 @@ type ImportCandidate struct {
 | TITLE | TITLE + " " + SUBTITLE（SUBTITLEがある場合） |
 | ARTIST | ARTIST + " " + SUBARTIST（SUBARTISTがある場合） |
 | 推定先 | 推定フォルダパス（なければ「未推定」表示） |
+| スコア | 統合スコア |
 | 推定方法 | minhash / ir / title |
 | 操作 | 「クリア」ボタン（推定先を除外） |
 
@@ -107,7 +119,7 @@ type ImportCandidate struct {
 
 ### ユースケース層
 
-- `EstimateDiffInstallUseCase` — MinHash→IR→タイトルの3段階推定を統括
+- `EstimateDiffInstallUseCase` — MinHash＋メタデータの統一スコア方式で推定を統括
 - `ExecuteDiffImportUseCase` — ファイル移動を実行
 
 ### ファイル移動ユーティリティ
