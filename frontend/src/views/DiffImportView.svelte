@@ -1,10 +1,8 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte'
-  import { EventsOn, OnFileDrop, OnFileDropOff } from '../../wailsjs/runtime/runtime'
+  import { EventsOn } from '../../wailsjs/runtime/runtime'
   import { ParseAndEstimate, ExecuteImport, StopEstimate } from '../../wailsjs/go/app/DiffImportHandler'
   import type { app } from '../../wailsjs/go/models'
-
-  export let active = false
 
   let candidates: app.DiffImportCandidateDTO[] = []
   let estimating = false
@@ -17,13 +15,13 @@
   let offProgress: (() => void) | null = null
   let offDone: (() => void) | null = null
 
-  onMount(() => {
-    OnFileDrop((_x: number, _y: number, paths: string[]) => {
-      dragging = false
-      if (!active || estimating) return
-      handleDrop(paths)
-    }, true)
+  export function handleFileDrop(paths: string[]) {
+    dragging = false
+    if (estimating) return
+    handleDrop(paths)
+  }
 
+  onMount(() => {
     offProgress = EventsOn('diff-import:progress', (data: { current: number; total: number }) => {
       estimateProgress = data
     })
@@ -34,7 +32,6 @@
   })
 
   onDestroy(() => {
-    OnFileDropOff()
     offProgress?.()
     offDone?.()
     if (importResultTimer) clearTimeout(importResultTimer)
@@ -104,7 +101,6 @@
   on:dragover|preventDefault={() => { dragging = true }}
   on:dragleave|preventDefault={() => { dragging = false }}
   on:drop|preventDefault={() => { dragging = false }}
-  style="--wails-drop-target"
 >
   <!-- ヘッダー -->
   <div class="px-4 py-2 bg-base-200 rounded-t-lg flex items-center justify-between gap-2">

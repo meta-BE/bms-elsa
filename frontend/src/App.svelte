@@ -13,10 +13,12 @@
   import EventMappingManager from './settings/EventMappingManager.svelte'
   import RewriteRuleManager from './settings/RewriteRuleManager.svelte'
   import { OpenURL } from '../wailsjs/go/main/App'
+  import { OnFileDrop } from '../wailsjs/runtime/runtime'
   import { onMount } from 'svelte'
   let settingsComponent: Settings
   let eventMappingComponent: EventMappingManager
   let rewriteRuleComponent: RewriteRuleManager
+  let diffImportView: DiffImportView
   let splitRatio = 0.6
 
   // タブ状態
@@ -117,6 +119,13 @@
         OpenURL(href)
       }
     }, true)
+
+    // ファイルドロップはグローバルに1つしか登録できないため、ここで一元管理
+    OnFileDrop((_x: number, _y: number, paths: string[]) => {
+      if (activeTab === 'diff-import') {
+        diffImportView?.handleFileDrop(paths)
+      }
+    }, false)
   })
 
 </script>
@@ -226,7 +235,7 @@
 
     <!-- 差分導入タブ -->
     <div class="h-full" class:hidden={activeTab !== 'diff-import'}>
-      <DiffImportView active={activeTab === 'diff-import'} />
+      <DiffImportView bind:this={diffImportView} />
     </div>
   </div>
   <Settings bind:this={settingsComponent} />

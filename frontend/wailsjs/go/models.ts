@@ -1,3 +1,52 @@
+export namespace app {
+	
+	export class DiffImportCandidateDTO {
+	    filePath: string;
+	    fileName: string;
+	    title: string;
+	    subtitle: string;
+	    artist: string;
+	    subartist: string;
+	    destFolder: string;
+	    score: number;
+	    matchMethod: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DiffImportCandidateDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.filePath = source["filePath"];
+	        this.fileName = source["fileName"];
+	        this.title = source["title"];
+	        this.subtitle = source["subtitle"];
+	        this.artist = source["artist"];
+	        this.subartist = source["subartist"];
+	        this.destFolder = source["destFolder"];
+	        this.score = source["score"];
+	        this.matchMethod = source["matchMethod"];
+	    }
+	}
+	export class DiffImportResultDTO {
+	    success: number;
+	    failed: number;
+	    errors: string[];
+	
+	    static createFrom(source: any = {}) {
+	        return new DiffImportResultDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.failed = source["failed"];
+	        this.errors = source["errors"];
+	    }
+	}
+
+}
+
 export namespace dto {
 	
 	export class DifficultyLabelDTO {
@@ -455,55 +504,6 @@ export namespace dto {
 		    }
 		    return a;
 		}
-	}
-
-}
-
-export namespace app {
-
-	export class DiffImportCandidateDTO {
-	    filePath: string;
-	    fileName: string;
-	    title: string;
-	    subtitle: string;
-	    artist: string;
-	    subartist: string;
-	    destFolder: string;
-	    score: number;
-	    matchMethod: string;
-
-	    static createFrom(source: any = {}) {
-	        return new DiffImportCandidateDTO(source);
-	    }
-
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.filePath = source["filePath"];
-	        this.fileName = source["fileName"];
-	        this.title = source["title"];
-	        this.subtitle = source["subtitle"];
-	        this.artist = source["artist"];
-	        this.subartist = source["subartist"];
-	        this.destFolder = source["destFolder"];
-	        this.score = source["score"];
-	        this.matchMethod = source["matchMethod"];
-	    }
-	}
-	export class DiffImportResultDTO {
-	    success: number;
-	    failed: number;
-	    errors: string[];
-
-	    static createFrom(source: any = {}) {
-	        return new DiffImportResultDTO(source);
-	    }
-
-	    constructor(source: any = {}) {
-	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.success = source["success"];
-	        this.failed = source["failed"];
-	        this.errors = source["errors"];
-	    }
 	}
 
 }

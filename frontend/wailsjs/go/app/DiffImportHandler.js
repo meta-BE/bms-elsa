@@ -14,6 +14,10 @@ export function ParseAndEstimate(arg1) {
   return window['go']['app']['DiffImportHandler']['ParseAndEstimate'](arg1);
 }
 
+export function SetContext(arg1) {
+  return window['go']['app']['DiffImportHandler']['SetContext'](arg1);
+}
+
 export function StopEstimate() {
   return window['go']['app']['DiffImportHandler']['StopEstimate']();
 }
