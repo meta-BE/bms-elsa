@@ -43,5 +43,29 @@
 ## BMS基盤
 - [ ] MD5/SHA256計算
 
+## リファクタリング
+
+### バックエンド（優先度: 高）
+- [ ] usecase層のadapter依存を解消（`EstimateDiffInstallUseCase` が `*persistence.ElsaRepository` 具象型に直接依存 → `FindMostSimilarByMinHash` をインターフェースに追加）
+- [ ] `DifficultyTableHandler` のビジネスロジックをusecase層に抽出（インストール状態判定・難易度表追加/更新フロー）
+- [ ] `ScanHandler` のMinHashスキャンロジックをusecase層に抽出（BMSパース→MinHash計算→DB保存）
+
+### バックエンド（優先度: 中）
+- [ ] goroutine管理パターンの共通化（IR/Scan/DiffImportの `mu+running+cancelFunc` パターン → `BackgroundTask` 構造体に抽出）
+- [ ] IR一括取得メソッドの統合（`StartBulkFetch` と `StartDifficultyTableBulkFetch` の共通部分を抽出）
+- [ ] `app.go` の責務分離（Config型・設定関連関数を `config.go` に分離、`ScanDuplicates` をusecase化）
+- [ ] persistence層の独自型を `domain/model` に移動（`ChartListItem`, `SongGroup`, `MinHashMatch` 等）
+
+### バックエンド（優先度: 低）
+- [ ] DTOの配置統一（`DiffImportHandler` のDTOを `dto/dto.go` に移動）
+- [ ] エラー無視の修正（`UpsertChartMeta`/`UpsertSongMeta` の戻りエラーを適切に処理）
+- [ ] `joinStrings` を `strings.Join` に置換
+
+### フロントエンド
+- [ ] 仮想テーブルロジックの共通化（ChartListView / SongTable / DifficultyTableView で重複）
+- [ ] 動作URL推定ロジックの共通化（ChartListView / SongTable で重複）
+- [ ] IR一括取得イベント処理パターンの共通化（ChartListView / DifficultyTableView で重複）
+- [ ] Wails生成型の活用（DuplicateView でローカル型を再定義している箇所を解消）
+
 ## 改善
 - [ ] BPM検知の改善（songdata.dbのminbpm/maxbpmにギミックBPMが含まれるケースへの対応）
