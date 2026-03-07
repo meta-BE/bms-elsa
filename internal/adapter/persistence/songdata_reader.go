@@ -4,9 +4,21 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/meta-BE/bms-elsa/internal/domain/model"
 )
+
+// parentDirOf はファイルパスから親ディレクトリを返す。
+// songdata.dbのパスはWindows形式（\区切り）だが、macOSのfilepath.Dirは
+// \を区切り文字として認識しないため、両方のセパレータを考慮する。
+func parentDirOf(p string) string {
+	i := strings.LastIndexAny(p, "/\\")
+	if i < 0 {
+		return p
+	}
+	return p[:i]
+}
 
 var _ model.SongRepository = (*SongdataReader)(nil)
 
@@ -565,7 +577,7 @@ func (r *SongdataReader) FindChartFoldersByTitle(ctx context.Context, title stri
 			return nil, fmt.Errorf("FindChartFoldersByTitle scan: %w", err)
 		}
 		candidates = append(candidates, model.InstallCandidate{
-			FolderPath: path,
+			FolderPath: parentDirOf(path),
 			Title:      t,
 			Artist:     a,
 			MatchTypes: []string{"title"},
@@ -605,7 +617,7 @@ func (r *SongdataReader) FindChartFoldersByBodyURL(ctx context.Context, bodyURL 
 			return nil, fmt.Errorf("FindChartFoldersByBodyURL scan: %w", err)
 		}
 		candidates = append(candidates, model.InstallCandidate{
-			FolderPath: path,
+			FolderPath: parentDirOf(path),
 			Title:      t,
 			Artist:     a,
 			MatchTypes: []string{"body_url"},
@@ -643,7 +655,7 @@ func (r *SongdataReader) FindChartFoldersByArtist(ctx context.Context, artist st
 			return nil, fmt.Errorf("FindChartFoldersByArtist scan: %w", err)
 		}
 		candidates = append(candidates, model.InstallCandidate{
-			FolderPath: path,
+			FolderPath: parentDirOf(path),
 			Title:      t,
 			Artist:     a,
 			MatchTypes: []string{"artist"},

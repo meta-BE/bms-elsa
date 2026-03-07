@@ -163,7 +163,7 @@ func (u *EstimateDiffInstallUseCase) EstimateOne(ctx context.Context, filePath s
 
 	best := all[0]
 	candidate.DestFolder = best.FolderPath
-	candidate.Score = best.Total()
+	candidate.Score = min(best.Total(), 10)
 	candidate.MatchMethod = best.BestMethod
 	return candidate, nil
 }

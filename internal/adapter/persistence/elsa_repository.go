@@ -3,7 +3,6 @@ package persistence
 import (
 	"context"
 	"database/sql"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -473,7 +472,7 @@ func (r *ElsaRepository) FindMostSimilarByMinHash(ctx context.Context, queryMinh
 		if sim >= threshold && (best == nil || sim > best.Similarity) {
 			best = &MinHashMatch{
 				MD5:        md5,
-				FolderPath: filepath.Dir(path),
+				FolderPath: parentDirOf(path),
 				Similarity: sim,
 			}
 		}

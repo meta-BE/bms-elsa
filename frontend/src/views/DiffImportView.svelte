@@ -92,6 +92,12 @@
     StopEstimate()
   }
 
+  const matchMethodLabels: Record<string, string> = {
+    minhash: 'WAV定義',
+    ir: '本体URL',
+    title: 'タイトル',
+  }
+
   $: importableCount = candidates.filter(c => c.destFolder).length
 </script>
 
@@ -175,12 +181,12 @@
               </td>
               <td class="text-sm font-mono">
                 {#if candidate.score > 0}
-                  {Math.round(candidate.score * 100)}%
+                  {Math.round(candidate.score * 10)}
                 {:else}
                   -
                 {/if}
               </td>
-              <td class="text-xs">{candidate.matchMethod || '-'}</td>
+              <td class="text-xs">{matchMethodLabels[candidate.matchMethod] || candidate.matchMethod || '-'}</td>
               <td>
                 <div class="flex gap-1">
                   {#if candidate.destFolder}
