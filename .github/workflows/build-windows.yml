@@ -30,7 +30,7 @@ jobs:
 
       - name: Convert manual to readme.txt
         run: |
-          sed -e 's/^## //' -e 's/^### //' -e 's/^# //' -e 's/\*\*\([^*]*\)\*\*/\1/g' -e 's/^- /・/' docs/manual.md > build/bin/readme.txt
+          sed -e 's/^#### //' -e 's/^### //' -e 's/^## //' -e 's/^# //' -e 's/\*\*\([^*]*\)\*\*/\1/g' -e 's/^- /・/' docs/manual.md > build/bin/readme.txt
         shell: bash
 
       - name: Create ZIP
