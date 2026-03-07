@@ -3,9 +3,11 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/meta-BE/bms-elsa/internal/domain/bms"
 	"github.com/meta-BE/bms-elsa/internal/domain/model"
 )
 
@@ -428,4 +430,53 @@ func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.
 		results = append(results, r)
 	}
 	return results, rows.Err()
+}
+
+// MinHashMatch はMinHash類似度検索の結果
+type MinHashMatch struct {
+	MD5        string
+	FolderPath string
+	Similarity float64
+}
+
+// FindMostSimilarByMinHash はクエリminhashに最も類似するレコードを返す（Go全件スキャン方式）
+func (r *ElsaRepository) FindMostSimilarByMinHash(ctx context.Context, queryMinhash []byte, threshold float64) (*MinHashMatch, error) {
+	query, err := bms.MinHashFromBytes(queryMinhash)
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT cm.md5, cm.wav_minhash, s.path
+		 FROM chart_meta cm
+		 JOIN songdata.song s ON cm.md5 = s.md5
+		 WHERE cm.wav_minhash IS NOT NULL
+		 GROUP BY cm.wav_minhash`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var best *MinHashMatch
+	for rows.Next() {
+		var md5 string
+		var blob []byte
+		var path string
+		if err := rows.Scan(&md5, &blob, &path); err != nil {
+			return nil, err
+		}
+		sig, err := bms.MinHashFromBytes(blob)
+		if err != nil {
+			continue
+		}
+		sim := query.Similarity(sig)
+		if sim >= threshold && (best == nil || sim > best.Similarity) {
+			best = &MinHashMatch{
+				MD5:        md5,
+				FolderPath: filepath.Dir(path),
+				Similarity: sim,
+			}
+		}
+	}
+	return best, rows.Err()
 }
