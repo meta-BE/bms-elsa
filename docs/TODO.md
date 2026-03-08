@@ -47,7 +47,7 @@
 ## リファクタリング
 
 ### バックエンド（優先度: 高）
-- [ ] usecase層のadapter依存を解消（`EstimateDiffInstallUseCase` が `*persistence.ElsaRepository` 具象型に直接依存 → `FindMostSimilarByMinHash` をインターフェースに追加）
+- [x] usecase層のadapter依存を解消（`EstimateDiffInstallUseCase` が `*persistence.ElsaRepository` 具象型に直接依存 → `FindMostSimilarByMinHash` をインターフェースに追加）
 
 ### バックエンド（優先度: 中）
 - [ ] `DifficultyTableHandler` のビジネスロジックをusecase層に抽出（インストール状態判定・難易度表追加/更新フロー）
