@@ -1,3 +1,6 @@
+// IR情報入りelsa.dbをユーザーのelsa.dbに統合するスクリプト
+// 使い方: go run ./cmd/merge-db --source build/elsa.db --target path/to/user/elsa.db
+// ターゲットに既にIR情報があるmd5はスキップし、ないmd5のみ補完する
 package main
 
 import (

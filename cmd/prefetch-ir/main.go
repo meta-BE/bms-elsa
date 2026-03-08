@@ -1,3 +1,6 @@
+// LR2IRの全MD5に対してIR情報を事前取得し、elsa.dbに保存するスクリプト
+// 使い方: go run ./cmd/prefetch-ir [--db build/elsa.db] [--csv cmd/prefetch-ir/bmsid-md5-map.csv] [--interval 200ms] [--start-line 1]
+// 中断時に表示される --start-line の値を指定することで途中から再開できる
 package main
 
 import (
