@@ -1,11 +1,16 @@
 package bms_test
 
 import (
+	"io"
+	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 
 	"github.com/meta-BE/bms-elsa/internal/domain/bms"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 func testdataDir(t *testing.T) string {
@@ -200,5 +205,31 @@ func TestParseBMSFile_NonRandomHeaders(t *testing.T) {
 	}
 	if len(parsed.WAVFiles) != 631 {
 		t.Errorf("expected 631 WAV files, got %d", len(parsed.WAVFiles))
+	}
+}
+
+func TestParseBMSFile_ShiftJIS(t *testing.T) {
+	// Shift-JISエンコードのテストファイルを動的に作成
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sjis_test.bms")
+
+	encoder := japanese.ShiftJIS.NewEncoder()
+	content := "#TITLE テスト楽曲\n#ARTIST テストアーティスト\n#WAV01 test.wav\n"
+	sjisBytes, err := io.ReadAll(transform.NewReader(strings.NewReader(content), encoder))
+	if err != nil {
+		t.Fatalf("Shift-JIS encode failed: %v", err)
+	}
+	os.WriteFile(path, sjisBytes, 0644)
+
+	parsed, err := bms.ParseBMSFile(path)
+	if err != nil {
+		t.Fatalf("ParseBMSFile failed: %v", err)
+	}
+
+	if parsed.Title != "テスト楽曲" {
+		t.Errorf("Title = %q, want %q", parsed.Title, "テスト楽曲")
+	}
+	if parsed.Artist != "テストアーティスト" {
+		t.Errorf("Artist = %q, want %q", parsed.Artist, "テストアーティスト")
 	}
 }

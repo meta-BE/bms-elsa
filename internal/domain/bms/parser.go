@@ -5,10 +5,15 @@ import (
 	"bytes"
 	"crypto/md5"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
+	"unicode/utf8"
+
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 // ParsedBMS はBMSファイルのパース結果を保持する。
@@ -32,6 +37,15 @@ func ParseBMSFile(path string) (*ParsedBMS, error) {
 	}
 
 	hash := md5.Sum(data)
+
+	// Shift-JIS → UTF-8 変換（BMSの事実上の標準エンコーディング）
+	if !utf8.Valid(data) {
+		decoded, err := io.ReadAll(transform.NewReader(bytes.NewReader(data), japanese.ShiftJIS.NewDecoder()))
+		if err == nil {
+			data = decoded
+		}
+	}
+
 	result := &ParsedBMS{
 		MD5: fmt.Sprintf("%x", hash),
 	}
