@@ -3,6 +3,7 @@
   import { EventsOn } from '../../wailsjs/runtime/runtime'
   import { ParseAndEstimate, ExecuteImport, StopEstimate } from '../../wailsjs/go/app/DiffImportHandler'
   import type { app } from '../../wailsjs/go/models'
+  import OpenFolderButton from '../components/OpenFolderButton.svelte'
 
   let candidates: app.DiffImportCandidateDTO[] = []
   let estimating = false
@@ -165,16 +166,24 @@
         <tbody>
           {#each candidates as candidate, i}
             <tr class="hover:bg-base-200">
-              <td class="text-sm font-mono truncate max-w-48" title={candidate.filePath}>{candidate.fileName}</td>
+              <td class="text-sm font-mono max-w-48">
+                <span class="flex items-center gap-1">
+                  <OpenFolderButton path={candidate.filePath} size="xs" title="ファイルのフォルダを開く" />
+                  <span class="truncate" title={candidate.filePath}>{candidate.fileName}</span>
+                </span>
+              </td>
               <td class="text-sm truncate max-w-48">
                 {candidate.title}{candidate.subtitle ? ' ' + candidate.subtitle : ''}
               </td>
               <td class="text-sm truncate max-w-48">
                 {candidate.artist}{candidate.subartist ? ' ' + candidate.subartist : ''}
               </td>
-              <td class="text-sm truncate max-w-64" title={candidate.destFolder}>
+              <td class="text-sm max-w-64">
                 {#if candidate.destFolder}
-                  <span class="text-success">{candidate.destFolder}</span>
+                  <span class="flex items-center gap-1">
+                    <OpenFolderButton path={candidate.destFolder} size="xs" title="推定先フォルダを開く" />
+                    <span class="truncate text-success" title={candidate.destFolder}>{candidate.destFolder}</span>
+                  </span>
                 {:else}
                   <span class="text-base-content/30">-</span>
                 {/if}
