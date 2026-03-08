@@ -1,38 +1,13 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
   import { ScanDuplicates } from '../../wailsjs/go/main/App'
+  import type { similarity } from '../../wailsjs/go/models'
 
   const dispatch = createEventDispatcher()
 
   export let active = false
 
-  type ScoreResult = {
-    Title: number
-    Artist: number
-    Genre: number
-    BPM: number
-    Total: number
-  }
-
-  type DuplicateMember = {
-    FolderHash: string
-    Title: string
-    Artist: string
-    Genre: string
-    MinBPM: number
-    MaxBPM: number
-    ChartCount: number
-    Path: string
-    Scores: ScoreResult
-  }
-
-  type DuplicateGroup = {
-    ID: number
-    Members: DuplicateMember[]
-    Score: number
-  }
-
-  let groups: DuplicateGroup[] = []
+  let groups: similarity.DuplicateGroup[] = []
   let scanning = false
   let scanned = false
   let selectedGroupID: number | null = null
@@ -48,7 +23,7 @@
     }
   }
 
-  function handleSelect(group: DuplicateGroup) {
+  function handleSelect(group: similarity.DuplicateGroup) {
     selectedGroupID = group.ID
     dispatch('select', group)
   }

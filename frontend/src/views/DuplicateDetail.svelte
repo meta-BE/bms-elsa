@@ -1,22 +1,8 @@
 <script lang="ts">
   import { GetSongDetail } from '../../wailsjs/go/app/SongHandler'
-  import type { dto } from '../../wailsjs/go/models'
+  import type { dto, similarity } from '../../wailsjs/go/models'
 
-  export let group: {
-    ID: number
-    Score: number
-    Members: {
-      FolderHash: string
-      Title: string
-      Artist: string
-      Genre: string
-      MinBPM: number
-      MaxBPM: number
-      ChartCount: number
-      Path: string
-      Scores: { Title: number; Artist: number; Genre: number; BPM: number; Total: number }
-    }[]
-  } | null = null
+  export let group: similarity.DuplicateGroup | null = null
 
   // メンバーごとの譜面詳細をキャッシュ
   let chartsMap: Record<string, dto.ChartDTO[]> = {}
