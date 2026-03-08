@@ -6,9 +6,10 @@ import (
 	"encoding/csv"
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
-	"strconv"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -19,36 +20,26 @@ import (
 )
 
 type csvRow struct {
-	bmsID int
-	md5   string
+	line int    // CSV内の行番号（ヘッダー除く、1始まり）
+	md5  string
 }
 
 func main() {
 	dbPath := flag.String("db", "build/elsa.db", "出力先elsa.dbのパス")
 	csvPath := flag.String("csv", "cmd/prefetch-ir/bmsid-md5-map.csv", "bmsid,md5のCSVファイル")
 	interval := flag.Duration("interval", 200*time.Millisecond, "リクエスト間隔")
-	startID := flag.Int("start-id", 0, "再開時のbmsid（この値以上の行を処理）")
+	startLine := flag.Int("start-line", 1, "再開時の行番号（この値以降の行を処理、1始まり）")
 	flag.Parse()
 
-	// CSV読み込み
-	allRows, err := loadCSV(*csvPath)
+	// CSV読み込み（start-line以降をフィルタ）
+	rows, totalLines, err := loadCSV(*csvPath, *startLine)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "CSV読み込みエラー: %v\n", err)
 		os.Exit(1)
 	}
-	// start-id でフィルタ
-	var rows []csvRow
-	for _, r := range allRows {
-		if r.bmsID >= *startID {
-			rows = append(rows, r)
-		}
-	}
-	if len(rows) == 0 {
-		fmt.Fprintln(os.Stderr, "処理対象の行がありません")
-		return
-	}
+	fmt.Fprintf(os.Stderr, "CSV: 全%d行、処理対象%d行（start-line=%d〜）\n", totalLines, len(rows), *startLine)
 
-	// DB接続
+	// DB接続（処理対象0件でもマイグレーション済みDBを作成するため、先に実行）
 	db, err := sql.Open("sqlite", *dbPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "DB接続エラー: %v\n", err)
@@ -61,6 +52,11 @@ func main() {
 	if err := persistence.RunMigrations(db); err != nil {
 		fmt.Fprintf(os.Stderr, "マイグレーションエラー: %v\n", err)
 		os.Exit(1)
+	}
+
+	if len(rows) == 0 {
+		fmt.Fprintln(os.Stderr, "処理対象の行がありません")
+		return
 	}
 
 	repo := persistence.NewElsaRepository(db)
@@ -78,7 +74,7 @@ func main() {
 		cancel()
 	}()
 
-	var lastBmsID int
+	var lastLine int
 	var fetchedCount int     // 実際にIRリクエストした件数
 	fetchStart := time.Now() // fetch開始時刻
 
@@ -87,16 +83,16 @@ func main() {
 			break
 		}
 
-		lastBmsID = row.bmsID
+		lastLine = row.line
 
 		// 既存チェック: fetched_atがあればスキップ
 		existing, err := repo.GetChartMeta(ctx, row.md5)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "\n取得エラー (bmsid=%d): %v\n", row.bmsID, err)
+			fmt.Fprintf(os.Stderr, "\n取得エラー (line=%d): %v\n", row.line, err)
 			continue
 		}
 		if existing != nil && existing.FetchedAt != nil {
-			printProgress(os.Stderr, row.bmsID, row.md5, false, fetchedCount, i, len(rows), fetchStart)
+			printProgress(os.Stderr, row.line, row.md5, false, fetchedCount, i, len(rows), fetchStart)
 			continue
 		}
 
@@ -106,7 +102,7 @@ func main() {
 			if ctx.Err() != nil {
 				break
 			}
-			fmt.Fprintf(os.Stderr, "\nIR取得エラー (bmsid=%d, md5=%s): %v\n", row.bmsID, row.md5, err)
+			fmt.Fprintf(os.Stderr, "\nIR取得エラー (line=%d, md5=%s): %v\n", row.line, row.md5, err)
 			continue
 		}
 		fetchedCount++
@@ -125,57 +121,72 @@ func main() {
 		}
 
 		if err := repo.UpsertChartMeta(ctx, meta); err != nil {
-			fmt.Fprintf(os.Stderr, "\n保存エラー (bmsid=%d): %v\n", row.bmsID, err)
+			fmt.Fprintf(os.Stderr, "\n保存エラー (line=%d): %v\n", row.line, err)
 			continue
 		}
 
-		printProgress(os.Stderr, row.bmsID, row.md5, irResp.Registered, fetchedCount, i, len(rows), fetchStart)
+		printProgress(os.Stderr, row.line, row.md5, irResp.Registered, fetchedCount, i, len(rows), fetchStart)
 	}
 
 	fmt.Fprintln(os.Stderr) // 最終行の改行
 
 	if ctx.Err() != nil {
-		fmt.Fprintf(os.Stderr, "中断しました。再開するには: --start-id %d\n", lastBmsID)
+		fmt.Fprintf(os.Stderr, "中断しました。再開するには: --start-line %d\n", lastLine)
 	} else {
 		fmt.Fprintln(os.Stderr, "完了しました")
 	}
 }
 
-// loadCSV はCSVファイルの全行を読み込む（ヘッダー除く）
-func loadCSV(path string) ([]csvRow, error) {
+// loadCSV はCSVファイルを読み込み、startLine以降の行を返す。
+// 行番号はヘッダー除く1始まり。bmsidが空や不正でもmd5があれば処理対象に含める。
+func loadCSV(path string, startLine int) (rows []csvRow, totalLines int, err error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	defer f.Close()
 
 	reader := csv.NewReader(f)
-	records, err := reader.ReadAll()
-	if err != nil {
-		return nil, err
+	reader.FieldsPerRecord = -1 // 列数不定を許容
+
+	// ヘッダースキップ
+	if _, err := reader.Read(); err != nil {
+		return nil, 0, fmt.Errorf("ヘッダー読み込みエラー: %w", err)
 	}
 
-	var rows []csvRow
-	for i, rec := range records {
-		if i == 0 {
-			continue // ヘッダースキップ
+	line := 0
+	for {
+		rec, err := reader.Read()
+		if err == io.EOF {
+			break
 		}
-		if len(rec) != 2 {
-			return nil, fmt.Errorf("行%d: 列数が不正 (%d)", i+1, len(rec))
-		}
-		bmsID, err := strconv.Atoi(rec[0])
 		if err != nil {
-			return nil, fmt.Errorf("行%d: bmsid変換失敗: %w", i+1, err)
+			return nil, 0, fmt.Errorf("行%d: CSV読み込みエラー: %w", line+1, err)
 		}
-		rows = append(rows, csvRow{bmsID: bmsID, md5: rec[1]})
+		line++
+
+		// md5列（2列目）を取得。空行やmd5なしはスキップ
+		md5 := ""
+		if len(rec) >= 2 {
+			md5 = strings.TrimSpace(rec[1])
+		} else if len(rec) == 1 {
+			md5 = strings.TrimSpace(rec[0])
+		}
+		if md5 == "" {
+			continue
+		}
+
+		totalLines++
+		if line >= startLine {
+			rows = append(rows, csvRow{line: line, md5: md5})
+		}
 	}
 
-	return rows, nil
+	return rows, totalLines, nil
 }
 
 // printProgress は進捗を\rで1行上書き表示する
-// 残り時間は実際にIRリクエストした件数の処理速度で推定する
-func printProgress(w *os.File, bmsID int, md5 string, registered bool, fetchedCount, idx, filteredCount int, fetchStart time.Time) {
+func printProgress(w *os.File, line int, md5 string, registered bool, fetchedCount, idx, filteredCount int, fetchStart time.Time) {
 	remaining := ""
 	if fetchedCount > 0 {
 		elapsed := time.Since(fetchStart)
@@ -188,11 +199,11 @@ func printProgress(w *os.File, bmsID int, md5 string, registered bool, fetchedCo
 	}
 
 	if remaining != "" {
-		fmt.Fprintf(w, "\r[%d/%d] bmsid=%d md5=%s registered=%t (残り約%s)   ",
-			idx+1, filteredCount, bmsID, md5, registered, remaining)
+		fmt.Fprintf(w, "\r[%d/%d] line=%d md5=%s registered=%t (残り約%s)   ",
+			idx+1, filteredCount, line, md5, registered, remaining)
 	} else {
-		fmt.Fprintf(w, "\r[%d/%d] bmsid=%d md5=%s registered=%t   ",
-			idx+1, filteredCount, bmsID, md5, registered)
+		fmt.Fprintf(w, "\r[%d/%d] line=%d md5=%s registered=%t   ",
+			idx+1, filteredCount, line, md5, registered)
 	}
 }
 

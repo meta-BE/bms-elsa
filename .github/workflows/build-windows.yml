@@ -31,9 +31,12 @@ jobs:
       - name: Copy manual as manual.txt
         run: Copy-Item docs/manual.md build/bin/manual.txt
 
+      - name: Copy elsa.db
+        run: Copy-Item build/elsa.db build/bin/elsa.db
+
       - name: Create ZIP
         run: |
-          Compress-Archive -Path build/bin/bms-elsa.exe, build/bin/manual.txt -DestinationPath build/bin/bms-elsa.zip
+          Compress-Archive -Path build/bin/bms-elsa.exe, build/bin/manual.txt, build/bin/elsa.db -DestinationPath build/bin/bms-elsa.zip
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
