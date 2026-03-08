@@ -15,6 +15,7 @@ import (
 const (
 	minhashScoreMultiplier = 10.0 // MinHash類似度 * 10 = MinHashスコア（最大10点）
 	irSkipThreshold        = 8.0  // MinHashスコアがこの値以上ならIR問い合わせをスキップ
+	candidateMinScore      = 5.0  // 統合スコアがこの値以下なら推定失敗扱い
 )
 
 // ImportCandidate は差分導入の推定結果
@@ -162,6 +163,9 @@ func (u *EstimateDiffInstallUseCase) EstimateOne(ctx context.Context, filePath s
 	})
 
 	best := all[0]
+	if best.Total() <= candidateMinScore {
+		return candidate, nil
+	}
 	candidate.DestFolder = best.FolderPath
 	candidate.Score = min(best.Total(), 10)
 	candidate.MatchMethod = best.BestMethod
