@@ -9,6 +9,7 @@
   import DuplicateDetail from './views/DuplicateDetail.svelte'
   import DiffImportView from './views/DiffImportView.svelte'
   import SplitPane from './components/SplitPane.svelte'
+  import ContextMenu from './components/ContextMenu.svelte'
   import Settings from './settings/Settings.svelte'
   import EventMappingManager from './settings/EventMappingManager.svelte'
   import RewriteRuleManager from './settings/RewriteRuleManager.svelte'
@@ -241,6 +242,7 @@
   <Settings bind:this={settingsComponent} />
   <EventMappingManager bind:this={eventMappingComponent} />
   <RewriteRuleManager bind:this={rewriteRuleComponent} />
+  <ContextMenu />
 </div>
 
 <style>
