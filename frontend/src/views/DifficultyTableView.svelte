@@ -41,18 +41,20 @@
       accessorKey: 'level',
       header: 'Level',
       size: 80,
+      meta: { align: 'right' },
       sortingFn: (rowA, rowB, columnId) => {
         const a = Number(rowA.getValue(columnId)) || 0
         const b = Number(rowB.getValue(columnId)) || 0
         return a - b
       },
     },
-    { accessorKey: 'title', header: 'Title', size: 300 },
-    { accessorKey: 'artist', header: 'Artist', size: 200 },
+    { accessorKey: 'title', header: 'Title', size: 300, meta: { flex: true } },
+    { accessorKey: 'artist', header: 'Artist', size: 200, meta: { flex: true } },
     {
       id: 'hasUrl',
       header: 'URL',
       size: 60,
+      meta: { align: 'center' },
       accessorFn: (row) => row.url ? '○' : '',
     },
     {
@@ -224,7 +226,7 @@
     <!-- 仮想スクロール領域 -->
     <div
       bind:this={scrollElement}
-      class="flex-1 overflow-auto"
+      class="flex-1 overflow-y-scroll"
       role="grid"
       tabindex="-1"
       on:keydown={(e) => { if (e.key === 'Escape') dispatch('deselect') }}
@@ -251,8 +253,8 @@
             >
               {#each row.getVisibleCells() as cell}
                 <div
-                  class="px-2 text-sm truncate"
-                  style="width: {cell.column.getSize()}px; min-width: {cell.column.getSize()}px"
+                  class="px-2 text-sm truncate {cell.column.columnDef.meta?.align === 'center' ? 'text-center' : cell.column.columnDef.meta?.align === 'right' ? 'text-right' : ''}"
+                  style={cell.column.columnDef.meta?.flex ? `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px` : `flex: 0 0 ${cell.column.getSize()}px`}
                 >
                   <svelte:component
                     this={flexRender(cell.column.columnDef.cell, cell.getContext())}

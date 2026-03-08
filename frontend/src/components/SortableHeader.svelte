@@ -1,8 +1,18 @@
 <script lang="ts">
+  import { onMount } from 'svelte'
   import { flexRender, type Table, type Column } from '@tanstack/svelte-table'
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   export let table: Table<any>
+
+  let scrollbarWidth = 0
+  onMount(() => {
+    const outer = document.createElement('div')
+    outer.style.cssText = 'overflow:scroll;width:100px;height:100px;position:absolute;top:-9999px'
+    document.body.appendChild(outer)
+    scrollbarWidth = outer.offsetWidth - outer.clientWidth
+    document.body.removeChild(outer)
+  })
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function isFilterColumn(column: Column<any, unknown>): boolean {
@@ -44,7 +54,7 @@
 
 <svelte:window on:click={closeFilterMenu} />
 
-<div class="bg-base-200 border-b border-base-300 px-2 shrink-0">
+<div class="bg-base-200 border-b border-base-300 px-2 shrink-0" style="padding-right: {scrollbarWidth + 8}px">
   {#each table.getHeaderGroups() as headerGroup}
     <div class="flex">
       {#each headerGroup.headers as header}
@@ -52,7 +62,7 @@
           <!-- フィルタヘッダー -->
           <div
             class="relative"
-            style="width: {header.getSize()}px; min-width: {header.getSize()}px"
+            style={header.column.columnDef.meta?.flex ? `flex: 1 1 ${header.getSize()}px; min-width: ${header.getSize()}px` : `flex: 0 0 ${header.getSize()}px`}
           >
             <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
             <div
@@ -95,7 +105,7 @@
             role="columnheader"
             tabindex="0"
             class="px-2 py-1.5 text-xs font-bold uppercase cursor-pointer select-none hover:bg-base-300 transition-colors truncate"
-            style="width: {header.getSize()}px; min-width: {header.getSize()}px"
+            style={header.column.columnDef.meta?.flex ? `flex: 1 1 ${header.getSize()}px; min-width: ${header.getSize()}px` : `flex: 0 0 ${header.getSize()}px`}
             on:click|stopPropagation={header.column.getToggleSortingHandler()}
             on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') header.column.getToggleSortingHandler()?.(e) }}
           >

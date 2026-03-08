@@ -48,9 +48,9 @@
   }
 
   const columns: ColumnDef<dto.SongRowDTO>[] = [
-    { accessorKey: 'title', header: 'Title', size: 300 },
-    { accessorKey: 'artist', header: 'Artist', size: 200 },
-    { accessorKey: 'genre', header: 'Genre', size: 140 },
+    { accessorKey: 'title', header: 'Title', size: 300, meta: { flex: true } },
+    { accessorKey: 'artist', header: 'Artist', size: 200, meta: { flex: true } },
+    { accessorKey: 'genre', header: 'Genre', size: 140, meta: { flex: true } },
     {
       id: 'bpm',
       header: 'BPM',
@@ -61,6 +61,15 @@
       },
     },
     {
+      id: 'releaseYear',
+      header: 'Year',
+      size: 60,
+      accessorFn: (row) => row.releaseYear ? String(row.releaseYear) : '',
+      enableSorting: false,
+      filterFn: 'equalsString',
+      meta: { filterType: 'select', filterSort: 'desc'},
+    },
+    {
       id: 'eventName',
       header: 'Event',
       size: 140,
@@ -69,22 +78,14 @@
       filterFn: 'equalsString',
       meta: { filterType: 'select' },
     },
-    {
-      id: 'releaseYear',
-      header: 'Year',
-      size: 60,
-      accessorFn: (row) => row.releaseYear ? String(row.releaseYear) : '',
-      enableSorting: false,
-      filterFn: 'equalsString',
-      meta: { filterType: 'select', filterSort: 'desc' },
-    },
+    { accessorKey: 'chartCount', header: 'Charts', size: 80, meta: { align: 'right' } },
     {
       id: 'ir',
       header: 'IR',
       size: 40,
+      meta: { align: 'center' },
       accessorFn: (row) => row.hasIrMeta ? '●' : '',
     },
-    { accessorKey: 'chartCount', header: 'Charts', size: 60 },
   ]
 
   let sorting: SortingState = []
@@ -195,7 +196,7 @@
     <!-- 仮想スクロール領域 -->
     <div
       bind:this={scrollElement}
-      class="flex-1 overflow-auto"
+      class="flex-1 overflow-y-scroll"
       role="grid"
       tabindex="-1"
       on:keydown={(e) => { if (e.key === 'Escape') dispatch('deselect') }}
@@ -214,8 +215,8 @@
           >
             {#each row.getVisibleCells() as cell}
               <div
-                class="px-2 text-sm truncate"
-                style="width: {cell.column.getSize()}px; min-width: {cell.column.getSize()}px"
+                class="px-2 text-sm truncate {cell.column.columnDef.meta?.align === 'center' ? 'text-center' : cell.column.columnDef.meta?.align === 'right' ? 'text-right' : ''}"
+                style={cell.column.columnDef.meta?.flex ? `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px` : `flex: 0 0 ${cell.column.getSize()}px`}
               >
                 <svelte:component
                   this={flexRender(cell.column.columnDef.cell, cell.getContext())}
