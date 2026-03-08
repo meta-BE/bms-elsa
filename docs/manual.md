@@ -13,11 +13,17 @@ BMS ELSA（Efficient Library & Storage Agent）は、beatorajaの楽曲データ
 1. ダウンロードしたZIPファイルを任意のフォルダに展開してください
 2. 展開先の bms-elsa.exe を実行してください
 
+ZIPには以下のファイルが含まれています：
+- bms-elsa.exe — アプリケーション本体
+- elsa.db — LR2IRから事前取得したIR情報を含むデータベース
+- manual.txt — このマニュアル
+
 ## 初回設定
 
 画面上部の歯車アイコンから設定画面を開き、beatorajaのsongdata.dbのパスを指定してください。
 設定は実行ファイルと同じフォルダの config.json に保存されます。
-また、初回起動時に同じフォルダへ elsa.db が生成されます。これはBMS ELSAが管理データを保存するためのデータベースです。
+同梱の elsa.db にはLR2IRから事前取得した約33万譜面分のIR情報が含まれており、初回起動時からIR情報を利用できます。
+elsa.db はBMS ELSAが管理データを保存するためのデータベースで、使用に応じてデータが追加・更新されます。
 
 ## 画面説明
 

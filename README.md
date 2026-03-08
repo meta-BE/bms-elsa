@@ -28,6 +28,7 @@
 - BMSパーサー + MinHash計算（WAV定義からMinHash署名を計算・保存、譜面の音声類似度マッチングに使用）
 - フォルダを開く（楽曲詳細・譜面詳細・難易度表エントリ・重複詳細からインストール先フォルダをファイルマネージャーで表示）
 - カラムフィルタ（EVENT/YEAR/STATUSカラムでドロップダウンフィルタリング）
+- IR情報プリフェッチ済み elsa.db 同梱（初回起動時から約33万譜面分のIR情報を利用可能）
 - 詳細ビューからLR2IRページへの直接リンク
 - 外部リンクのシステムブラウザ表示（macOS/Windows/Linux対応）
 
@@ -92,7 +93,11 @@ bms-elsa/
 │       ├── views/              # タブ画面・詳細パネル
 │       ├── settings/           # 設定系モーダル
 │       └── utils/              # ユーティリティ関数
-├── build/                      # Wailsビルド設定
+├── cmd/                        # 開発用CLIコマンド
+│   ├── prefetch-ir/            # LR2IR情報の事前取得
+│   ├── merge-db/               # elsa.db統合ツール
+│   └── gen-testdata/           # テスト用songdata.db生成
+├── build/                      # Wailsビルド設定 + elsa.db
 ├── testdata/                   # テスト用データ（songdata.db等）
 └── docs/                       # ドキュメント
     ├── TODO.md                 # 開発タスク一覧
