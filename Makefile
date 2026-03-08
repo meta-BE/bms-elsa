@@ -10,9 +10,10 @@ release-major:
 	@$(MAKE) _release BUMP=major
 
 _release:
-	@if [ -n "$$(git status --porcelain)" ]; then \
-		echo "エラー: 未コミットの変更があります。先にコミットしてください。"; \
-		exit 1; \
+	@if [ -n "$$(git log origin/main..HEAD --oneline 2>/dev/null)" ]; then \
+		echo "警告: 未プッシュのコミットがあります:"; \
+		git log origin/main..HEAD --oneline; \
+		echo ""; \
 	fi
 	@LATEST=$$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0"); \
 	MAJOR=$$(echo $$LATEST | sed 's/^v//' | cut -d. -f1); \
