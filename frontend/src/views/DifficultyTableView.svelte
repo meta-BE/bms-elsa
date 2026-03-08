@@ -11,13 +11,13 @@
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { writable } from 'svelte/store'
-  import { onMount, onDestroy, createEventDispatcher } from 'svelte'
+  import { onMount, createEventDispatcher } from 'svelte'
   import { ListDifficultyTables, ListDifficultyTableEntries } from '../../wailsjs/go/app/DifficultyTableHandler'
   import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
   import SortableHeader from '../components/SortableHeader.svelte'
-  import { EventsOn } from '../../wailsjs/runtime/runtime'
   import { StartDifficultyTableBulkFetch, StopBulkFetch } from '../../wailsjs/go/app/IRHandler'
+  import BulkFetchButton from '../components/BulkFetchButton.svelte'
   import { handleArrowNav } from '../utils/arrowNav'
 
   const dispatch = createEventDispatcher<{
@@ -35,28 +35,6 @@
   export let selected: string | null = null
   export let active = true
   let searchText = ''
-
-  // IR一括取得の状態
-  let irFetching = false
-  let irProgress = { current: 0, total: 0 }
-  let irDoneMessage = ''
-  let irDoneTimer: ReturnType<typeof setTimeout> | null = null
-
-  function startBulkFetch() {
-    if (!selectedTableId) return
-    irFetching = true
-    irProgress = { current: 0, total: 0 }
-    irDoneMessage = ''
-    if (irDoneTimer) { clearTimeout(irDoneTimer); irDoneTimer = null }
-    StartDifficultyTableBulkFetch(selectedTableId).catch((e: Error) => {
-      console.error('[IR] StartDifficultyTableBulkFetch failed:', e)
-      irFetching = false
-    })
-  }
-
-  function stopBulkFetch() {
-    StopBulkFetch()
-  }
 
   const columns: ColumnDef<dto.DifficultyTableEntryDTO>[] = [
     {
@@ -128,28 +106,7 @@
   $: virtualItems = $virtualizer.getVirtualItems()
   $: totalSize = $virtualizer.getTotalSize()
 
-  let offProgress: (() => void) | null = null
-  let offDone: (() => void) | null = null
-
   onMount(async () => {
-    offProgress = EventsOn('ir:progress', (data: { current: number; total: number }) => {
-      irProgress = data
-    })
-    offDone = EventsOn('ir:done', (data: { total: number; fetched: number; notFound: number; failed: number; cancelled: boolean }) => {
-      irFetching = false
-      const parts: string[] = []
-      if (data.total === 0) {
-        irDoneMessage = '対象なし'
-      } else {
-        if (data.fetched > 0) parts.push(`${data.fetched}件取得`)
-        if (data.notFound > 0) parts.push(`${data.notFound}件未登録`)
-        if (data.failed > 0) parts.push(`${data.failed}件失敗`)
-        if (data.cancelled) parts.push('中断')
-        irDoneMessage = parts.join(', ') || '完了'
-      }
-      irDoneTimer = setTimeout(() => { irDoneMessage = '' }, 5000)
-    })
-
     loading = true
     try {
       tables = (await ListDifficultyTables()) || []
@@ -162,12 +119,6 @@
     } finally {
       loading = false
     }
-  })
-
-  onDestroy(() => {
-    offProgress?.()
-    offDone?.()
-    if (irDoneTimer) clearTimeout(irDoneTimer)
   })
 
   async function loadEntries(tableId: number) {
@@ -257,16 +208,11 @@
         </select>
       </div>
       <div class="flex items-center gap-2">
-        {#if irFetching}
-          <span class="text-xs text-base-content/70">
-            取得中: {irProgress.current.toLocaleString()} / {irProgress.total.toLocaleString()}
-          </span>
-          <button class="btn btn-xs btn-error btn-outline" on:click|stopPropagation={stopBulkFetch}>停止</button>
-        {:else if irDoneMessage}
-          <span class="text-xs text-success">{irDoneMessage}</span>
-        {:else}
-          <button class="btn btn-xs btn-outline" on:click|stopPropagation={startBulkFetch}>IR取得</button>
-        {/if}
+        <BulkFetchButton
+          startFn={() => selectedTableId ? StartDifficultyTableBulkFetch(selectedTableId) : Promise.resolve()}
+          stopFn={StopBulkFetch}
+          on:done={() => selectedTableId && loadEntries(selectedTableId)}
+        />
         <SearchInput bind:value={searchText} on:input={applyFilter} on:clear={applyFilter} />
       </div>
     {/if}
