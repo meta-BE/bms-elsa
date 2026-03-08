@@ -21,25 +21,33 @@ const (
 
 // LR2IRClient はLR2IRへのHTTPクライアント実装
 type LR2IRClient struct {
-	client  *http.Client
-	baseURL string
-	mu      sync.Mutex
-	lastReq time.Time
+	client   *http.Client
+	baseURL  string
+	mu       sync.Mutex
+	lastReq  time.Time
+	interval time.Duration
 }
 
 func NewLR2IRClient() *LR2IRClient {
 	return &LR2IRClient{
-		client:  &http.Client{Timeout: 30 * time.Second},
-		baseURL: lr2irBaseURL,
+		client:   &http.Client{Timeout: 30 * time.Second},
+		baseURL:  lr2irBaseURL,
+		interval: minRequestInterval,
 	}
 }
 
 // NewLR2IRClientWithBaseURL はテスト用にbaseURLを差し替え可能にするコンストラクタ
 func NewLR2IRClientWithBaseURL(baseURL string) *LR2IRClient {
 	return &LR2IRClient{
-		client:  &http.Client{Timeout: 30 * time.Second},
-		baseURL: baseURL,
+		client:   &http.Client{Timeout: 30 * time.Second},
+		baseURL:  baseURL,
+		interval: minRequestInterval,
 	}
+}
+
+// SetInterval はリクエスト間隔を設定する（デフォルト: 500ms）
+func (c *LR2IRClient) SetInterval(d time.Duration) {
+	c.interval = d
 }
 
 var _ port.IRClient = (*LR2IRClient)(nil)
@@ -49,8 +57,8 @@ func (c *LR2IRClient) LookupByMD5(ctx context.Context, md5 string) (*port.IRResp
 	var wait time.Duration
 	if !c.lastReq.IsZero() {
 		elapsed := time.Since(c.lastReq)
-		if elapsed < minRequestInterval {
-			wait = minRequestInterval - elapsed
+		if elapsed < c.interval {
+			wait = c.interval - elapsed
 		}
 	}
 	c.mu.Unlock()
