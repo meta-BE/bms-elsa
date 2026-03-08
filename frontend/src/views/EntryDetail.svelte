@@ -2,12 +2,12 @@
   import { createEventDispatcher } from 'svelte'
   import { GetChartDetailByMD5, GetChartMetaByMD5 } from '../../wailsjs/go/app/ChartHandler'
   import { GetDifficultyTableEntry } from '../../wailsjs/go/app/DifficultyTableHandler'
-  import { OpenFolder } from '../../wailsjs/go/main/App'
   import { LookupByMD5, UpdateChartMeta } from '../../wailsjs/go/app/IRHandler'
   import type { dto } from '../../wailsjs/go/models'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
   import InstallCandidateCard from '../components/InstallCandidateCard.svelte'
+  import OpenFolderButton from '../components/OpenFolderButton.svelte'
 
   const dispatch = createEventDispatcher<{ close: void }>()
 
@@ -78,17 +78,7 @@
           </div>
         </div>
         <div class="flex items-center shrink-0 ml-2">
-          {#if chart?.path}
-            <button
-              class="btn btn-ghost btn-xs"
-              title="インストール先フォルダを開く"
-              on:click={() => OpenFolder(chart.path)}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z" />
-              </svg>
-            </button>
-          {/if}
+          <OpenFolderButton path={chart?.path} title="インストール先フォルダを開く" />
           <button
             class="btn btn-ghost btn-xs"
             on:click={() => dispatch('close')}
