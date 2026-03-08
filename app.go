@@ -95,7 +95,7 @@ func (a *App) Init() error {
 
 	a.ScanHandler = internalapp.NewScanHandler(elsaRepo)
 
-	estimateDiffInstall := usecase.NewEstimateDiffInstallUseCase(elsaRepo, songdataReader, elsaRepo, irClient, estimateInstallLocation)
+	estimateDiffInstall := usecase.NewEstimateDiffInstallUseCase(songdataReader, elsaRepo, irClient, estimateInstallLocation)
 	executeDiffImport := usecase.NewExecuteDiffImportUseCase()
 	a.DiffImportHandler = internalapp.NewDiffImportHandler(estimateDiffInstall, executeDiffImport)
 

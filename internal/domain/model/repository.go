@@ -30,8 +30,17 @@ type SongRepository interface {
 	FindChartFoldersByArtist(ctx context.Context, artist string) ([]InstallCandidate, error)
 }
 
+// MinHashMatch はMinHash類似度検索の結果
+type MinHashMatch struct {
+	MD5        string
+	FolderPath string
+	Similarity float64
+}
+
 // MetaRepository はelsa.dbのメタデータCRUD
 type MetaRepository interface {
+	// MinHash類似度検索
+	FindMostSimilarByMinHash(ctx context.Context, queryMinhash []byte, threshold float64) (*MinHashMatch, error)
 	GetSongMeta(ctx context.Context, folderHash string) (*SongMeta, error)
 	UpsertSongMeta(ctx context.Context, meta SongMeta) error
 	GetChartMeta(ctx context.Context, md5 string) (*ChartIRMeta, error)

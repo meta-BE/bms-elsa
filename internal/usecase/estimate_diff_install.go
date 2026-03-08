@@ -6,7 +6,6 @@ import (
 	"sort"
 	"time"
 
-	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	"github.com/meta-BE/bms-elsa/internal/domain/bms"
 	"github.com/meta-BE/bms-elsa/internal/domain/model"
 	"github.com/meta-BE/bms-elsa/internal/port"
@@ -34,7 +33,6 @@ type ImportCandidate struct {
 }
 
 type EstimateDiffInstallUseCase struct {
-	elsaRepo        *persistence.ElsaRepository
 	songRepo        model.SongRepository
 	metaRepo        model.MetaRepository
 	irClient        port.IRClient
@@ -42,14 +40,12 @@ type EstimateDiffInstallUseCase struct {
 }
 
 func NewEstimateDiffInstallUseCase(
-	elsaRepo *persistence.ElsaRepository,
 	songRepo model.SongRepository,
 	metaRepo model.MetaRepository,
 	irClient port.IRClient,
 	estimateUseCase *EstimateInstallLocationUseCase,
 ) *EstimateDiffInstallUseCase {
 	return &EstimateDiffInstallUseCase{
-		elsaRepo:        elsaRepo,
 		songRepo:        songRepo,
 		metaRepo:        metaRepo,
 		irClient:        irClient,
@@ -92,7 +88,7 @@ func (u *EstimateDiffInstallUseCase) EstimateOne(ctx context.Context, filePath s
 
 	// Step 1: WAV MinHash類似度検索
 	sig := bms.ComputeMinHash(parsed.WAVFiles)
-	match, err := u.elsaRepo.FindMostSimilarByMinHash(ctx, sig.Bytes(), 0.0)
+	match, err := u.metaRepo.FindMostSimilarByMinHash(ctx, sig.Bytes(), 0.0)
 	if err != nil {
 		return nil, err
 	}

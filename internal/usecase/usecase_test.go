@@ -118,6 +118,10 @@ func (m *mockMetaRepo) ListChartsForWorkingURLInference(_ context.Context) ([]mo
 	return nil, nil
 }
 
+func (m *mockMetaRepo) FindMostSimilarByMinHash(_ context.Context, _ []byte, _ float64) (*model.MinHashMatch, error) {
+	return nil, nil
+}
+
 type mockIRClient struct {
 	lookupFunc func(ctx context.Context, md5 string) (*port.IRResponse, error)
 }

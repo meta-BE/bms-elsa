@@ -431,15 +431,8 @@ func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.
 	return results, rows.Err()
 }
 
-// MinHashMatch はMinHash類似度検索の結果
-type MinHashMatch struct {
-	MD5        string
-	FolderPath string
-	Similarity float64
-}
-
 // FindMostSimilarByMinHash はクエリminhashに最も類似するレコードを返す（Go全件スキャン方式）
-func (r *ElsaRepository) FindMostSimilarByMinHash(ctx context.Context, queryMinhash []byte, threshold float64) (*MinHashMatch, error) {
+func (r *ElsaRepository) FindMostSimilarByMinHash(ctx context.Context, queryMinhash []byte, threshold float64) (*model.MinHashMatch, error) {
 	query, err := bms.MinHashFromBytes(queryMinhash)
 	if err != nil {
 		return nil, err
@@ -456,7 +449,7 @@ func (r *ElsaRepository) FindMostSimilarByMinHash(ctx context.Context, queryMinh
 	}
 	defer rows.Close()
 
-	var best *MinHashMatch
+	var best *model.MinHashMatch
 	for rows.Next() {
 		var md5 string
 		var blob []byte
@@ -470,7 +463,7 @@ func (r *ElsaRepository) FindMostSimilarByMinHash(ctx context.Context, queryMinh
 		}
 		sim := query.Similarity(sig)
 		if sim >= threshold && (best == nil || sim > best.Similarity) {
-			best = &MinHashMatch{
+			best = &model.MinHashMatch{
 				MD5:        md5,
 				FolderPath: parentDirOf(path),
 				Similarity: sim,
