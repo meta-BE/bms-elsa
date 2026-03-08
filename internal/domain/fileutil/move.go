@@ -2,6 +2,7 @@ package fileutil
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 )
@@ -20,5 +21,34 @@ func MoveFileToFolder(srcPath, destFolder string) error {
 		return fmt.Errorf("移動先に同名ファイルが既に存在します: %s", destPath)
 	}
 
-	return os.Rename(srcPath, destPath)
+	if err := copyFile(srcPath, destPath); err != nil {
+		os.Remove(destPath)
+		return fmt.Errorf("ファイルコピーに失敗: %w", err)
+	}
+
+	if err := os.Remove(srcPath); err != nil {
+		return fmt.Errorf("コピー元の削除に失敗: %w", err)
+	}
+
+	return nil
+}
+
+func copyFile(src, dst string) error {
+	sf, err := os.Open(src)
+	if err != nil {
+		return err
+	}
+	defer sf.Close()
+
+	df, err := os.Create(dst)
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(df, sf); err != nil {
+		df.Close()
+		return err
+	}
+
+	return df.Close()
 }
