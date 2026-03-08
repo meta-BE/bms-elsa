@@ -120,7 +120,7 @@ func (r *SongdataReader) ListSongs(ctx context.Context, opts model.ListOptions) 
 			sm.release_year, sm.event_name,
 			EXISTS(
 				SELECT 1 FROM songdata.song ss
-				INNER JOIN main.chart_meta cm ON cm.md5 = ss.md5 AND cm.sha256 = ss.sha256
+				INNER JOIN main.chart_meta cm ON cm.md5 = ss.md5
 				WHERE ss.folder = sg.folder
 			) AS has_ir_meta,
 			COUNT(*) OVER() AS total_count
@@ -216,7 +216,7 @@ func (r *SongdataReader) ListAllSongs(ctx context.Context) ([]model.Song, error)
 			sm.release_year, sm.event_name,
 			EXISTS(
 				SELECT 1 FROM songdata.song ss
-				INNER JOIN main.chart_meta cm ON cm.md5 = ss.md5 AND cm.sha256 = ss.sha256
+				INNER JOIN main.chart_meta cm ON cm.md5 = ss.md5
 				WHERE ss.folder = sg.folder
 			) AS has_ir_meta
 		FROM song_groups sg
@@ -427,7 +427,7 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 			sm.release_year,
 			EXISTS(
 				SELECT 1 FROM main.chart_meta cm
-				WHERE cm.md5 = s.md5 AND cm.sha256 = s.sha256
+				WHERE cm.md5 = s.md5
 			) AS has_ir_meta
 		FROM songdata.song s
 		LEFT JOIN main.song_meta sm ON sm.folder_hash = s.folder
