@@ -160,7 +160,7 @@
             <th>推定先</th>
             <th class="w-16">スコア</th>
             <th class="w-20">推定方法</th>
-            <th class="w-16">操作</th>
+            <th class="w-16"></th>
           </tr>
         </thead>
         <tbody>
