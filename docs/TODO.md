@@ -63,10 +63,8 @@
 - [ ] `joinStrings` を `strings.Join` に置換
 
 ### フロントエンド
-- [ ] 仮想テーブルロジックの共通化（ChartListView / SongTable / DifficultyTableView で重複）
-- [ ] 動作URL推定ロジックの共通化（ChartListView / SongTable で重複）
-- [ ] IR一括取得イベント処理パターンの共通化（ChartListView / DifficultyTableView で重複）
-- [ ] Wails生成型の活用（DuplicateView でローカル型を再定義している箇所を解消）
+- [x] IR一括取得イベント処理パターンの共通化（ChartListView / DifficultyTableView で重複）
+- [x] Wails生成型の活用（DuplicateView でローカル型を再定義している箇所を解消）
 
 ## 改善
 - [ ] BPM検知の改善（songdata.dbのminbpm/maxbpmにギミックBPMが含まれるケースへの対応）
