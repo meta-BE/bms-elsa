@@ -33,9 +33,11 @@
 
   onMount(() => {
     offProgress = EventsOn('ir:progress', (data: { current: number; total: number }) => {
+      if (!fetching) return
       progress = data
     })
     offDone = EventsOn('ir:done', (data: { total: number; fetched: number; notFound: number; failed: number; cancelled: boolean }) => {
+      if (!fetching) return
       fetching = false
       const parts: string[] = []
       if (data.total === 0) {
