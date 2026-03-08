@@ -48,10 +48,10 @@
 
 ### バックエンド（優先度: 高）
 - [ ] usecase層のadapter依存を解消（`EstimateDiffInstallUseCase` が `*persistence.ElsaRepository` 具象型に直接依存 → `FindMostSimilarByMinHash` をインターフェースに追加）
-- [ ] `DifficultyTableHandler` のビジネスロジックをusecase層に抽出（インストール状態判定・難易度表追加/更新フロー）
-- [ ] `ScanHandler` のMinHashスキャンロジックをusecase層に抽出（BMSパース→MinHash計算→DB保存）
 
 ### バックエンド（優先度: 中）
+- [ ] `DifficultyTableHandler` のビジネスロジックをusecase層に抽出（インストール状態判定・難易度表追加/更新フロー）
+- [ ] `ScanHandler` のMinHashスキャンロジックをusecase層に抽出（BMSパース→MinHash計算→DB保存）
 - [ ] goroutine管理パターンの共通化（IR/Scan/DiffImportの `mu+running+cancelFunc` パターン → `BackgroundTask` 構造体に抽出）
 - [ ] IR一括取得メソッドの統合（`StartBulkFetch` と `StartDifficultyTableBulkFetch` の共通部分を抽出）
 - [ ] `app.go` の責務分離（Config型・設定関連関数を `config.go` に分離、`ScanDuplicates` をusecase化）
