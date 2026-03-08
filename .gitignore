@@ -4,6 +4,7 @@ frontend/dist
 frontend/wailsjs
 frontend/package.json.md5
 *.db
+!build/elsa.db
 .DS_Store
 .worktrees/
 testdata/*/
