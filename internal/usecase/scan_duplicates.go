@@ -32,6 +32,7 @@ func (u *ScanDuplicatesUseCase) Execute(ctx context.Context) ([]similarity.Dupli
 			MaxBPM:     g.MaxBPM,
 			ChartCount: g.ChartCount,
 			Path:       g.Path,
+			WavMinHash: g.WavMinHash,
 		}
 	}
 

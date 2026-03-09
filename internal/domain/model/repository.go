@@ -33,6 +33,7 @@ type SongGroup struct {
 	MaxBPM     float64
 	ChartCount int
 	Path       string // 代表パス（フォルダまで）
+	WavMinHash []byte // 代表MinHash署名（未計算ならnil）
 }
 
 // SongRepository はsongdata.dbから楽曲・譜面を読み取る（読み取り専用）

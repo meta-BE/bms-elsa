@@ -475,8 +475,10 @@ func (r *SongdataReader) ListSongGroupsForDuplicateScan(ctx context.Context) ([]
 			MIN(s.minbpm) AS minbpm,
 			MAX(s.maxbpm) AS maxbpm,
 			COUNT(*) AS chart_count,
-			MIN(s.path) AS path
+			MIN(s.path) AS path,
+			MAX(cm.wav_minhash) AS wav_minhash
 		FROM songdata.song s
+		LEFT JOIN chart_meta cm ON s.md5 = cm.md5
 		WHERE s.md5 IS NOT NULL AND s.md5 != ''
 		GROUP BY s.folder
 	`
@@ -490,7 +492,7 @@ func (r *SongdataReader) ListSongGroupsForDuplicateScan(ctx context.Context) ([]
 	for rows.Next() {
 		var g model.SongGroup
 		if err := rows.Scan(&g.FolderHash, &g.Title, &g.Artist, &g.Genre,
-			&g.MinBPM, &g.MaxBPM, &g.ChartCount, &g.Path); err != nil {
+			&g.MinBPM, &g.MaxBPM, &g.ChartCount, &g.Path, &g.WavMinHash); err != nil {
 			return nil, err
 		}
 		groups = append(groups, g)
