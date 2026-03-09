@@ -41,6 +41,10 @@ func (m *mockSongRepo) FindChartFoldersByArtist(_ context.Context, _ string) ([]
 	return nil, nil
 }
 
+func (m *mockSongRepo) ListSongGroupsForDuplicateScan(_ context.Context) ([]model.SongGroup, error) {
+	return nil, nil
+}
+
 type mockMetaRepo struct {
 	getSongMetaFunc              func(ctx context.Context, folderHash string) (*model.SongMeta, error)
 	upsertSongMetaFunc           func(ctx context.Context, meta model.SongMeta) error
@@ -120,6 +124,14 @@ func (m *mockMetaRepo) ListChartsForWorkingURLInference(_ context.Context) ([]mo
 
 func (m *mockMetaRepo) FindMostSimilarByMinHash(_ context.Context, _ []byte, _ float64) (*model.MinHashMatch, error) {
 	return nil, nil
+}
+
+func (m *mockMetaRepo) ListChartsWithoutMinhash(_ context.Context) ([]model.ChartScanTarget, error) {
+	return nil, nil
+}
+
+func (m *mockMetaRepo) UpdateWavMinhash(_ context.Context, _ string, _ []byte) error {
+	return nil
 }
 
 type mockIRClient struct {
