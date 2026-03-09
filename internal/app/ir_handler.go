@@ -58,8 +58,8 @@ func (h *IRHandler) UpdateChartMeta(md5, workingBodyURL, workingDiffURL string) 
 	return h.updateChart.Execute(h.ctx, md5, workingBodyURL, workingDiffURL)
 }
 
-// StartBulkFetch はIR一括取得をバックグラウンドで開始する。二重起動不可。
-func (h *IRHandler) StartBulkFetch() error {
+// startBulkFetchWith はIR一括取得の共通処理。fetchMD5s で取得対象を差し替える。
+func (h *IRHandler) startBulkFetchWith(fetchMD5s func(ctx context.Context) ([]string, error)) error {
 	h.mu.Lock()
 	if h.running {
 		h.mu.Unlock()
@@ -68,8 +68,7 @@ func (h *IRHandler) StartBulkFetch() error {
 	h.running = true
 	h.mu.Unlock()
 
-	// md5リスト取得（ロック外で実行）
-	md5s, err := h.metaRepo.ListUnfetchedChartMD5s(h.ctx)
+	md5s, err := fetchMD5s(h.ctx)
 	if err != nil {
 		h.mu.Lock()
 		h.running = false
@@ -97,7 +96,7 @@ func (h *IRHandler) StartBulkFetch() error {
 			})
 		})
 
-		doneData := map[string]interface{}{
+		doneData := map[string]any{
 			"cancelled": false,
 			"error":     "",
 		}
@@ -117,62 +116,16 @@ func (h *IRHandler) StartBulkFetch() error {
 	return nil
 }
 
+// StartBulkFetch はIR一括取得をバックグラウンドで開始する。二重起動不可。
+func (h *IRHandler) StartBulkFetch() error {
+	return h.startBulkFetchWith(h.metaRepo.ListUnfetchedChartMD5s)
+}
+
 // StartDifficultyTableBulkFetch は難易度表エントリのIR一括取得をバックグラウンドで開始する。二重起動不可。
 func (h *IRHandler) StartDifficultyTableBulkFetch(tableID int) error {
-	h.mu.Lock()
-	if h.running {
-		h.mu.Unlock()
-		return nil
-	}
-	h.running = true
-	h.mu.Unlock()
-
-	md5s, err := h.metaRepo.ListUnfetchedDTEntryMD5s(h.ctx, tableID)
-	if err != nil {
-		h.mu.Lock()
-		h.running = false
-		h.mu.Unlock()
-		return err
-	}
-
-	ctx, cancel := context.WithCancel(h.ctx)
-	h.mu.Lock()
-	h.cancelFunc = cancel
-	h.mu.Unlock()
-
-	go func() {
-		defer func() {
-			h.mu.Lock()
-			h.running = false
-			h.cancelFunc = nil
-			h.mu.Unlock()
-		}()
-
-		result, err := h.bulkFetchIR.Execute(ctx, md5s, func(p usecase.BulkFetchProgress) {
-			wailsRuntime.EventsEmit(h.ctx, "ir:progress", map[string]int{
-				"current": p.Current,
-				"total":   p.Total,
-			})
-		})
-
-		doneData := map[string]interface{}{
-			"cancelled": false,
-			"error":     "",
-		}
-		if err != nil {
-			doneData["error"] = err.Error()
-		}
-		if result != nil {
-			doneData["total"] = result.Total
-			doneData["fetched"] = result.Fetched
-			doneData["notFound"] = result.NotFound
-			doneData["failed"] = result.Failed
-			doneData["cancelled"] = result.Cancelled
-		}
-		wailsRuntime.EventsEmit(h.ctx, "ir:done", doneData)
-	}()
-
-	return nil
+	return h.startBulkFetchWith(func(ctx context.Context) ([]string, error) {
+		return h.metaRepo.ListUnfetchedDTEntryMD5s(ctx, tableID)
+	})
 }
 
 // StopBulkFetch は実行中のIR一括取得を中断する
