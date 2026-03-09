@@ -1,5 +1,9 @@
 package similarity
 
+import (
+	"github.com/meta-BE/bms-elsa/internal/domain/bms"
+)
+
 // Comparable は類似度計算に必要なフィールドを持つ型
 type Comparable interface {
 	GetTitle() string
@@ -7,6 +11,7 @@ type Comparable interface {
 	GetGenre() string
 	GetMinBPM() float64
 	GetMaxBPM() float64
+	GetWavMinHash() []byte
 }
 
 // ScoreResult は各フィールドの類似度（%）と総合スコア
@@ -58,7 +63,17 @@ func Score(a, b Comparable) ScoreResult {
 	genreR := PrefixRatio(a.GetGenre(), b.GetGenre())
 	bpmR := BPMOverlap(a.GetMinBPM(), a.GetMaxBPM(), b.GetMinBPM(), b.GetMaxBPM())
 
-	total := titleR*0.4 + artistR*0.3 + genreR*0.1 + bpmR*0.2
+	var wavR float64
+	mhA, mhB := a.GetWavMinHash(), b.GetWavMinHash()
+	if len(mhA) > 0 && len(mhB) > 0 {
+		sigA, errA := bms.MinHashFromBytes(mhA)
+		sigB, errB := bms.MinHashFromBytes(mhB)
+		if errA == nil && errB == nil {
+			wavR = sigA.Similarity(sigB)
+		}
+	}
+
+	total := wavR*0.50 + titleR*0.20 + artistR*0.15 + genreR*0.05 + bpmR*0.10
 
 	return ScoreResult{
 		Title:  int(titleR * 100),

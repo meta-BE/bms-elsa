@@ -9,7 +9,8 @@ func TestFindDuplicateGroups(t *testing.T) {
 		{FolderHash: "ccc", Title: "全く別の曲", Artist: "someone", Genre: "POP", MinBPM: 80, MaxBPM: 80, ChartCount: 2, Path: "/c"},
 	}
 
-	groups := FindDuplicateGroups(songs, 60)
+	// MinHash なしのため、スコアは約41（Title 58*0.20 + Artist 100*0.15 + Genre 100*0.05 + BPM 100*0.10）
+	groups := FindDuplicateGroups(songs, 40)
 
 	if len(groups) != 1 {
 		t.Fatalf("len(groups) = %d, want 1", len(groups))
@@ -17,8 +18,8 @@ func TestFindDuplicateGroups(t *testing.T) {
 	if len(groups[0].Members) != 2 {
 		t.Errorf("len(groups[0].Members) = %d, want 2", len(groups[0].Members))
 	}
-	if groups[0].Score < 60 {
-		t.Errorf("Score = %d, want >= 60", groups[0].Score)
+	if groups[0].Score < 40 {
+		t.Errorf("Score = %d, want >= 40", groups[0].Score)
 	}
 }
 

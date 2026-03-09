@@ -12,13 +12,15 @@ type SongInfo struct {
 	MaxBPM     float64
 	ChartCount int
 	Path       string
+	WavMinHash []byte `json:"-"` // MinHash署名（フロントエンドには送らない）
 }
 
 func (s SongInfo) GetTitle() string   { return s.Title }
 func (s SongInfo) GetArtist() string  { return s.Artist }
 func (s SongInfo) GetGenre() string   { return s.Genre }
 func (s SongInfo) GetMinBPM() float64 { return s.MinBPM }
-func (s SongInfo) GetMaxBPM() float64 { return s.MaxBPM }
+func (s SongInfo) GetMaxBPM() float64    { return s.MaxBPM }
+func (s SongInfo) GetWavMinHash() []byte { return s.WavMinHash }
 
 // DuplicateGroup は重複候補のグループ
 type DuplicateGroup struct {
