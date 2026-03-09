@@ -93,7 +93,8 @@ func (a *App) Init() error {
 	estimateInstallLocation := usecase.NewEstimateInstallLocationUseCase(songdataReader, elsaRepo)
 	a.DifficultyTableHandler = internalapp.NewDifficultyTableHandler(dtRepo, dtFetcher, songdataReader, estimateInstallLocation)
 
-	a.ScanHandler = internalapp.NewScanHandler(elsaRepo)
+	scanMinHash := usecase.NewScanMinHashUseCase(elsaRepo)
+	a.ScanHandler = internalapp.NewScanHandler(elsaRepo, scanMinHash)
 
 	estimateDiffInstall := usecase.NewEstimateDiffInstallUseCase(songdataReader, elsaRepo, irClient, estimateInstallLocation)
 	executeDiffImport := usecase.NewExecuteDiffImportUseCase()

@@ -2,26 +2,25 @@ package app
 
 import (
 	"context"
-	"fmt"
-	"os"
 	"sync"
 
-	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
-	"github.com/meta-BE/bms-elsa/internal/domain/bms"
+	"github.com/meta-BE/bms-elsa/internal/domain/model"
+	"github.com/meta-BE/bms-elsa/internal/usecase"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type ScanHandler struct {
-	ctx      context.Context
-	elsaRepo *persistence.ElsaRepository
+	ctx         context.Context
+	metaRepo    model.MetaRepository
+	scanMinHash *usecase.ScanMinHashUseCase
 
 	mu         sync.Mutex
 	running    bool
 	cancelFunc context.CancelFunc
 }
 
-func NewScanHandler(elsaRepo *persistence.ElsaRepository) *ScanHandler {
-	return &ScanHandler{elsaRepo: elsaRepo}
+func NewScanHandler(metaRepo model.MetaRepository, scanMinHash *usecase.ScanMinHashUseCase) *ScanHandler {
+	return &ScanHandler{metaRepo: metaRepo, scanMinHash: scanMinHash}
 }
 
 func (h *ScanHandler) SetContext(ctx context.Context) { h.ctx = ctx }
@@ -36,7 +35,7 @@ func (h *ScanHandler) StartMinHashScan() error {
 	h.running = true
 	h.mu.Unlock()
 
-	targets, err := h.elsaRepo.ListChartsWithoutMinhash(h.ctx)
+	targets, err := h.metaRepo.ListChartsWithoutMinhash(h.ctx)
 	if err != nil {
 		h.mu.Lock()
 		h.running = false
@@ -57,64 +56,19 @@ func (h *ScanHandler) StartMinHashScan() error {
 			h.mu.Unlock()
 		}()
 
-		total := len(targets)
-		computed := 0
-		skipped := 0
-		failed := 0
-		cancelled := false
-
-		for i, tgt := range targets {
-			select {
-			case <-ctx.Done():
-				cancelled = true
-				goto done
-			default:
-			}
-
-			// ファイル存在チェック
-			if _, err := os.Stat(tgt.Path); err != nil {
-				skipped++
-				wailsRuntime.EventsEmit(h.ctx, "scan:progress", map[string]int{
-					"current": i + 1, "total": total,
-				})
-				continue
-			}
-
-			// BMSパース
-			parsed, err := bms.ParseBMSFile(tgt.Path)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "scan: parse error %s: %v\n", tgt.Path, err)
-				failed++
-				wailsRuntime.EventsEmit(h.ctx, "scan:progress", map[string]int{
-					"current": i + 1, "total": total,
-				})
-				continue
-			}
-
-			// MinHash計算・保存
-			sig := bms.ComputeMinHash(parsed.WAVFiles)
-			if err := h.elsaRepo.UpdateWavMinhash(h.ctx, tgt.MD5, sig.Bytes()); err != nil {
-				fmt.Fprintf(os.Stderr, "scan: db error %s: %v\n", tgt.MD5, err)
-				failed++
-				wailsRuntime.EventsEmit(h.ctx, "scan:progress", map[string]int{
-					"current": i + 1, "total": total,
-				})
-				continue
-			}
-
-			computed++
+		result := h.scanMinHash.Execute(ctx, targets, func(p usecase.ScanMinHashProgress) {
 			wailsRuntime.EventsEmit(h.ctx, "scan:progress", map[string]int{
-				"current": i + 1, "total": total,
+				"current": p.Current,
+				"total":   p.Total,
 			})
-		}
+		})
 
-	done:
-		wailsRuntime.EventsEmit(h.ctx, "scan:done", map[string]interface{}{
-			"total":     total,
-			"computed":  computed,
-			"skipped":   skipped,
-			"failed":    failed,
-			"cancelled": cancelled,
+		wailsRuntime.EventsEmit(h.ctx, "scan:done", map[string]any{
+			"total":     result.Total,
+			"computed":  result.Computed,
+			"skipped":   result.Skipped,
+			"failed":    result.Failed,
+			"cancelled": result.Cancelled,
 		})
 	}()
 
