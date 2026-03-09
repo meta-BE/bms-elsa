@@ -31,7 +31,7 @@ type App struct {
 	DifficultyTableHandler *internalapp.DifficultyTableHandler
 	ScanHandler            *internalapp.ScanHandler
 	DiffImportHandler      *internalapp.DiffImportHandler
-	songReader             *persistence.SongdataReader
+	scanDuplicates         *usecase.ScanDuplicatesUseCase
 	elsaRepo               *persistence.ElsaRepository
 }
 
@@ -70,7 +70,7 @@ func (a *App) Init() error {
 	dtRepo := persistence.NewDifficultyTableRepository(db)
 	dtFetcher := gateway.NewDifficultyTableFetcher()
 	songdataReader := persistence.NewSongdataReader(db, elsaRepo, dtRepo)
-	a.songReader = songdataReader
+	a.scanDuplicates = usecase.NewScanDuplicatesUseCase(songdataReader)
 	irClient := gateway.NewLR2IRClient()
 
 	listSongs := usecase.NewListSongsUseCase(songdataReader)
@@ -243,24 +243,5 @@ func songdataDBPath() string {
 
 // ScanDuplicates は楽曲の重複スキャンを実行する
 func (a *App) ScanDuplicates() ([]similarity.DuplicateGroup, error) {
-	groups, err := a.songReader.ListSongGroupsForDuplicateScan(a.ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	songs := make([]similarity.SongInfo, len(groups))
-	for i, g := range groups {
-		songs[i] = similarity.SongInfo{
-			FolderHash: g.FolderHash,
-			Title:      g.Title,
-			Artist:     g.Artist,
-			Genre:      g.Genre,
-			MinBPM:     g.MinBPM,
-			MaxBPM:     g.MaxBPM,
-			ChartCount: g.ChartCount,
-			Path:       g.Path,
-		}
-	}
-
-	return similarity.FindDuplicateGroups(songs, 60), nil
+	return a.scanDuplicates.Execute(a.ctx)
 }
