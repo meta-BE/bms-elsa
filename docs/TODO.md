@@ -50,10 +50,10 @@
 - [x] usecase層のadapter依存を解消（`EstimateDiffInstallUseCase` が `*persistence.ElsaRepository` 具象型に直接依存 → `FindMostSimilarByMinHash` をインターフェースに追加）
 
 ### バックエンド（優先度: 中）
-- [ ] IR一括取得メソッドの統合（`StartBulkFetch` と `StartDifficultyTableBulkFetch` の共通部分を抽出）
-- [ ] persistence層の独自型を `domain/model` に移動（`ChartScanTarget`, `SongGroup`。`MinHashMatch` は移動済み）
-- [ ] `ScanHandler` のMinHashスキャンロジックをusecase層に抽出（BMSパース→MinHash計算→DB保存）
-- [ ] `ScanDuplicates` をusecase化（`app.go` から `similarity` 直接参照を解消）
+- [x] IR一括取得メソッドの統合（`StartBulkFetch` と `StartDifficultyTableBulkFetch` の共通部分を抽出）
+- [x] persistence層の独自型を `domain/model` に移動（`ChartScanTarget`, `SongGroup`。`MinHashMatch` は移動済み）
+- [x] `ScanHandler` のMinHashスキャンロジックをusecase層に抽出（BMSパース→MinHash計算→DB保存）
+- [x] `ScanDuplicates` をusecase化（`app.go` から `similarity` 直接参照を解消）
 - [ ] `app.go` の Config型・設定関連関数を `config.go` に分離
 
 ### バックエンド（優先度: 低）
