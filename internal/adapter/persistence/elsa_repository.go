@@ -330,14 +330,8 @@ func (r *ElsaRepository) ListChartsForWorkingURLInference(ctx context.Context) (
 	return charts, rows.Err()
 }
 
-// ChartScanTarget はMinHashスキャン対象の譜面情報
-type ChartScanTarget struct {
-	MD5  string
-	Path string
-}
-
 // ListChartsWithoutMinhash はwav_minhashが未計算の譜面リストを返す
-func (r *ElsaRepository) ListChartsWithoutMinhash(ctx context.Context) ([]ChartScanTarget, error) {
+func (r *ElsaRepository) ListChartsWithoutMinhash(ctx context.Context) ([]model.ChartScanTarget, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT DISTINCT s.md5, s.path
 		FROM songdata.song s
@@ -350,9 +344,9 @@ func (r *ElsaRepository) ListChartsWithoutMinhash(ctx context.Context) ([]ChartS
 	}
 	defer rows.Close()
 
-	var targets []ChartScanTarget
+	var targets []model.ChartScanTarget
 	for rows.Next() {
-		var t ChartScanTarget
+		var t model.ChartScanTarget
 		if err := rows.Scan(&t.MD5, &t.Path); err != nil {
 			return nil, err
 		}

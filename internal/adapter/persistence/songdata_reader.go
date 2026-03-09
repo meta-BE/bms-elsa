@@ -464,20 +464,8 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 	return charts, rows.Err()
 }
 
-// SongGroup は重複スキャン用のfolder単位の楽曲情報
-type SongGroup struct {
-	FolderHash string
-	Title      string
-	Artist     string
-	Genre      string
-	MinBPM     float64
-	MaxBPM     float64
-	ChartCount int
-	Path       string // 代表パス（フォルダまで）
-}
-
 // ListSongGroupsForDuplicateScan はfolder単位で楽曲グループを返す（重複スキャン用）
-func (r *SongdataReader) ListSongGroupsForDuplicateScan(ctx context.Context) ([]SongGroup, error) {
+func (r *SongdataReader) ListSongGroupsForDuplicateScan(ctx context.Context) ([]model.SongGroup, error) {
 	query := `
 		SELECT
 			s.folder,
@@ -498,9 +486,9 @@ func (r *SongdataReader) ListSongGroupsForDuplicateScan(ctx context.Context) ([]
 	}
 	defer rows.Close()
 
-	var groups []SongGroup
+	var groups []model.SongGroup
 	for rows.Next() {
-		var g SongGroup
+		var g model.SongGroup
 		if err := rows.Scan(&g.FolderHash, &g.Title, &g.Artist, &g.Genre,
 			&g.MinBPM, &g.MaxBPM, &g.ChartCount, &g.Path); err != nil {
 			return nil, err
