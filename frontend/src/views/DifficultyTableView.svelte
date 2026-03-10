@@ -18,6 +18,7 @@
   import SortableHeader from '../components/SortableHeader.svelte'
   import { StartDifficultyTableBulkFetch, StopBulkFetch } from '../../wailsjs/go/app/IRHandler'
   import BulkFetchButton from '../components/BulkFetchButton.svelte'
+  import DifficultyTableSettings from '../settings/DifficultyTableSettings.svelte'
   import { handleArrowNav } from '../utils/arrowNav'
 
   const dispatch = createEventDispatcher<{
@@ -35,6 +36,7 @@
   export let selected: string | null = null
   export let active = true
   let searchText = ''
+  let dtSettingsComponent: DifficultyTableSettings
 
   const columns: ColumnDef<dto.DifficultyTableEntryDTO>[] = [
     {
@@ -179,6 +181,24 @@
       dispatch('select', { md5: entry.md5, tableID: selectedTableId! })
     }
   }
+
+  async function handleSettingsClose() {
+    const prevId = selectedTableId
+    tables = (await ListDifficultyTables()) || []
+    if (tables.length === 0) {
+      selectedTableId = null
+      entries = []
+      applyFilter()
+      return
+    }
+    const still = tables.find(t => t.id === prevId)
+    if (still) {
+      selectedTableId = prevId
+    } else {
+      selectedTableId = tables[0].id
+    }
+    await loadEntries(selectedTableId!)
+  }
 </script>
 
 <svelte:window on:keydown={handleKeyNav} />
@@ -193,7 +213,9 @@
     {#if loading}
       <span class="text-sm font-semibold">Loading...</span>
     {:else if tables.length === 0}
-      <span class="text-sm text-base-content/50">Settings画面から難易度表を追加してください</span>
+      <button class="btn btn-sm btn-ghost" on:click|stopPropagation={() => dtSettingsComponent.open()}>
+        難易度表を追加
+      </button>
     {:else}
       <div class="flex items-center gap-2">
         <span class="text-sm font-semibold shrink-0">{rows.length.toLocaleString()} charts</span>
@@ -215,6 +237,9 @@
           stopFn={StopBulkFetch}
           on:done={() => selectedTableId && loadEntries(selectedTableId)}
         />
+        <button class="btn btn-sm btn-ghost" on:click|stopPropagation={() => dtSettingsComponent.open()}>
+          難易度表設定
+        </button>
         <SearchInput bind:value={searchText} on:input={applyFilter} on:clear={applyFilter} />
       </div>
     {/if}
@@ -268,3 +293,5 @@
     </div>
   {/if}
 </div>
+
+<DifficultyTableSettings bind:this={dtSettingsComponent} on:close={handleSettingsClose} />
