@@ -205,7 +205,7 @@
     if (!active) return
     handleArrowNav(e, {
       selected,
-      rows,
+      items: rows.map(r => r.original),
       getKey: (o: dto.ChartListItemDTO) => o.md5,
       onSelect: (o: dto.ChartListItemDTO) => dispatch('select', { md5: o.md5 }),
       scrollToIndex: (i: number) => $virtualizer.scrollToIndex(i, { align: 'auto' }),

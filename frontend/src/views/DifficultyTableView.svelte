@@ -167,7 +167,7 @@
     if (!active || !selectedTableId) return
     handleArrowNav(e, {
       selected,
-      rows,
+      items: rows.map(r => r.original),
       getKey: (o: dto.DifficultyTableEntryDTO) => o.md5,
       onSelect: (o: dto.DifficultyTableEntryDTO) => dispatch('select', { md5: o.md5, tableID: selectedTableId! }),
       scrollToIndex: (i: number) => $virtualizer.scrollToIndex(i, { align: 'auto' }),
@@ -237,7 +237,7 @@
           stopFn={StopBulkFetch}
           on:done={() => selectedTableId && loadEntries(selectedTableId)}
         />
-        <button class="btn btn-sm btn-ghost" on:click|stopPropagation={() => dtSettingsComponent.open()}>
+        <button class="btn btn-xs btn-outline" on:click|stopPropagation={() => dtSettingsComponent.open()}>
           難易度表設定
         </button>
         <SearchInput bind:value={searchText} on:input={applyFilter} on:clear={applyFilter} />

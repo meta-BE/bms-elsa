@@ -133,7 +133,7 @@
     if (!active) return
     handleArrowNav(e, {
       selected,
-      rows,
+      items: rows.map(r => r.original),
       getKey: (o: dto.SongRowDTO) => o.folderHash,
       onSelect: (o: dto.SongRowDTO) => dispatch('select', o.folderHash),
       scrollToIndex: (i: number) => $virtualizer.scrollToIndex(i, { align: 'auto' }),
