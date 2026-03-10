@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
+  import { handleArrowNav } from '../utils/arrowNav'
   import { ScanDuplicates } from '../../wailsjs/go/app/DuplicateHandler'
   import type { similarity } from '../../wailsjs/go/models'
 
@@ -28,8 +29,20 @@
     dispatch('select', group)
   }
 
+  function handleKeyNav(e: KeyboardEvent) {
+    if (!active || !scanned) return
+    handleArrowNav(e, {
+      selected: selectedGroupID !== null ? String(selectedGroupID) : null,
+      items: groups,
+      getKey: (g: similarity.DuplicateGroup) => String(g.ID),
+      onSelect: (g: similarity.DuplicateGroup) => handleSelect(g),
+    })
+  }
+
   $: selectedGroup = groups.find(g => g.ID === selectedGroupID) || null
 </script>
+
+<svelte:window on:keydown={handleKeyNav} />
 
 {#if !scanned}
   <div class="flex items-center justify-center h-full">
