@@ -1,6 +1,8 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { ListDifficultyTables, AddDifficultyTable, RemoveDifficultyTable, RefreshAllDifficultyTables } from '../../wailsjs/go/app/DifficultyTableHandler'
+  import { dndzone } from 'svelte-dnd-action'
+  import { flip } from 'svelte/animate'
+  import { ListDifficultyTables, AddDifficultyTable, RemoveDifficultyTable, RefreshAllDifficultyTables, ReorderDifficultyTables } from '../../wailsjs/go/app/DifficultyTableHandler'
 
   const dispatch = createEventDispatcher()
 
@@ -12,6 +14,23 @@
   let refreshResults: any[] | null = null
   let refreshing = false
   let adding = false
+
+  const flipDurationMs = 200
+
+  function handleDndConsider(e: CustomEvent) {
+    tables = e.detail.items
+  }
+
+  async function handleDndFinalize(e: CustomEvent) {
+    tables = e.detail.items
+    const ids = tables.map((t: any) => t.id)
+    try {
+      await ReorderDifficultyTables(ids)
+    } catch (e) {
+      console.error('並び替え保存に失敗:', e)
+      await loadTables()
+    }
+  }
 
   export async function open() {
     addError = ''
@@ -80,6 +99,7 @@
         <table class="table table-xs">
           <thead>
             <tr>
+              <th class="w-6"></th>
               <th>名前</th>
               <th>記号</th>
               <th>譜面数</th>
@@ -87,9 +107,10 @@
               <th></th>
             </tr>
           </thead>
-          <tbody>
-            {#each tables as t}
-              <tr>
+          <tbody use:dndzone={{ items: tables, flipDurationMs }} on:consider={handleDndConsider} on:finalize={handleDndFinalize}>
+            {#each tables as t (t.id)}
+              <tr animate:flip={{ duration: flipDurationMs }}>
+                <td class="cursor-grab text-base-content/30 text-center select-none">⠿</td>
                 <td>{t.name}</td>
                 <td>{t.symbol}</td>
                 <td>{t.entryCount}</td>
