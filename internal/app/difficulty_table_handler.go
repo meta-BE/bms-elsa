@@ -163,6 +163,10 @@ func (h *DifficultyTableHandler) RemoveDifficultyTable(id int) error {
 	return h.dtRepo.DeleteTable(h.ctx, id)
 }
 
+func (h *DifficultyTableHandler) ReorderDifficultyTables(ids []int) error {
+	return h.dtRepo.ReorderTables(h.ctx, ids)
+}
+
 func (h *DifficultyTableHandler) RefreshDifficultyTable(id int) dto.DifficultyTableRefreshResult {
 	tables, err := h.dtRepo.ListTables(h.ctx)
 	if err != nil {
