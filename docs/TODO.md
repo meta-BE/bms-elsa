@@ -26,6 +26,10 @@
 - [x] MinHash計算・保存（フォルダ走査 + worker pool、進捗表示・中断対応）
 - [x] 導入先推定（MinHashスコアリング + IR照合 + タイトル/アーティスト一致の統合スコアリング）
 - [x] 差分導入（BMS/BME/BMLファイルD&D → 導入先自動推定 → ファイル移動）
+- [x] `ScanDuplicatesUseCase` を `DuplicateHandler` 経由に変更（クリーンアーキテクチャの一貫性確保）
+- [x] 難易度表設定を独立モーダルに分離（Settings.svelte → DifficultyTableSettings.svelte）
+- [x] 難易度表のドラッグ&ドロップ並び替え（sort_orderカラム追加 + svelte-dnd-action）
+- [x] arrowNav汎用化 + DuplicateViewにキーボードナビゲーション追加
 
 ## 難易度表関連
 - [ ] 段位認定（course）データの取り込み
@@ -55,6 +59,7 @@
 - [x] persistence層の独自型を `domain/model` に移動（`ChartScanTarget`, `SongGroup`。`MinHashMatch` は移動済み）
 - [x] `ScanHandler` のMinHashスキャンロジックをusecase層に抽出（BMSパース→MinHash計算→DB保存）
 - [x] `ScanDuplicates` をusecase化（`app.go` から `similarity` 直接参照を解消）
+- [x] `ScanDuplicatesUseCase` を `DuplicateHandler` 経由に変更（Handler層の一貫性）
 - [ ] `app.go` の Config型・設定関連関数を `config.go` に分離
 
 ### バックエンド（優先度: 低）
@@ -65,6 +70,7 @@
 ### フロントエンド
 - [x] IR一括取得イベント処理パターンの共通化（ChartListView / DifficultyTableView で重複）
 - [x] Wails生成型の活用（DuplicateView でローカル型を再定義している箇所を解消）
+- [x] arrowNav.ts を汎用化（tanstack-table依存を除去、ジェネリクス化）
 
 ## 改善
 - [ ] BPM検知の改善（songdata.dbのminbpm/maxbpmにギミックBPMが含まれるケースへの対応）

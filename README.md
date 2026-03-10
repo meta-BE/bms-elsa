@@ -18,10 +18,11 @@
 - 難易度表からの未導入譜面IR一括取得
 - 楽曲メタデータ推測（URLパターンマッチングによるイベント名・リリース年の自動設定 + 手動確認フロー）
 - Event名・リリース年・動作URLの編集・保存
-- BMS難易度表の取り込み・管理（Stella, 発狂BMS, Solomon等に対応）
+- BMS難易度表の取り込み・管理（Stella, 発狂BMS, Solomon等に対応、ドラッグ&ドロップで並び替え可能）
 - 難易度表の未導入譜面でもIR情報を表示
 - 譜面詳細に難易度ラベルをバッジ表示
-- GUIからの設定編集（songdata.dbパス、難易度表の追加・削除・更新、URLパターンマッピング管理）
+- 上下キーによるキーボードナビゲーション（楽曲・譜面・難易度表・重複検知の各タブ対応）
+- GUIからの設定編集（songdata.dbパス、難易度表の追加・削除・更新・並び替え、URLパターンマッピング管理）
 - URL書き換えルール（replace/regex対応、優先度付きルール適用で動作URLを自動推定）
 - 重複検知（WAV定義MinHash類似度 + タイトル・アーティスト・BPM・ジャンルのファジーマッチング、専用タブで一覧・詳細表示）
 - 差分導入（BMS/BME/BMLファイルをD&Dで導入先自動推定、WAV定義MinHash・IR・タイトル一致のスコアリング統合）
@@ -49,6 +50,7 @@
 | UI | TailwindCSS + DaisyUI 5 |
 | 永続化 | SQLite（`modernc.org/sqlite` — 純Go実装、CGO不要） |
 | テーブル表示 | TanStack Table + TanStack Virtual |
+| DnD | svelte-dnd-action |
 
 ## 前提条件
 
