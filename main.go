@@ -41,6 +41,7 @@ func main() {
 			app.DifficultyTableHandler,
 			app.ScanHandler,
 			app.DiffImportHandler,
+			app.DuplicateHandler,
 		},
 	})
 

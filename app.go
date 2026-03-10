@@ -15,7 +15,6 @@ import (
 	"github.com/meta-BE/bms-elsa/internal/adapter/gateway"
 	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	internalapp "github.com/meta-BE/bms-elsa/internal/app"
-	"github.com/meta-BE/bms-elsa/internal/domain/similarity"
 	"github.com/meta-BE/bms-elsa/internal/usecase"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -31,7 +30,7 @@ type App struct {
 	DifficultyTableHandler *internalapp.DifficultyTableHandler
 	ScanHandler            *internalapp.ScanHandler
 	DiffImportHandler      *internalapp.DiffImportHandler
-	scanDuplicates         *usecase.ScanDuplicatesUseCase
+	DuplicateHandler       *internalapp.DuplicateHandler
 	elsaRepo               *persistence.ElsaRepository
 }
 
@@ -70,7 +69,8 @@ func (a *App) Init() error {
 	dtRepo := persistence.NewDifficultyTableRepository(db)
 	dtFetcher := gateway.NewDifficultyTableFetcher()
 	songdataReader := persistence.NewSongdataReader(db, elsaRepo, dtRepo)
-	a.scanDuplicates = usecase.NewScanDuplicatesUseCase(songdataReader)
+	scanDuplicates := usecase.NewScanDuplicatesUseCase(songdataReader)
+	a.DuplicateHandler = internalapp.NewDuplicateHandler(scanDuplicates)
 	irClient := gateway.NewLR2IRClient()
 
 	listSongs := usecase.NewListSongsUseCase(songdataReader)
@@ -113,6 +113,7 @@ func (a *App) startup(ctx context.Context) {
 	a.DifficultyTableHandler.SetContext(ctx)
 	a.ScanHandler.SetContext(ctx)
 	a.DiffImportHandler.SetContext(ctx)
+	a.DuplicateHandler.SetContext(ctx)
 }
 
 func (a *App) shutdown(ctx context.Context) {
@@ -239,9 +240,4 @@ func songdataDBPath() string {
 		}
 	}
 	return ""
-}
-
-// ScanDuplicates は楽曲の重複スキャンを実行する
-func (a *App) ScanDuplicates() ([]similarity.DuplicateGroup, error) {
-	return a.scanDuplicates.Execute(a.ctx)
 }
