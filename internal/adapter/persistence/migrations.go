@@ -49,6 +49,7 @@ func RunMigrations(db *sql.DB) error {
 			data_url    TEXT NOT NULL,
 			name        TEXT NOT NULL,
 			symbol      TEXT NOT NULL,
+			sort_order  INTEGER NOT NULL DEFAULT 0,
 			fetched_at  TEXT,
 			created_at  TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
@@ -182,6 +183,19 @@ func RunMigrations(db *sql.DB) error {
 	if hasWavMinhash == 0 {
 		if _, err := db.Exec(`ALTER TABLE chart_meta ADD COLUMN wav_minhash BLOB`); err != nil {
 			return fmt.Errorf("add wav_minhash column: %w", err)
+		}
+	}
+
+	// sort_orderカラムの追加（冪等）
+	var hasSortOrder int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('difficulty_table') WHERE name='sort_order'`).Scan(&hasSortOrder)
+	if hasSortOrder == 0 {
+		if _, err := db.Exec(`ALTER TABLE difficulty_table ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return fmt.Errorf("add sort_order column: %w", err)
+		}
+		// 既存行にはid順でsort_orderを振る
+		if _, err := db.Exec(`UPDATE difficulty_table SET sort_order = id`); err != nil {
+			return fmt.Errorf("init sort_order: %w", err)
 		}
 	}
 
