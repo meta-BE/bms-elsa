@@ -42,7 +42,7 @@ func (r *DifficultyTableRepository) ListTables(ctx context.Context) ([]Difficult
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT id, url, header_url, data_url, name, symbol, fetched_at
 		FROM difficulty_table
-		ORDER BY name
+		ORDER BY sort_order, name
 	`)
 	if err != nil {
 		return nil, err
@@ -67,8 +67,8 @@ func (r *DifficultyTableRepository) ListTables(ctx context.Context) ([]Difficult
 
 func (r *DifficultyTableRepository) InsertTable(ctx context.Context, t DifficultyTable) (int, error) {
 	res, err := r.db.ExecContext(ctx, `
-		INSERT INTO difficulty_table (url, header_url, data_url, name, symbol, fetched_at)
-		VALUES (?, ?, ?, ?, ?, datetime('now'))
+		INSERT INTO difficulty_table (url, header_url, data_url, name, symbol, sort_order, fetched_at)
+		VALUES (?, ?, ?, ?, ?, COALESCE((SELECT MAX(sort_order) FROM difficulty_table), 0) + 1, datetime('now'))
 	`, t.URL, t.HeaderURL, t.DataURL, t.Name, t.Symbol)
 	if err != nil {
 		return 0, err
@@ -89,6 +89,28 @@ func (r *DifficultyTableRepository) UpdateTable(ctx context.Context, t Difficult
 func (r *DifficultyTableRepository) DeleteTable(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM difficulty_table WHERE id = ?`, id)
 	return err
+}
+
+func (r *DifficultyTableRepository) ReorderTables(ctx context.Context, ids []int) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.PrepareContext(ctx, `UPDATE difficulty_table SET sort_order = ?, updated_at = datetime('now') WHERE id = ?`)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	for i, id := range ids {
+		if _, err := stmt.ExecContext(ctx, i+1, id); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
 
 func (r *DifficultyTableRepository) ReplaceEntries(ctx context.Context, tableID int, entries []DifficultyTableEntry) error {
