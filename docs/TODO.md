@@ -16,6 +16,7 @@
 - [x] 楽曲メタデータ推測（event_mappingによるURL→EventName/ReleaseYear自動設定 + 手動確認フロー）
 - [x] chart_meta PKをmd5単一キーに変更（sha256不要化）
 - [x] 重複検知（タイトル・アーティスト類似度によるファジーマッチング、専用タブで一覧・詳細表示）
+- [x] 重複検知にMinHash統合（WAV定義類似度50%の重みでスコアリング、詳細画面にWAV定義類似度表示）
 - [x] URL書き換えルール（url_rewrite_rulesテーブル、replace/regex対応、優先度付きルール適用、動作URL自動推定）
 - [x] LR2IR情報のリンク化（詳細ビューのLR2IR情報ヘッダーをLR2IRページへの直接リンクに変更）
 - [x] 外部リンクのシステムブラウザ表示（クロスプラットフォーム対応: macOS/Windows/Linux）
