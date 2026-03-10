@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@tanstack/svelte-table": "^8.21.3",
-    "@tanstack/svelte-virtual": "^3.13.19"
+    "@tanstack/svelte-virtual": "^3.13.19",
+    "svelte-dnd-action": "^0.9.69"
   }
 }
