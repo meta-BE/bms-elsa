@@ -16,6 +16,7 @@ type Comparable interface {
 
 // ScoreResult は各フィールドの類似度（%）と総合スコア
 type ScoreResult struct {
+	WAV    int // 0-100（MinHash Jaccard類似度）
 	Title  int // 0-100
 	Artist int // 0-100
 	Genre  int // 0-100
@@ -76,6 +77,7 @@ func Score(a, b Comparable) ScoreResult {
 	total := wavR*0.50 + titleR*0.20 + artistR*0.15 + genreR*0.05 + bpmR*0.10
 
 	return ScoreResult{
+		WAV:    int(wavR * 100),
 		Title:  int(titleR * 100),
 		Artist: int(artistR * 100),
 		Genre:  int(genreR * 100),

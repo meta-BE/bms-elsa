@@ -528,6 +528,7 @@ export namespace main {
 export namespace similarity {
 	
 	export class ScoreResult {
+	    WAV: number;
 	    Title: number;
 	    Artist: number;
 	    Genre: number;
@@ -540,6 +541,7 @@ export namespace similarity {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.WAV = source["WAV"];
 	        this.Title = source["Title"];
 	        this.Artist = source["Artist"];
 	        this.Genre = source["Genre"];

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { GetSongDetail } from '../../wailsjs/go/app/SongHandler'
   import type { dto, similarity } from '../../wailsjs/go/models'
+  import OpenFolderButton from '../components/OpenFolderButton.svelte'
 
   export let group: similarity.DuplicateGroup | null = null
 
@@ -67,7 +68,10 @@
               <div>{member.ChartCount}譜面</div>
             </div>
           </div>
-          <div class="text-sm text-base-content/50 break-all">{folderPath(member.Path)}</div>
+          <div class="text-sm text-base-content/50 break-all flex items-center gap-1">
+            <span>{folderPath(member.Path)}</span>
+            <OpenFolderButton path={member.Path} size="xs" />
+          </div>
 
           {#if chartsMap[member.FolderHash]}
             <div class="mt-1 space-y-0.5">
@@ -88,6 +92,7 @@
       <div class="text-base-content/60 space-y-1">
         <div class="text-sm font-semibold">類似度内訳</div>
         <div class="text-sm flex gap-4">
+          <span>WAV定義 {scores.WAV}%</span>
           <span>title {scores.Title}%</span>
           <span>artist {scores.Artist}%</span>
           <span>genre {scores.Genre}%</span>
