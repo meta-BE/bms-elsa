@@ -134,9 +134,13 @@ func (a *App) OpenURL(url string) error {
 	}
 }
 
-// OpenFolder は譜面ファイルのパスを受け取り、その親ディレクトリをOSのファイルマネージャで開く
+// OpenFolder はパスを受け取り、対応するフォルダをOSのファイルマネージャで開く
+// ディレクトリパスならそのまま、ファイルパスなら親ディレクトリを開く
 func (a *App) OpenFolder(filePath string) error {
-	dir := filepath.Dir(filePath)
+	dir := filePath
+	if info, err := os.Stat(filePath); err != nil || !info.IsDir() {
+		dir = filepath.Dir(filePath)
+	}
 	if _, err := os.Stat(dir); err != nil {
 		return fmt.Errorf("フォルダにアクセスできません: %s (%w)", dir, err)
 	}

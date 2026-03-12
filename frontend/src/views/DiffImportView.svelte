@@ -198,17 +198,16 @@
               <td class="text-xs">{matchMethodLabels[candidate.matchMethod] || candidate.matchMethod || '-'}</td>
               <td>
                 <div class="flex gap-1">
-                  {#if candidate.destFolder}
-                    <button
-                      class="btn btn-xs btn-ghost"
-                      title="推定先をクリア"
-                      on:click|stopPropagation={() => clearDestFolder(i)}
-                    >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  {/if}
+                  <button
+                    class="btn btn-xs btn-ghost"
+                    title="推定先をクリア"
+                    disabled={!candidate.destFolder}
+                    on:click|stopPropagation={() => clearDestFolder(i)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                   <button
                     class="btn btn-xs btn-ghost text-error"
                     title="削除"
