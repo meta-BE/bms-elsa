@@ -171,11 +171,25 @@
     close()
   }
 
+  function handleKeyDown(e: KeyboardEvent) {
+    if (e.key === 'Escape') close()
+  }
+
+  // 全リスナーをdocument captureフェーズで登録
+  // （showModal() top layer内のイベントも確実にキャッチするため）
   onMount(() => {
+    document.addEventListener('mousedown', handleMouseDown, true)
     document.addEventListener('mousedown', handleGlobalMouseDown, true)
+    document.addEventListener('contextmenu', handleContextMenu, true)
+    document.addEventListener('keydown', handleKeyDown, true)
+    document.addEventListener('scroll', close, true)
   })
   onDestroy(() => {
+    document.removeEventListener('mousedown', handleMouseDown, true)
     document.removeEventListener('mousedown', handleGlobalMouseDown, true)
+    document.removeEventListener('contextmenu', handleContextMenu, true)
+    document.removeEventListener('keydown', handleKeyDown, true)
+    document.removeEventListener('scroll', close, true)
   })
 
   function handleClick(item: MenuItem) {
@@ -184,13 +198,6 @@
     close()
   }
 </script>
-
-<svelte:window
-  on:mousedown={handleMouseDown}
-  on:contextmenu={handleContextMenu}
-  on:keydown={(e) => { if (e.key === 'Escape') close() }}
-  on:scroll={close}
-/>
 
 {#if visible}
   <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
