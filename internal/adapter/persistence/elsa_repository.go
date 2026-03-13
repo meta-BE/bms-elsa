@@ -53,8 +53,9 @@ func (r *ElsaRepository) UpsertSongMeta(ctx context.Context, meta model.SongMeta
 
 func (r *ElsaRepository) GetChartMeta(ctx context.Context, md5 string) (*model.ChartIRMeta, error) {
 	row := r.db.QueryRowContext(ctx,
-		`SELECT md5, sha256, lr2ir_tags, lr2ir_body_url, lr2ir_diff_url, lr2ir_notes,
-		        lr2ir_fetched_at, working_body_url, working_diff_url
+		`SELECT md5, sha256, lr2ir_tags,
+		        COALESCE(lr2ir_body_url, ''), COALESCE(lr2ir_diff_url, ''), COALESCE(lr2ir_notes, ''),
+		        lr2ir_fetched_at, COALESCE(working_body_url, ''), COALESCE(working_diff_url, '')
 		 FROM chart_meta WHERE md5 = ?`,
 		md5,
 	)
