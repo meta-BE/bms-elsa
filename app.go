@@ -13,8 +13,10 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/meta-BE/bms-elsa/internal/adapter/gateway"
+	"github.com/meta-BE/bms-elsa/internal/adapter/logger"
 	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	internalapp "github.com/meta-BE/bms-elsa/internal/app"
+	"github.com/meta-BE/bms-elsa/internal/port"
 	"github.com/meta-BE/bms-elsa/internal/usecase"
 	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
@@ -22,6 +24,7 @@ import (
 type App struct {
 	ctx                    context.Context
 	db                     *sql.DB
+	logger                 *logger.FileLogger
 	SongHandler            *internalapp.SongHandler
 	IRHandler              *internalapp.IRHandler
 	InferenceHandler       *internalapp.InferenceHandler
@@ -50,6 +53,19 @@ func (a *App) Init() error {
 	db.SetMaxOpenConns(1)
 	a.db = db
 
+	// Logger初期化（失敗時はNopLoggerでフォールバック）
+	fileLogger, logErr := logger.New()
+	if logErr != nil {
+		fmt.Fprintf(os.Stderr, "system.log open: %v\n", logErr)
+	}
+	a.logger = fileLogger
+	cfg := loadConfig()
+
+	var appLogger port.Logger = port.NopLogger{}
+	if a.logger != nil {
+		appLogger = a.logger
+	}
+
 	if err := persistence.RunMigrations(db); err != nil {
 		return fmt.Errorf("migration: %w", err)
 	}
@@ -70,7 +86,8 @@ func (a *App) Init() error {
 	dtFetcher := gateway.NewDifficultyTableFetcher()
 	songdataReader := persistence.NewSongdataReader(db, elsaRepo, dtRepo)
 	scanDuplicates := usecase.NewScanDuplicatesUseCase(songdataReader)
-	a.DuplicateHandler = internalapp.NewDuplicateHandler(scanDuplicates)
+	mergeFoldersUC := usecase.NewMergeFoldersUseCase(appLogger, cfg.FileLog)
+	a.DuplicateHandler = internalapp.NewDuplicateHandler(scanDuplicates, mergeFoldersUC)
 	irClient := gateway.NewLR2IRClient()
 
 	listSongs := usecase.NewListSongsUseCase(songdataReader)
@@ -97,7 +114,7 @@ func (a *App) Init() error {
 	a.ScanHandler = internalapp.NewScanHandler(elsaRepo, scanMinHash)
 
 	estimateDiffInstall := usecase.NewEstimateDiffInstallUseCase(songdataReader, elsaRepo, irClient, estimateInstallLocation)
-	executeDiffImport := usecase.NewExecuteDiffImportUseCase()
+	executeDiffImport := usecase.NewExecuteDiffImportUseCase(appLogger, cfg.FileLog)
 	a.DiffImportHandler = internalapp.NewDiffImportHandler(estimateDiffInstall, executeDiffImport)
 
 	return nil
@@ -119,6 +136,9 @@ func (a *App) startup(ctx context.Context) {
 func (a *App) shutdown(ctx context.Context) {
 	if a.db != nil {
 		a.db.Close()
+	}
+	if a.logger != nil {
+		a.logger.Close()
 	}
 }
 
