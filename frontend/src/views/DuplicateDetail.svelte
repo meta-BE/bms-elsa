@@ -16,6 +16,14 @@
   let mergeTargetHash: string | null = null
   let merging = false
 
+  // 確認ダイアログ
+  let confirmDialog: HTMLDialogElement
+  let mouseDownOnBackdrop = false
+  let pendingSrcMember: similarity.DuplicateMember | null = null
+  let confirmSrcPath = ''
+  let confirmDestPath = ''
+  let mergeError = ''
+
   // groupが変わったらマージ先選択をリセット
   $: if (group) {
     mergeTargetHash = null
@@ -59,34 +67,42 @@
     mergeTargetHash = mergeTargetHash === folderHash ? null : folderHash
   }
 
-  async function handleMerge(srcMember: similarity.DuplicateMember) {
+  function requestMerge(srcMember: similarity.DuplicateMember) {
     if (!group || !mergeTargetHash) return
     const targetMember = group.Members.find(m => m.FolderHash === mergeTargetHash)
     if (!targetMember) return
 
-    const srcPath = folderPath(srcMember.Path)
-    const destPath = folderPath(targetMember.Path)
+    pendingSrcMember = srcMember
+    confirmSrcPath = folderPath(srcMember.Path)
+    confirmDestPath = folderPath(targetMember.Path)
+    confirmDialog.showModal()
+  }
 
-    const ok = confirm(
-      `フォルダをマージします。移動元は削除されます。\n\n` +
-      `移動元: ${srcPath}\n移動先: ${destPath}\n\nよろしいですか？`
-    )
-    if (!ok) return
+  async function executeMerge() {
+    if (!pendingSrcMember) return
+    const srcMember = pendingSrcMember
+    confirmDialog.close()
+    mergeError = ''
 
     merging = true
     try {
-      const result = await MergeFolders(srcPath, destPath)
+      const result = await MergeFolders(confirmSrcPath, confirmDestPath)
       if (result.success) {
-        // 楽観的UI更新: マージしたメンバーを除去
         dispatch('memberMerged', { folderHash: srcMember.FolderHash })
       } else {
-        alert(`マージに失敗しました: ${result.errorMsg}`)
+        mergeError = result.errorMsg || 'マージに失敗しました'
       }
     } catch (err) {
-      alert(`エラー: ${err}`)
+      mergeError = String(err)
     } finally {
       merging = false
+      pendingSrcMember = null
     }
+  }
+
+  function cancelMerge() {
+    confirmDialog.close()
+    pendingSrcMember = null
   }
 </script>
 
@@ -96,6 +112,10 @@
       <span>グループ #{group.ID}</span>
       <span class="badge badge-sm badge-primary">{group.Score}%</span>
     </div>
+
+    {#if mergeError}
+      <div class="alert alert-error py-2 text-sm">{mergeError}</div>
+    {/if}
 
     {#each group.Members as member, i}
       <div class="card card-compact bg-base-200 {mergeTargetHash === member.FolderHash ? 'ring-2 ring-primary' : ''}">
@@ -138,7 +158,7 @@
               <button
                 class="btn btn-xs btn-warning"
                 disabled={merging}
-                on:click={() => handleMerge(member)}
+                on:click={() => requestMerge(member)}
               >
                 {merging ? '処理中...' : '→ マージ'}
               </button>
@@ -167,3 +187,23 @@
     グループを選択してください
   </div>
 {/if}
+
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
+<dialog bind:this={confirmDialog} class="modal"
+  on:mousedown|self={() => mouseDownOnBackdrop = true}
+  on:click|self={() => { if (mouseDownOnBackdrop) cancelMerge(); mouseDownOnBackdrop = false }}>
+  <div class="modal-box max-w-2xl">
+    <h3 class="text-lg font-bold mb-4">フォルダマージの確認</h3>
+    <div class="space-y-2 text-sm">
+      <p>移動元のフォルダを移動先にマージします。移動元は削除されます。</p>
+      <div class="bg-base-200 rounded p-3 space-y-1">
+        <div><span class="text-base-content/50">移動元:</span> <span class="break-all">{confirmSrcPath}</span></div>
+        <div><span class="text-base-content/50">移動先:</span> <span class="break-all">{confirmDestPath}</span></div>
+      </div>
+    </div>
+    <div class="modal-action">
+      <button class="btn" on:click={cancelMerge}>キャンセル</button>
+      <button class="btn btn-warning" on:click={executeMerge}>マージ実行</button>
+    </div>
+  </div>
+</dialog>
