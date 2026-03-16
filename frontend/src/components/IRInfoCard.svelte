@@ -18,6 +18,14 @@
     workingDiffUrl?: string
   } | null = null
 
+  function linkify(text: string): string {
+    const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    return escaped.replace(
+      /https?:\/\/[^\s<]+/g,
+      url => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="link link-primary">${url}</a>`
+    )
+  }
+
   let editingWorkingUrl = false
   let editWorkingBodyUrl = ''
   let editWorkingDiffUrl = ''
@@ -64,7 +72,7 @@
         </p>
       {/if}
       {#if ir.lr2irNotes}
-        <p><span class="font-semibold">備考:</span> {ir.lr2irNotes}</p>
+        <p class="whitespace-pre-wrap"><span class="font-semibold">備考:</span> {@html linkify(ir.lr2irNotes)}</p>
       {/if}
       <div class="divider my-1"></div>
       {#if editingWorkingUrl}

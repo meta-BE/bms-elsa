@@ -2,6 +2,7 @@ package main
 
 import (
 	"embed"
+	"os"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -12,6 +13,11 @@ import (
 var assets embed.FS
 
 func main() {
+	// macOSで.appバンドル起動時にLANGが未設定だとpbcopy/pbpasteが文字化けする (wails#4132)
+	if os.Getenv("LANG") == "" {
+		os.Setenv("LANG", "ja_JP.UTF-8")
+	}
+
 	app := NewApp()
 
 	if err := app.Init(); err != nil {

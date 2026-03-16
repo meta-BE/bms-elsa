@@ -60,6 +60,11 @@ func textContent(n *html.Node) string {
 }
 
 func collectText(n *html.Node, sb *strings.Builder) {
+	// <br> → 改行
+	if n.Type == html.ElementNode && n.Data == "br" {
+		sb.WriteString("\n")
+		return
+	}
 	if n.Type == html.TextNode {
 		sb.WriteString(n.Data)
 	}
