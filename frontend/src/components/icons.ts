@@ -50,17 +50,19 @@ export const icons = {
     type: 'stroke',
     paths: [{ d: 'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16' }],
   },
-  // heroicons v1: outline/switch-horizontal
-  arrowsExchange: {
+  // heroicons v2: 24/outline/arrow-path
+  arrowPath: {
     viewBox: '0 0 24 24',
     type: 'stroke',
-    paths: [{ d: 'M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4' }],
+    strokeWidth: 1.5,
+    paths: [{ d: 'M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99' }],
   },
-  // heroicons v1: outline/link
-  link: {
+  // heroicons v2: 24/outline/calendar
+  calendar: {
     viewBox: '0 0 24 24',
     type: 'stroke',
-    paths: [{ d: 'M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1' }],
+    strokeWidth: 1.5,
+    paths: [{ d: 'M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5' }],
   },
   // heroicons v1: outline/cog
   cog: {

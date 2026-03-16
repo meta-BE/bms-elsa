@@ -149,10 +149,10 @@
       <span class="text-xl font-bold">BMS ELSA</span>
     </div>
     <button class="btn btn-ghost btn-sm" on:click={() => rewriteRuleComponent.open()} title="URL書き換えルール">
-      <Icon name="arrowsExchange" cls="h-5 w-5" />
+      <Icon name="arrowPath" cls="h-5 w-5" />
     </button>
     <button class="btn btn-ghost btn-sm" on:click={() => eventMappingComponent.open()} title="イベントマッピング">
-      <Icon name="link" cls="h-5 w-5" />
+      <Icon name="calendar" cls="h-5 w-5" />
     </button>
     <button class="btn btn-ghost btn-sm" on:click={() => settingsComponent.open()}>
       <Icon name="cog" cls="h-5 w-5" />
