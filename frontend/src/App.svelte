@@ -20,6 +20,7 @@
   let eventMappingComponent: EventMappingManager
   let rewriteRuleComponent: RewriteRuleManager
   let diffImportView: DiffImportView
+  let duplicateViewRef: DuplicateView
   let splitRatio = 0.6
 
   // タブ状態
@@ -105,6 +106,16 @@
   // 重複検知タブのハンドラ
   function handleDuplicateSelect(e: CustomEvent) {
     selectedDuplicateGroup = e.detail
+  }
+
+  function handleMemberMerged(e: CustomEvent<{ folderHash: string }>) {
+    duplicateViewRef?.removeMember(e.detail.folderHash)
+    if (selectedDuplicateGroup) {
+      selectedDuplicateGroup = { ...selectedDuplicateGroup }
+      if (selectedDuplicateGroup.Members.length <= 1) {
+        selectedDuplicateGroup = null
+      }
+    }
   }
 
   // 外部リンクをシステムブラウザで開く
@@ -225,10 +236,10 @@
     <!-- 重複検知タブ -->
     <div class="h-full" class:hidden={activeTab !== 'duplicates'}>
       <SplitPane showDetail={!!selectedDuplicateGroup} bind:splitRatio>
-        <DuplicateView slot="list" active={activeTab === 'duplicates'} on:select={handleDuplicateSelect} />
+        <DuplicateView slot="list" active={activeTab === 'duplicates'} on:select={handleDuplicateSelect} bind:this={duplicateViewRef} />
         <svelte:fragment slot="detail">
           {#if selectedDuplicateGroup}
-            <DuplicateDetail group={selectedDuplicateGroup} />
+            <DuplicateDetail group={selectedDuplicateGroup} on:memberMerged={handleMemberMerged} />
           {/if}
         </svelte:fragment>
       </SplitPane>

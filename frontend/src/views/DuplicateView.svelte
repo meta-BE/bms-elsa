@@ -40,6 +40,25 @@
   }
 
   $: selectedGroup = groups.find(g => g.ID === selectedGroupID) || null
+
+  // App.svelte から呼び出される公開メソッド
+  export function removeMember(folderHash: string) {
+    for (const group of groups) {
+      const idx = group.Members.findIndex(m => m.FolderHash === folderHash)
+      if (idx !== -1) {
+        group.Members.splice(idx, 1)
+        groups = groups // リアクティビティ発火
+        if (group.Members.length <= 1) {
+          groups = groups.filter(g => g.ID !== group.ID)
+          if (selectedGroupID === group.ID) {
+            selectedGroupID = null
+            dispatch('select', null)
+          }
+        }
+        break
+      }
+    }
+  }
 </script>
 
 <svelte:window on:keydown={handleKeyNav} />
