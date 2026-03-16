@@ -116,7 +116,7 @@
         {
           label: 'URLをコピー',
           disabled: false,
-          action: () => { ClipboardSetText(href) },
+          action: async () => { await ClipboardSetText(href) },
         },
       )
     }
