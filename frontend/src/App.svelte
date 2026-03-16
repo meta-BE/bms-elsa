@@ -154,7 +154,7 @@
     <button class="btn btn-ghost btn-sm" on:click={() => eventMappingComponent.open()} title="イベントマッピング">
       <Icon name="calendar" cls="h-5 w-5" />
     </button>
-    <button class="btn btn-ghost btn-sm" on:click={() => settingsComponent.open()}>
+    <button class="btn btn-ghost btn-sm" on:click={() => settingsComponent.open()} title="設定">
       <Icon name="cog" cls="h-5 w-5" />
     </button>
   </div>
