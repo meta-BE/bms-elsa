@@ -76,6 +76,7 @@ type ChartIRMetaDTO struct {
 // ChartListItemDTO は譜面一覧用の軽量DTO
 type ChartListItemDTO struct {
 	MD5         string  `json:"md5"`
+	FolderHash  string  `json:"folderHash"`
 	Title       string  `json:"title"`
 	Subtitle    string  `json:"subtitle,omitempty"`
 	Artist      string  `json:"artist"`

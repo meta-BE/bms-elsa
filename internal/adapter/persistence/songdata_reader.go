@@ -395,6 +395,7 @@ func (r *SongdataReader) CountChartsByMD5s(ctx context.Context, md5s []string) (
 // ChartListItem は譜面一覧用の軽量モデル
 type ChartListItem struct {
 	MD5         string
+	FolderHash  string
 	Title       string
 	Subtitle    string
 	Artist      string
@@ -415,6 +416,7 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 	query := `
 		SELECT
 			s.md5,
+			s.folder,
 			s.title,
 			COALESCE(s.subtitle, ''),
 			s.artist,
@@ -448,7 +450,7 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 		var eventName sql.NullString
 		var releaseYear sql.NullInt64
 		if err := rows.Scan(
-			&c.MD5, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist, &c.Genre, &c.Path,
+			&c.MD5, &c.FolderHash, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist, &c.Genre, &c.Path,
 			&c.MinBPM, &c.MaxBPM, &c.Difficulty, &c.Notes,
 			&eventName, &releaseYear, &c.HasIRMeta,
 		); err != nil {
@@ -502,16 +504,29 @@ func (r *SongdataReader) ListSongGroupsForDuplicateScan(ctx context.Context) ([]
 	return groups, rows.Err()
 }
 
-// GetChartByMD5 はmd5で譜面を1件取得し、IRメタ・難易度ラベルを付与して返す
-func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5 string) (*model.Chart, error) {
+// GetChartByMD5 はmd5（とfolderHash）で譜面を1件取得し、IRメタ・難易度ラベルを付与して返す
+// folderHashが指定された場合はそのフォルダの譜面を優先取得し、同一MD5の異なるフォルダを区別する
+func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5, folderHash string) (*model.Chart, error) {
 	var c model.Chart
-	err := r.db.QueryRowContext(ctx, `
-		SELECT md5, sha256, title, COALESCE(subtitle, ''), artist, COALESCE(subartist, ''),
-			genre, mode, difficulty, level, minbpm, maxbpm, path, notes
-		FROM songdata.song
-		WHERE md5 = ?
-		LIMIT 1
-	`, md5).Scan(
+	var query string
+	var args []any
+	if folderHash != "" {
+		query = `
+			SELECT md5, sha256, title, COALESCE(subtitle, ''), artist, COALESCE(subartist, ''),
+				genre, mode, difficulty, level, minbpm, maxbpm, path, notes
+			FROM songdata.song
+			WHERE md5 = ? AND folder = ?`
+		args = []any{md5, folderHash}
+	} else {
+		query = `
+			SELECT md5, sha256, title, COALESCE(subtitle, ''), artist, COALESCE(subartist, ''),
+				genre, mode, difficulty, level, minbpm, maxbpm, path, notes
+			FROM songdata.song
+			WHERE md5 = ?
+			LIMIT 1`
+		args = []any{md5}
+	}
+	err := r.db.QueryRowContext(ctx, query, args...).Scan(
 		&c.MD5, &c.SHA256, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist,
 		&c.Genre, &c.Mode, &c.Difficulty, &c.Level,
 		&c.MinBPM, &c.MaxBPM, &c.Path, &c.Notes,
@@ -523,14 +538,12 @@ func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5 string) (*model.
 		return nil, fmt.Errorf("GetChartByMD5 query: %w", err)
 	}
 
-	// IRメタ付与
 	irMeta, err := r.metaRepo.GetChartMeta(ctx, c.MD5)
 	if err != nil {
 		return nil, fmt.Errorf("GetChartByMD5 GetChartMeta: %w", err)
 	}
 	c.IRMeta = irMeta
 
-	// 難易度ラベル付与
 	labels, err := r.dtRepo.GetLabelsByMD5(ctx, c.MD5)
 	if err != nil {
 		return nil, fmt.Errorf("GetChartByMD5 GetLabelsByMD5: %w", err)

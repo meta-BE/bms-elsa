@@ -34,6 +34,7 @@ func (h *ChartHandler) ListCharts() ([]dto.ChartListItemDTO, error) {
 	for i, c := range charts {
 		result[i] = dto.ChartListItemDTO{
 			MD5:        c.MD5,
+			FolderHash: c.FolderHash,
 			Title:      c.Title,
 			Subtitle:   c.Subtitle,
 			Artist:     c.Artist,
@@ -56,8 +57,8 @@ func (h *ChartHandler) ListCharts() ([]dto.ChartListItemDTO, error) {
 	return result, nil
 }
 
-func (h *ChartHandler) GetChartDetailByMD5(md5 string) (*dto.ChartDTO, error) {
-	chart, err := h.songReader.GetChartByMD5(h.ctx, md5)
+func (h *ChartHandler) GetChartDetailByMD5(md5, folderHash string) (*dto.ChartDTO, error) {
+	chart, err := h.songReader.GetChartByMD5(h.ctx, md5, folderHash)
 	if err != nil {
 		return nil, err
 	}
