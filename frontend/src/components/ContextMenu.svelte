@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ClipboardGetText, ClipboardSetText } from '../../wailsjs/runtime/runtime'
   import { onMount, onDestroy } from 'svelte'
+  import { OpenURL } from '../../wailsjs/go/main/App'
 
   type MenuItem = {
     label: string
@@ -11,7 +12,8 @@
   let visible = false
   let x = 0
   let y = 0
-  let items: MenuItem[] = []
+  let linkItems: MenuItem[] = []
+  let editItems: MenuItem[] = []
 
   // メニュークリック時にはフォーカスが移動済みのため、事前に保存する
   let savedTarget: HTMLInputElement | HTMLTextAreaElement | null = null
@@ -78,6 +80,10 @@
 
     e.preventDefault()
 
+    // リンク検出
+    const anchor = (e.target as Element).closest('a[href]')
+    const href = anchor?.getAttribute('href') ?? ''
+
     const activeEl = document.activeElement
 
     // WebKitが全選択した場合、mousedown時の選択に復元
@@ -99,7 +105,23 @@
     }
     savedSelectedText = selectedText
 
-    const newItems: MenuItem[] = [
+    const newLinkItems: MenuItem[] = []
+    if (href) {
+      newLinkItems.push(
+        {
+          label: '開く',
+          disabled: false,
+          action: () => OpenURL(href),
+        },
+        {
+          label: 'URLをコピー',
+          disabled: false,
+          action: () => { ClipboardSetText(href) },
+        },
+      )
+    }
+
+    const newEditItems: MenuItem[] = [
       {
         label: 'カット',
         disabled: !(selected && editable),
@@ -144,14 +166,20 @@
       },
     ]
 
-    // 全項目disabledならメニューを出さない
-    if (newItems.every((i) => i.disabled)) return
+    const hasLinkItems = newLinkItems.length > 0
+    const hasEditItems = newEditItems.some((i) => !i.disabled)
 
-    items = newItems
+    // いずれも表示するものがなければメニューを出さない
+    if (!hasLinkItems && !hasEditItems) return
+
+    linkItems = newLinkItems
+    editItems = hasEditItems ? newEditItems : []
 
     // 表示位置を計算（画面端ではみ出す場合は反転）
     const menuWidth = 160
-    const menuHeight = items.length * 32 + 8
+    const totalItems = linkItems.length + editItems.length
+    const separatorHeight = linkItems.length > 0 && editItems.length > 0 ? 9 : 0
+    const menuHeight = totalItems * 32 + 8 + separatorHeight
     x = e.clientX + menuWidth > window.innerWidth ? e.clientX - menuWidth : e.clientX
     y = e.clientY + menuHeight > window.innerHeight ? e.clientY - menuHeight : e.clientY
 
@@ -206,7 +234,20 @@
     class="fixed z-[9999] bg-base-100 border border-base-300 rounded-box shadow-lg py-1 w-fit"
     style="left: {x}px; top: {y}px;"
   >
-    {#each items as item}
+    {#each linkItems as item}
+      <button
+        class="block w-full text-left px-4 py-1.5 text-sm whitespace-nowrap transition-colors
+          {item.disabled ? 'opacity-40 cursor-default' : 'hover:bg-primary/20 cursor-pointer'}"
+        on:click={() => handleClick(item)}
+        disabled={item.disabled}
+      >
+        {item.label}
+      </button>
+    {/each}
+    {#if linkItems.length > 0 && editItems.length > 0}
+      <div class="divider my-0 h-px"></div>
+    {/if}
+    {#each editItems as item}
       <button
         class="block w-full text-left px-4 py-1.5 text-sm whitespace-nowrap transition-colors
           {item.disabled ? 'opacity-40 cursor-default' : 'hover:bg-primary/20 cursor-pointer'}"
