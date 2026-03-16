@@ -241,14 +241,14 @@
             on:click|stopPropagation={() => dispatch('select', row.original.folderHash)}
             on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.original.folderHash) }}
           >
-            {#if movedHashes.has(row.original.folderHash)}
-              <span class="badge badge-warning badge-xs shrink-0">移動済み</span>
-            {/if}
             {#each row.getVisibleCells() as cell}
               <div
                 class="px-2 text-sm truncate {cell.column.columnDef.meta?.align === 'center' ? 'text-center' : cell.column.columnDef.meta?.align === 'right' ? 'text-right' : ''}"
                 style={cell.column.columnDef.meta?.flex ? `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px` : `flex: 0 0 ${cell.column.getSize()}px`}
               >
+                {#if cell.column.id === 'title' && movedHashes.has(row.original.folderHash)}
+                  <span class="badge badge-warning badge-xs mr-1">移動済み</span>
+                {/if}
                 <svelte:component
                   this={flexRender(cell.column.columnDef.cell, cell.getContext())}
                 />
