@@ -1,15 +1,24 @@
 <script lang="ts">
+  import { createEventDispatcher } from 'svelte'
   import { GetSongDetail } from '../../wailsjs/go/app/SongHandler'
+  import { MergeFolders } from '../../wailsjs/go/app/DuplicateHandler'
   import type { dto, similarity } from '../../wailsjs/go/models'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
+
+  const dispatch = createEventDispatcher()
 
   export let group: similarity.DuplicateGroup | null = null
 
   // メンバーごとの譜面詳細をキャッシュ
   let chartsMap: Record<string, dto.ChartDTO[]> = {}
 
-  // groupが変わったら譜面詳細を取得
+  // マージ先として選択されたメンバーのFolderHash
+  let mergeTargetHash: string | null = null
+  let merging = false
+
+  // groupが変わったらマージ先選択をリセット
   $: if (group) {
+    mergeTargetHash = null
     for (const member of group.Members) {
       if (!chartsMap[member.FolderHash]) {
         fetchCharts(member.FolderHash)
@@ -45,6 +54,40 @@
     const parts = path.split(sep)
     return parts[parts.length - 1] || path
   }
+
+  function selectMergeTarget(folderHash: string) {
+    mergeTargetHash = mergeTargetHash === folderHash ? null : folderHash
+  }
+
+  async function handleMerge(srcMember: similarity.DuplicateMember) {
+    if (!group || !mergeTargetHash) return
+    const targetMember = group.Members.find(m => m.FolderHash === mergeTargetHash)
+    if (!targetMember) return
+
+    const srcPath = folderPath(srcMember.Path)
+    const destPath = folderPath(targetMember.Path)
+
+    const ok = confirm(
+      `フォルダをマージします。移動元は削除されます。\n\n` +
+      `移動元: ${srcPath}\n移動先: ${destPath}\n\nよろしいですか？`
+    )
+    if (!ok) return
+
+    merging = true
+    try {
+      const result = await MergeFolders(srcPath, destPath)
+      if (result.success) {
+        // 楽観的UI更新: マージしたメンバーを除去
+        dispatch('memberMerged', { folderHash: srcMember.FolderHash })
+      } else {
+        alert(`マージに失敗しました: ${result.errorMsg}`)
+      }
+    } catch (err) {
+      alert(`エラー: ${err}`)
+    } finally {
+      merging = false
+    }
+  }
 </script>
 
 {#if group}
@@ -55,7 +98,7 @@
     </div>
 
     {#each group.Members as member, i}
-      <div class="card card-compact bg-base-200">
+      <div class="card card-compact bg-base-200 {mergeTargetHash === member.FolderHash ? 'ring-2 ring-primary' : ''}">
         <div class="card-body">
           <div class="flex items-start justify-between">
             <div>
@@ -83,6 +126,24 @@
               {/each}
             </div>
           {/if}
+
+          <div class="mt-2 flex gap-2">
+            <button
+              class="btn btn-xs {mergeTargetHash === member.FolderHash ? 'btn-primary' : 'btn-outline btn-primary'}"
+              on:click={() => selectMergeTarget(member.FolderHash)}
+            >
+              {mergeTargetHash === member.FolderHash ? 'マージ先 ✓' : 'マージ先に指定'}
+            </button>
+            {#if mergeTargetHash && mergeTargetHash !== member.FolderHash}
+              <button
+                class="btn btn-xs btn-warning"
+                disabled={merging}
+                on:click={() => handleMerge(member)}
+              >
+                {merging ? '処理中...' : '→ マージ'}
+              </button>
+            {/if}
+          </div>
         </div>
       </div>
     {/each}
