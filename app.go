@@ -185,6 +185,7 @@ func (a *App) SelectFile() (string, error) {
 // Config はアプリケーション設定
 type Config struct {
 	SongdataDBPath string `json:"songdataDBPath"`
+	FileLog        bool   `json:"fileLog"`
 }
 
 // loadConfig は実行ファイルと同じディレクトリの config.json を読み込む。
