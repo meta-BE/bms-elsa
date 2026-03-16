@@ -30,6 +30,7 @@
 
   export let selected: string | null = null
   export let active = true
+  export let movedHashes: Set<string> = new Set()
 
   const ROW_HEIGHT = 32
 
@@ -235,11 +236,14 @@
             role="row"
             tabindex="0"
             class="flex absolute w-full border-b border-base-300/50 items-center px-2 cursor-pointer
-              {selected === row.original.folderHash ? 'bg-primary/20' : 'hover:bg-base-200'}"
+              {selected === row.original.folderHash ? 'bg-primary/20' : movedHashes.has(row.original.folderHash) ? 'bg-warning/20' : 'hover:bg-base-200'}"
             style="height: {virtualRow.size}px; transform: translateY({virtualRow.start}px);"
             on:click|stopPropagation={() => dispatch('select', row.original.folderHash)}
             on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') dispatch('select', row.original.folderHash) }}
           >
+            {#if movedHashes.has(row.original.folderHash)}
+              <span class="badge badge-warning badge-xs shrink-0">移動済み</span>
+            {/if}
             {#each row.getVisibleCells() as cell}
               <div
                 class="px-2 text-sm truncate {cell.column.columnDef.meta?.align === 'center' ? 'text-center' : cell.column.columnDef.meta?.align === 'right' ? 'text-right' : ''}"
