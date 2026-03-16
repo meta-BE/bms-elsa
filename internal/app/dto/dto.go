@@ -237,6 +237,11 @@ type InstallCandidateDTO struct {
 	Score      int      `json:"score"`
 }
 
+type MoveSongFolderResultDTO struct {
+	DestPath  string `json:"destPath"`
+	FileCount int    `json:"fileCount"`
+}
+
 func ChartIRMetaToDTO(m model.ChartIRMeta) ChartIRMetaDTO {
 	hasIR := m.FetchedAt != nil
 	d := ChartIRMetaDTO{

@@ -97,7 +97,8 @@ func (a *App) Init() error {
 	lookupIR := usecase.NewLookupIRUseCase(irClient, elsaRepo)
 	bulkFetchIR := usecase.NewBulkFetchIRUseCase(irClient, elsaRepo)
 
-	a.SongHandler = internalapp.NewSongHandler(listSongs, getSongDetail, updateSongMeta)
+	moveSongFolder := usecase.NewMoveSongFolderUseCase(appLogger)
+	a.SongHandler = internalapp.NewSongHandler(listSongs, getSongDetail, updateSongMeta, moveSongFolder)
 	a.IRHandler = internalapp.NewIRHandler(lookupIR, bulkFetchIR, updateChartMeta, elsaRepo)
 
 	inferMeta := usecase.NewInferSongMetaUseCase(elsaRepo)
@@ -199,6 +200,13 @@ func (a *App) SelectFile() (string, error) {
 		Filters: []wailsRuntime.FileFilter{
 			{DisplayName: "SQLite Database", Pattern: "*.db"},
 		},
+	})
+}
+
+// SelectDirectory はOSネイティブのディレクトリ選択ダイアログを開き、選択されたパスを返す
+func (a *App) SelectDirectory() (string, error) {
+	return wailsRuntime.OpenDirectoryDialog(a.ctx, wailsRuntime.OpenDialogOptions{
+		Title: "移動先フォルダを選択",
 	})
 }
 

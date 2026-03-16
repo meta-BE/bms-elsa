@@ -2,21 +2,24 @@ package app
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	"github.com/meta-BE/bms-elsa/internal/app/dto"
 	"github.com/meta-BE/bms-elsa/internal/domain/model"
 	"github.com/meta-BE/bms-elsa/internal/usecase"
 )
 
 type SongHandler struct {
-	ctx           context.Context
-	listSongs     *usecase.ListSongsUseCase
-	getSongDetail *usecase.GetSongDetailUseCase
-	updateMeta    *usecase.UpdateSongMetaUseCase
+	ctx            context.Context
+	listSongs      *usecase.ListSongsUseCase
+	getSongDetail  *usecase.GetSongDetailUseCase
+	updateMeta     *usecase.UpdateSongMetaUseCase
+	moveSongFolder *usecase.MoveSongFolderUseCase
 }
 
-func NewSongHandler(ls *usecase.ListSongsUseCase, gsd *usecase.GetSongDetailUseCase, um *usecase.UpdateSongMetaUseCase) *SongHandler {
-	return &SongHandler{listSongs: ls, getSongDetail: gsd, updateMeta: um}
+func NewSongHandler(ls *usecase.ListSongsUseCase, gsd *usecase.GetSongDetailUseCase, um *usecase.UpdateSongMetaUseCase, msf *usecase.MoveSongFolderUseCase) *SongHandler {
+	return &SongHandler{listSongs: ls, getSongDetail: gsd, updateMeta: um, moveSongFolder: msf}
 }
 
 func (h *SongHandler) SetContext(ctx context.Context) { h.ctx = ctx }
@@ -62,4 +65,27 @@ func (h *SongHandler) UpdateSongMeta(folderHash string, releaseYear *int, eventN
 	return h.updateMeta.Execute(h.ctx, model.SongMeta{
 		FolderHash: folderHash, ReleaseYear: releaseYear, EventName: eventName,
 	})
+}
+
+func (h *SongHandler) MoveSongFolder(folderHash, destParentDir string) (*dto.MoveSongFolderResultDTO, error) {
+	song, err := h.getSongDetail.Execute(h.ctx, folderHash)
+	if err != nil {
+		return nil, err
+	}
+	if song == nil || len(song.Charts) == 0 {
+		return nil, fmt.Errorf("楽曲が見つかりません: %s", folderHash)
+	}
+
+	// チャートのファイルパスからフォルダパスを導出（Windows\区切り対応）
+	srcFolderPath := persistence.ParentDirOf(song.Charts[0].Path)
+
+	result, err := h.moveSongFolder.Execute(h.ctx, srcFolderPath, destParentDir)
+	if err != nil {
+		return nil, err
+	}
+
+	return &dto.MoveSongFolderResultDTO{
+		DestPath:  result.DestPath,
+		FileCount: result.FileCount,
+	}, nil
 }
