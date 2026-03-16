@@ -21,13 +21,18 @@
 **ファイル**: `internal/domain/fileutil/move.go`
 
 ```go
-func MoveFolder(srcDir, destDir string) error
+// MoveFolder は srcDir を destDir に移動する。
+// destDir は移動先の完全パス（存在してはならない）。
+// 既存の move.go 内の copyFile を再利用する。
+func MoveFolder(srcDir, destDir string) (fileCount int, err error)
 ```
 
-- `destDir` が既に存在する場合はエラーを返す
-- `os.Rename(srcDir, destDir)` を試行（同一ファイルシステムならアトミック完了）
-- `EXDEV` エラー（クロスファイルシステム）の場合、再帰コピー＋`os.RemoveAll(srcDir)` にフォールバック
 - バリデーション: srcDir の存在確認、destDir の非存在確認
+- `os.Rename(srcDir, destDir)` を試行（同一ファイルシステムならアトミック完了）
+  - rename成功時のファイル数は事前に `os.ReadDir` でカウント
+- `EXDEV` エラー（クロスファイルシステム）の場合、再帰コピー＋`os.RemoveAll(srcDir)` にフォールバック
+  - コピー途中で失敗した場合は `os.RemoveAll(destDir)` でクリーンアップし、srcDir は残す
+- 戻り値: 移動したファイル数とエラー
 
 ### ユースケース層: `MoveSongFolderUseCase`
 
@@ -55,9 +60,9 @@ func (u *MoveSongFolderUseCase) Execute(ctx context.Context, srcFolderPath, dest
 func (h *SongHandler) MoveSongFolder(folderHash, destParentDir string) (*MoveSongFolderResultDTO, error)
 ```
 
-- `folderHash` から songdata.db を参照して楽曲のフォルダパスを取得
+- `folderHash` から songdata.db を参照して代表チャートの `path` を取得し、`parentDirOf` でフォルダパスを導出
 - `MoveSongFolderUseCase.Execute` を呼び出し
-- 戻り値DTO: 移動先パス、移動ファイル数
+- 戻り値DTO（`dto/dto.go` に定義）: 移動先パス、移動ファイル数
 
 ### ダイアログAPI: `App.SelectDirectory`
 
@@ -76,12 +81,13 @@ func (a *App) SelectDirectory() (string, error)
 
 - 「フォルダを開く」ボタンの隣に「フォルダ移動」ボタンを追加
 - フロー:
-  1. ボタンクリック → `SelectDirectory()` でディレクトリ選択
+  1. ボタンクリック → `SelectDirectory()` でディレクトリ選択（キャンセル時＝空文字列は処理中断）
   2. 確認ダイアログ表示:「[フォルダ名] を [移動先パス] に移動しますか？移動元フォルダは削除されます。」
   3. 実行 → `MoveSongFolder(folderHash, destParentDir)` 呼び出し
   4. 成功時: 結果ダイアログ（移動先パス、ファイル数）を表示
-  5. 結果ダイアログを閉じたら `dispatch('moved', { folderHash })` で親に通知＋詳細パネルを閉じる
-- 移動済みの楽曲（`movedHashes` に含まれる）では「フォルダ移動」ボタンを無効化
+  5. 失敗時: エラーダイアログ（エラーメッセージ）を表示
+  6. 結果ダイアログを閉じたら `dispatch('moved', { folderHash })` で親に通知＋詳細パネルを閉じる
+- 移動済みの楽曲（`movedHashes` に含まれる）では「フォルダ移動」ボタンを無効化（移動後はsongdata.dbのパスが古いため再移動不可）
 
 ### App.svelte — 移動済み状態管理
 
