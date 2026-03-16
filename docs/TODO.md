@@ -73,6 +73,7 @@
 - [x] IR一括取得イベント処理パターンの共通化（ChartListView / DifficultyTableView で重複）
 - [x] Wails生成型の活用（DuplicateView でローカル型を再定義している箇所を解消）
 - [x] arrowNav.ts を汎用化（tanstack-table依存を除去、ジェネリクス化）
+- [x] SVGアイコンをIcon コンポーネントに集約（icons.tsにHeroiconsデータを一元管理、全9ファイル13箇所のインラインSVGを置換）
 
 ## 改善
 - [ ] BPM検知の改善（songdata.dbのminbpm/maxbpmにギミックBPMが含まれるケースへの対応）
