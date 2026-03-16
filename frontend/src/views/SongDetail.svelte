@@ -1,17 +1,20 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetSongDetail, UpdateSongMeta } from '../../wailsjs/go/app/SongHandler'
+  import { GetSongDetail, UpdateSongMeta, MoveSongFolder } from '../../wailsjs/go/app/SongHandler'
   import { LookupByMD5, UpdateChartMeta } from '../../wailsjs/go/app/IRHandler'
+  import { SelectDirectory } from '../../wailsjs/go/main/App'
   import type { dto } from '../../wailsjs/go/models'
   import { modeLabel, diffLabel } from '../utils/chartLabels'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
   import Icon from '../components/Icon.svelte'
+  import AlertModal from '../components/AlertModal.svelte'
 
-  const dispatch = createEventDispatcher<{ close: void }>()
+  const dispatch = createEventDispatcher<{ close: void; moved: { folderHash: string } }>()
 
   export let folderHash: string
+  export let moved = false
 
   let detail: dto.SongDetailDTO | null = null
   let selectedChart: dto.ChartDTO | null = null
@@ -19,6 +22,14 @@
 
   let editEventName = ''
   let editReleaseYear = ''
+
+  let confirmDialog: HTMLDialogElement
+  let resultDialog: HTMLDialogElement
+  let alertModal: AlertModal
+  let moving = false
+  let moveDestParent = ''
+  let moveResult: { destPath: string; fileCount: number } | null = null
+  let mouseDownOnBackdrop = false
 
   $: if (folderHash) loadDetail(folderHash)
 
@@ -61,6 +72,43 @@
     if (detail) await loadDetail(detail.folderHash)
   }
 
+  async function startMove() {
+    if (!detail) return
+    try {
+      const dir = await SelectDirectory()
+      if (!dir) return
+      moveDestParent = dir
+      confirmDialog.showModal()
+    } catch (e) {
+      // キャンセル
+    }
+  }
+
+  function cancelMove() {
+    confirmDialog.close()
+  }
+
+  async function executeMove() {
+    if (!detail) return
+    moving = true
+    try {
+      const result = await MoveSongFolder(detail.folderHash, moveDestParent)
+      confirmDialog.close()
+      moveResult = result
+      resultDialog.showModal()
+    } catch (err) {
+      confirmDialog.close()
+      alertModal.open(String(err))
+    } finally {
+      moving = false
+    }
+  }
+
+  function closeResult() {
+    resultDialog.close()
+    dispatch('moved', { folderHash: folderHash })
+  }
+
 </script>
 
 {#if loading}
@@ -79,6 +127,14 @@
         </div>
         <div class="flex items-center shrink-0 ml-2">
           <OpenFolderButton path={detail.charts[0]?.path} title="インストール先フォルダを開く" />
+          <button
+            class="btn btn-ghost btn-xs"
+            title="フォルダ移動"
+            on:click|stopPropagation={startMove}
+            disabled={moved}
+          >
+            <Icon name="folderMove" cls="h-4 w-4" />
+          </button>
           <button
             class="btn btn-ghost btn-xs"
             on:click={() => dispatch('close')}
@@ -160,3 +216,47 @@
     {/if}
   </div>
 {/if}
+
+<!-- 移動確認ダイアログ -->
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
+<dialog bind:this={confirmDialog} class="modal"
+  on:mousedown|self={() => mouseDownOnBackdrop = true}
+  on:click|self={() => { if (mouseDownOnBackdrop) cancelMove(); mouseDownOnBackdrop = false }}>
+  <div class="modal-box max-w-2xl">
+    <h3 class="text-lg font-bold mb-4">フォルダ移動の確認</h3>
+    <div class="space-y-2 text-sm">
+      <p>楽曲フォルダを移動します。移動元フォルダは削除されます。</p>
+      <div class="bg-base-200 rounded p-2 space-y-1">
+        <div><span class="text-base-content/50">楽曲:</span> <span class="break-all">{detail?.title}</span></div>
+        <div><span class="text-base-content/50">移動先:</span> <span class="break-all">{moveDestParent}</span></div>
+      </div>
+    </div>
+    <div class="modal-action">
+      <button class="btn" on:click={cancelMove}>キャンセル</button>
+      <button class="btn btn-warning" on:click={executeMove} disabled={moving}>
+        {moving ? '移動中...' : '移動実行'}
+      </button>
+    </div>
+  </div>
+</dialog>
+
+<!-- 移動結果ダイアログ -->
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
+<dialog bind:this={resultDialog} class="modal"
+  on:mousedown|self={() => mouseDownOnBackdrop = true}
+  on:click|self={() => { if (mouseDownOnBackdrop) closeResult(); mouseDownOnBackdrop = false }}>
+  <div class="modal-box max-w-2xl">
+    <h3 class="text-lg font-bold mb-4">移動完了</h3>
+    {#if moveResult}
+      <div class="space-y-2 text-sm">
+        <div><span class="text-base-content/50">移動先:</span> <span class="break-all">{moveResult.destPath}</span></div>
+        <div><span class="text-base-content/50">ファイル数:</span> {moveResult.fileCount}</div>
+      </div>
+    {/if}
+    <div class="modal-action">
+      <button class="btn" on:click={closeResult}>OK</button>
+    </div>
+  </div>
+</dialog>
+
+<AlertModal bind:this={alertModal} />
