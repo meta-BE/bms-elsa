@@ -44,6 +44,28 @@ export namespace app {
 	        this.errors = source["errors"];
 	    }
 	}
+	export class MergeFoldersResultDTO {
+	    success: boolean;
+	    moved: number;
+	    replaced: number;
+	    skipped: number;
+	    errors: number;
+	    errorMsg: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new MergeFoldersResultDTO(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.success = source["success"];
+	        this.moved = source["moved"];
+	        this.replaced = source["replaced"];
+	        this.skipped = source["skipped"];
+	        this.errors = source["errors"];
+	        this.errorMsg = source["errorMsg"];
+	    }
+	}
 
 }
 
@@ -512,6 +534,7 @@ export namespace main {
 	
 	export class Config {
 	    songdataDBPath: string;
+	    fileLog: boolean;
 	
 	    static createFrom(source: any = {}) {
 	        return new Config(source);
@@ -520,6 +543,7 @@ export namespace main {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.songdataDBPath = source["songdataDBPath"];
+	        this.fileLog = source["fileLog"];
 	    }
 	}
 

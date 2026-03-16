@@ -3,6 +3,7 @@
 
   let dialog: HTMLDialogElement
   let songdataDBPath = ''
+  let fileLog = false
   let saved = false
   let error = ''
   let mouseDownOnBackdrop = false
@@ -13,6 +14,7 @@
     try {
       const cfg = await GetConfig()
       songdataDBPath = cfg.songdataDBPath || ''
+      fileLog = cfg.fileLog || false
     } catch (e) {
       songdataDBPath = ''
     }
@@ -33,7 +35,7 @@
   async function handleSave() {
     error = ''
     try {
-      await SaveConfig({ songdataDBPath })
+      await SaveConfig({ songdataDBPath, fileLog })
       saved = true
     } catch (e: any) {
       error = e?.message || '保存に失敗しました'
@@ -66,6 +68,18 @@
         />
         <button class="btn btn-outline" on:click={handleBrowse}>参照</button>
       </div>
+    </div>
+
+    <div class="form-control mt-4">
+      <label class="label cursor-pointer justify-start gap-3">
+        <input type="checkbox" class="checkbox" bind:checked={fileLog} />
+        <div>
+          <span class="label-text">ファイル別ログを出力</span>
+          <span class="label-text-alt block text-base-content/50">
+            フォルダマージ・差分導入時に個別ファイルの移動ログを system.log に記録します
+          </span>
+        </div>
+      </label>
     </div>
 
     {#if saved}
