@@ -25,7 +25,7 @@ func MoveFolder(srcDir, destDir string) (int, error) {
 	// ファイル数を事前カウント
 	fileCount := 0
 	filepath.WalkDir(srcDir, func(_ string, d fs.DirEntry, _ error) error {
-		if d != nil && !d.IsDir() {
+		if d != nil && !d.IsDir() && d.Type()&os.ModeSymlink == 0 {
 			fileCount++
 		}
 		return nil
