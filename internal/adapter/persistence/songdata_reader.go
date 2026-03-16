@@ -203,6 +203,7 @@ func (r *SongdataReader) ListAllSongs(ctx context.Context) ([]model.Song, error)
 				COALESCE(MIN(CASE WHEN s.title != '' THEN s.title END), '') AS title,
 				COALESCE(MIN(CASE WHEN s.artist != '' THEN s.artist END), '') AS artist,
 				COALESCE(MIN(CASE WHEN s.genre != '' THEN s.genre END), '') AS genre,
+				MIN(s.path) AS path,
 				MIN(bm.min_bpm) AS min_bpm,
 				MIN(bm.max_bpm) AS max_bpm,
 				COUNT(*) AS chart_count
@@ -211,7 +212,7 @@ func (r *SongdataReader) ListAllSongs(ctx context.Context) ([]model.Song, error)
 			GROUP BY s.folder
 		)
 		SELECT
-			sg.folder, sg.title, sg.artist, sg.genre,
+			sg.folder, sg.title, sg.artist, sg.genre, sg.path,
 			sg.min_bpm, sg.max_bpm, sg.chart_count,
 			sm.release_year, sm.event_name,
 			EXISTS(
@@ -237,7 +238,7 @@ func (r *SongdataReader) ListAllSongs(ctx context.Context) ([]model.Song, error)
 		var eventName sql.NullString
 
 		if err := rows.Scan(
-			&s.FolderHash, &s.Title, &s.Artist, &s.Genre,
+			&s.FolderHash, &s.Title, &s.Artist, &s.Genre, &s.Path,
 			&s.MinBPM, &s.MaxBPM, &s.ChartCount,
 			&releaseYear, &eventName,
 			&s.HasIRMeta,
@@ -400,6 +401,7 @@ type ChartListItem struct {
 	Artist      string
 	SubArtist   string
 	Genre       string
+	Path        string
 	MinBPM      float64
 	MaxBPM      float64
 	Difficulty  int
@@ -419,6 +421,7 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 			s.artist,
 			COALESCE(s.subartist, ''),
 			s.genre,
+			s.path,
 			s.minbpm,
 			s.maxbpm,
 			s.difficulty,
@@ -446,7 +449,7 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 		var eventName sql.NullString
 		var releaseYear sql.NullInt64
 		if err := rows.Scan(
-			&c.MD5, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist, &c.Genre,
+			&c.MD5, &c.Title, &c.Subtitle, &c.Artist, &c.SubArtist, &c.Genre, &c.Path,
 			&c.MinBPM, &c.MaxBPM, &c.Difficulty, &c.Notes,
 			&eventName, &releaseYear, &c.HasIRMeta,
 		); err != nil {

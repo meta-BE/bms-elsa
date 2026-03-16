@@ -8,6 +8,7 @@ type Song struct {
 	Title      string // 代表譜面から取得
 	Artist     string
 	Genre      string
+	Path       string
 	MinBPM     float64
 	MaxBPM     float64
 	Charts     []Chart

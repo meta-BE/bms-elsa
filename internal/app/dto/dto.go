@@ -18,6 +18,7 @@ type SongRowDTO struct {
 	Title       string  `json:"title"`
 	Artist      string  `json:"artist"`
 	Genre       string  `json:"genre"`
+	Path        string  `json:"path"`
 	MinBPM      float64 `json:"minBpm"`
 	MaxBPM      float64 `json:"maxBpm"`
 	EventName   *string `json:"eventName"`
@@ -80,6 +81,7 @@ type ChartListItemDTO struct {
 	Artist      string  `json:"artist"`
 	SubArtist   string  `json:"subArtist,omitempty"`
 	Genre       string  `json:"genre"`
+	Path        string  `json:"path"`
 	MinBPM      float64 `json:"minBpm"`
 	MaxBPM      float64 `json:"maxBpm"`
 	Difficulty  int     `json:"difficulty"`
@@ -124,6 +126,7 @@ func SongToRowDTO(s model.Song) SongRowDTO {
 		Title:       s.Title,
 		Artist:      s.Artist,
 		Genre:       s.Genre,
+		Path:        s.Path,
 		MinBPM:      s.MinBPM,
 		MaxBPM:      s.MaxBPM,
 		EventName:   s.EventName,

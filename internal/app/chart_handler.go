@@ -39,6 +39,7 @@ func (h *ChartHandler) ListCharts() ([]dto.ChartListItemDTO, error) {
 			Artist:     c.Artist,
 			SubArtist:  c.SubArtist,
 			Genre:      c.Genre,
+			Path:       c.Path,
 			MinBPM:     c.MinBPM,
 			MaxBPM:     c.MaxBPM,
 			Difficulty: c.Difficulty,

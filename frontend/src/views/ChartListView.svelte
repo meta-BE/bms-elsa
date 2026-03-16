@@ -76,10 +76,14 @@
   let scrollElement: HTMLDivElement
   let sorting: SortingState = []
   let globalFilter = ''
+  let pathSearch = false
 
   const searchFilter: FilterFn<dto.ChartListItemDTO> = (row, _columnId, filterValue) => {
     const s = (filterValue as string).toLowerCase()
     const item = row.original
+    if (pathSearch) {
+      return (item.path || '').toLowerCase().includes(s)
+    }
     return (
       item.title.toLowerCase().includes(s) ||
       (item.subtitle || '').toLowerCase().includes(s) ||
@@ -153,6 +157,15 @@
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
   })
+
+  function togglePathSearch() {
+    pathSearch = !pathSearch
+    if (globalFilter) {
+      const tmp = globalFilter
+      globalFilter = ''
+      globalFilter = tmp
+    }
+  }
 
   $: rows = $table.getRowModel().rows
 
@@ -257,7 +270,24 @@
         stopFn={StopBulkFetch}
         on:done={() => ListCharts().then(c => { charts = c || [] }).catch(console.error)}
       />
-      <SearchInput bind:value={globalFilter} />
+      <div class="flex items-center gap-2">
+        <SearchInput bind:value={globalFilter} />
+        <button
+          class="btn btn-ghost btn-xs"
+          on:click={togglePathSearch}
+          title="検索モード：{pathSearch ? 'フォルダパス' : '楽曲データ'}"
+        >
+          {#if pathSearch}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+              <path d="M3.75 3A1.75 1.75 0 002 4.75v3.26a3.235 3.235 0 011.75-.51h12.5c.644 0 1.245.188 1.75.51V6.75A1.75 1.75 0 0016.25 5h-4.836a.25.25 0 01-.177-.073L9.823 3.513A1.75 1.75 0 008.586 3H3.75zM3.75 9A1.75 1.75 0 002 10.75v4.5c0 .966.784 1.75 1.75 1.75h12.5A1.75 1.75 0 0018 15.25v-4.5A1.75 1.75 0 0016.25 9H3.75z" />
+            </svg>
+          {:else}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4">
+              <path fill-rule="evenodd" d="M4.5 2A2.5 2.5 0 002 4.5v3.879a2.5 2.5 0 00.732 1.767l7.5 7.5a2.5 2.5 0 003.536 0l3.878-3.878a2.5 2.5 0 000-3.536l-7.5-7.5A2.5 2.5 0 008.38 2H4.5zM5 6a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+            </svg>
+          {/if}
+        </button>
+      </div>
     </div>
   </div>
 
