@@ -4,6 +4,7 @@
   import { MergeFolders } from '../../wailsjs/go/app/DuplicateHandler'
   import type { dto, similarity } from '../../wailsjs/go/models'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
+  import AlertModal from '../components/AlertModal.svelte'
 
   const dispatch = createEventDispatcher()
 
@@ -22,7 +23,7 @@
   let pendingSrcMember: similarity.DuplicateMember | null = null
   let confirmSrcPath = ''
   let confirmDestPath = ''
-  let mergeError = ''
+  let alertModal: AlertModal
 
   // groupが変わったらマージ先選択をリセット
   $: if (group) {
@@ -82,7 +83,6 @@
     if (!pendingSrcMember) return
     const srcMember = pendingSrcMember
     confirmDialog.close()
-    mergeError = ''
 
     merging = true
     try {
@@ -90,10 +90,10 @@
       if (result.success) {
         dispatch('memberMerged', { folderHash: srcMember.FolderHash })
       } else {
-        mergeError = result.errorMsg || 'マージに失敗しました'
+        alertModal.open(result.errorMsg || 'マージに失敗しました')
       }
     } catch (err) {
-      mergeError = String(err)
+      alertModal.open(String(err))
     } finally {
       merging = false
       pendingSrcMember = null
@@ -112,10 +112,6 @@
       <span>グループ #{group.ID}</span>
       <span class="badge badge-sm badge-primary">{group.Score}%</span>
     </div>
-
-    {#if mergeError}
-      <div class="alert alert-error py-2 text-sm">{mergeError}</div>
-    {/if}
 
     {#each group.Members as member, i}
       <div class="card card-compact bg-base-200 {mergeTargetHash === member.FolderHash ? 'ring-2 ring-primary' : ''}">
@@ -207,3 +203,5 @@
     </div>
   </div>
 </dialog>
+
+<AlertModal bind:this={alertModal} />
