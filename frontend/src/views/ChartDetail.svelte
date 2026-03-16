@@ -6,6 +6,7 @@
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
+  import Icon from '../components/Icon.svelte'
 
   const dispatch = createEventDispatcher<{ close: void }>()
 
@@ -62,9 +63,7 @@
             class="btn btn-ghost btn-xs"
             on:click={() => dispatch('close')}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <Icon name="close" cls="h-4 w-4" />
           </button>
         </div>
       </div>

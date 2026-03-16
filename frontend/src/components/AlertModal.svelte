@@ -1,6 +1,8 @@
-<script lang="ts">
+<script lang="ts" context="module">
   export type AlertLevel = 'error' | 'warning'
+</script>
 
+<script lang="ts">
   let dialog: HTMLDialogElement
   let message = ''
   let level: AlertLevel = 'error'
@@ -28,7 +30,7 @@
 <dialog bind:this={dialog} class="modal"
   on:mousedown|self={() => mouseDownOnBackdrop = true}
   on:click|self={() => { if (mouseDownOnBackdrop) handleClose(); mouseDownOnBackdrop = false }}>
-  <div class="modal-box max-w-2xl border {c.border} {c.bg}">
+  <div class="modal-box max-w-2xl">
     <div class="mb-3">
       <span class="badge {c.badge} badge-sm">{c.title}</span>
     </div>

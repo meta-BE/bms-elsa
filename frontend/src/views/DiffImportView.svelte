@@ -4,6 +4,7 @@
   import { ParseAndEstimate, ExecuteImport, StopEstimate } from '../../wailsjs/go/app/DiffImportHandler'
   import type { app } from '../../wailsjs/go/models'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
+  import Icon from '../components/Icon.svelte'
 
   let candidates: app.DiffImportCandidateDTO[] = []
   let estimating = false
@@ -142,9 +143,7 @@
     <!-- 空状態 -->
     <div class="flex-1 flex items-center justify-center text-base-content/40">
       <div class="text-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-2 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-        </svg>
+        <Icon name="cloudUpload" cls="h-12 w-12 mx-auto mb-2 opacity-30" />
         <p class="text-sm">BMS/BME/BMLファイルをドラッグ＆ドロップして差分を追加</p>
       </div>
     </div>
@@ -204,18 +203,14 @@
                     disabled={!candidate.destFolder}
                     on:click|stopPropagation={() => clearDestFolder(i)}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <Icon name="close" cls="h-3 w-3" />
                   </button>
                   <button
                     class="btn btn-xs btn-ghost text-error"
                     title="削除"
                     on:click|stopPropagation={() => clearCandidate(i)}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
+                    <Icon name="trash" cls="h-3 w-3" />
                   </button>
                 </div>
               </td>

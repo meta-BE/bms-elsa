@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte'
   import { flexRender, type Table, type Column } from '@tanstack/svelte-table'
+  import Icon from './Icon.svelte'
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   export let table: Table<any>
@@ -72,9 +73,7 @@
               <span class="flex items-center gap-1">
                 {header.column.columnDef.header}
                 {#if header.column.getFilterValue()}
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" clip-rule="evenodd" />
-                  </svg>
+                  <Icon name="filter" cls="h-3 w-3" />
                 {/if}
               </span>
             </div>
