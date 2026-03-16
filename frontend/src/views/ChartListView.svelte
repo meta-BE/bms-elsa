@@ -26,7 +26,7 @@
   import Icon from '../components/Icon.svelte'
 
   const dispatch = createEventDispatcher<{
-    select: { md5: string }
+    select: { md5: string; folderHash: string }
     deselect: void
   }>()
 
@@ -220,17 +220,18 @@
     handleArrowNav(e, {
       selected,
       items: rows.map(r => r.original),
-      getKey: (o: dto.ChartListItemDTO) => o.md5,
-      onSelect: (o: dto.ChartListItemDTO) => dispatch('select', { md5: o.md5 }),
+      getKey: (o: dto.ChartListItemDTO) => o.md5 + ':' + o.folderHash,
+      onSelect: (o: dto.ChartListItemDTO) => dispatch('select', { md5: o.md5, folderHash: o.folderHash }),
       scrollToIndex: (i: number) => $virtualizer.scrollToIndex(i, { align: 'auto' }),
     })
   }
 
   function handleRowClick(chart: dto.ChartListItemDTO) {
-    if (selected === chart.md5) {
+    const key = chart.md5 + ':' + chart.folderHash
+    if (selected === key) {
       dispatch('deselect')
     } else {
-      dispatch('select', { md5: chart.md5 })
+      dispatch('select', { md5: chart.md5, folderHash: chart.folderHash })
     }
   }
 </script>
@@ -304,7 +305,7 @@
             role="row"
             tabindex="0"
             class="flex absolute w-full items-center px-2 text-sm cursor-pointer transition-colors
-              {selected === row.original.md5 ? 'bg-primary/20' : 'hover:bg-base-200'}"
+              {selected === row.original.md5 + ':' + row.original.folderHash ? 'bg-primary/20' : 'hover:bg-base-200'}"
             style="height: {ROW_HEIGHT}px; transform: translateY({virtualRow.start}px);"
             on:click|stopPropagation={() => handleRowClick(row.original)}
             on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleRowClick(row.original) }}

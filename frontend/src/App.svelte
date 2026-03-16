@@ -31,7 +31,7 @@
   let selectedFolderHash: string | null = null
 
   // 譜面タブの選択状態
-  let selectedChartMD5: string | null = null
+  let selectedChart: { md5: string; folderHash: string } | null = null
 
   // 難易度表タブの選択状態
   let selectedEntryMD5: string | null = null
@@ -57,7 +57,7 @@
     if (activeTab === 'songs') {
       selectedFolderHash = null
     } else if (activeTab === 'charts') {
-      selectedChartMD5 = null
+      selectedChart = null
     } else {
       selectedEntryMD5 = null
       selectedTableID = null
@@ -68,7 +68,7 @@
     if (activeTab === 'songs') {
       selectedFolderHash = null
     } else if (activeTab === 'charts') {
-      selectedChartMD5 = null
+      selectedChart = null
     } else {
       selectedEntryMD5 = null
       selectedTableID = null
@@ -76,16 +76,16 @@
   }
 
   // 譜面タブのハンドラ
-  function handleChartSelect(e: CustomEvent<{ md5: string }>) {
-    if (selectedChartMD5 === e.detail.md5) {
-      selectedChartMD5 = null
+  function handleChartSelect(e: CustomEvent<{ md5: string; folderHash: string }>) {
+    if (selectedChart?.md5 === e.detail.md5 && selectedChart?.folderHash === e.detail.folderHash) {
+      selectedChart = null
     } else {
-      selectedChartMD5 = e.detail.md5
+      selectedChart = { md5: e.detail.md5, folderHash: e.detail.folderHash }
     }
   }
 
   function handleChartDeselect() {
-    selectedChartMD5 = null
+    selectedChart = null
   }
 
   // 難易度表タブのハンドラ
@@ -213,11 +213,11 @@
 
     <!-- 譜面一覧タブ -->
     <div class="h-full" class:hidden={activeTab !== 'charts'}>
-      <SplitPane showDetail={!!selectedChartMD5} bind:splitRatio>
-        <ChartListView slot="list" selected={selectedChartMD5} active={activeTab === 'charts'} on:select={handleChartSelect} on:deselect={handleChartDeselect} />
+      <SplitPane showDetail={!!selectedChart} bind:splitRatio>
+        <ChartListView slot="list" selected={selectedChart ? selectedChart.md5 + ':' + selectedChart.folderHash : null} active={activeTab === 'charts'} on:select={handleChartSelect} on:deselect={handleChartDeselect} />
         <svelte:fragment slot="detail">
-          {#if selectedChartMD5}
-            <ChartDetail md5={selectedChartMD5} on:close={() => { selectedChartMD5 = null }} />
+          {#if selectedChart}
+            <ChartDetail md5={selectedChart.md5} folderHash={selectedChart.folderHash} on:close={() => { selectedChart = null }} />
           {/if}
         </svelte:fragment>
       </SplitPane>

@@ -11,17 +11,19 @@
   const dispatch = createEventDispatcher<{ close: void }>()
 
   export let md5: string
+  export let folderHash: string = ''
 
   let chart: dto.ChartDTO | null = null
   let loading = false
 
-  $: if (md5) loadChart(md5)
+  $: chartKey = md5 + ':' + folderHash
+  $: if (chartKey) loadChart(md5, folderHash)
 
-  async function loadChart(hash: string) {
+  async function loadChart(hash: string, folder: string) {
     loading = true
     chart = null
     try {
-      chart = await GetChartDetailByMD5(hash)
+      chart = await GetChartDetailByMD5(hash, folder)
     } catch (e) {
       console.error('Failed to load chart detail:', e)
       chart = null
@@ -33,13 +35,13 @@
   async function lookupIR() {
     if (!chart) return
     await LookupByMD5(chart.md5, chart.sha256)
-    await loadChart(md5)
+    await loadChart(md5, folderHash)
   }
 
   async function saveWorkingUrls(e: CustomEvent<{ bodyUrl: string; diffUrl: string }>) {
     if (!chart) return
     await UpdateChartMeta(chart.md5, e.detail.bodyUrl, e.detail.diffUrl)
-    await loadChart(md5)
+    await loadChart(md5, folderHash)
   }
 
 </script>

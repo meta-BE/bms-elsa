@@ -32,7 +32,7 @@
     irMeta = null
     try {
       entryData = await GetDifficultyTableEntry(tid, hash)
-      chart = await GetChartDetailByMD5(hash)
+      chart = await GetChartDetailByMD5(hash, '')
       if (!chart) {
         irMeta = await GetChartMetaByMD5(hash)
       }
