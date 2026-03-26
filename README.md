@@ -16,13 +16,16 @@
 - 左右分割レイアウト（ドラッグリサイズ対応）で選択項目の詳細を表示
 - LR2IR からのメタデータ取得（個別・一括取得対応、進捗表示・中断対応）
 - 難易度表からの未導入譜面IR一括取得
-- 楽曲メタデータ推測（URLパターンマッチングによるイベント名・リリース年の自動設定 + 手動確認フロー）
-- Event名・リリース年・動作URLの編集・保存
+- BMS Search API連携によるイベント情報自動取得（楽曲→イベント紐付けの一括同期、3並列・進捗表示・中断対応）
+- イベントマスター管理（393件のイベントデータ同梱、BMS Searchからの更新、短縮名編集）
+- 楽曲詳細からBMS Search・イベント本家ページへの直接リンク
+- イベント名・リリース年の手動設定（オートコンプリート付きイベント選択）
+- 動作URLの編集・保存
 - BMS難易度表の取り込み・管理（Stella, 発狂BMS, Solomon等に対応、ドラッグ&ドロップで並び替え可能、個別更新・一括並列更新対応）
 - 難易度表の未導入譜面でもIR情報を表示
 - 譜面詳細に難易度ラベルをバッジ表示
 - 上下キーによるキーボードナビゲーション（楽曲・譜面・難易度表・重複検知の各タブ対応）
-- GUIからの設定編集（songdata.dbパス、難易度表の追加・削除・更新・並び替え、URLパターンマッピング管理）
+- GUIからの設定編集（songdata.dbパス、難易度表の追加・削除・更新・並び替え、イベントマスター管理）
 - 難易度表の並列一括更新（最大5並列、進捗表示、キャンセル対応）と個別更新ボタン
 - URL書き換えルール（replace/regex対応、優先度付きルール適用で動作URLを自動推定）
 - 重複検知（WAV定義MinHash類似度 + タイトル・アーティスト・BPM・ジャンルのファジーマッチング、専用タブで一覧・詳細表示）
@@ -92,7 +95,7 @@ bms-elsa/
 │   ├── domain/model/           # エンティティ・値オブジェクト
 │   ├── usecase/                # ユースケース層
 │   ├── adapter/
-│   │   ├── gateway/            # LR2IRクライアント・難易度表フェッチャー
+│   │   ├── gateway/            # LR2IRクライアント・BMS Searchクライアント・難易度表フェッチャー
 │   │   └── persistence/        # SQLiteリポジトリ（elsa.db + songdata.db）
 │   └── app/                    # Wailsバインディング層（ハンドラー + DTO）
 ├── frontend/                   # Svelte + TypeScript
@@ -127,3 +130,5 @@ bms-elsa/
 - [フロントエンド技術調査](docs/frontend-research.md)
 - [Wails + Go 設計引き継ぎ](docs/wails_go_design_handoff.md)
 - [BMS難易度表フォーマット](docs/bms-difficulty-table-format.md)
+- [BMS Search API仕様](docs/bmssearch-api.md)
+- [LR2IRレスポンス構造](docs/lr2ir-structure.md)
