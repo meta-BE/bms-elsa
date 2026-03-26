@@ -265,6 +265,7 @@ func (h *DifficultyTableHandler) RefreshAllDifficultyTablesAsync() error {
 
 	go func() {
 		defer func() {
+			cancel()
 			h.mu.Lock()
 			h.refreshing = false
 			h.cancelFunc = nil
