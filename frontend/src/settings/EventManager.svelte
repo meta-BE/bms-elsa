@@ -70,14 +70,15 @@
         <table class="table table-xs">
           <thead class="sticky top-0 bg-base-100 z-10">
             <tr>
+              <th class="w-16">年</th>
               <th>正式名称</th>
               <th>短縮名</th>
-              <th class="w-16">年</th>
             </tr>
           </thead>
           <tbody>
             {#each events as ev (ev.id)}
               <tr>
+                <td class="text-xs text-center">{ev.releaseYear}</td>
                 <td class="text-xs max-w-xs truncate" title={ev.name}>{ev.name}</td>
                 <td>
                   <input
@@ -86,7 +87,6 @@
                     on:blur={(e) => handleShortNameChange(ev.id, e.currentTarget.value)}
                   />
                 </td>
-                <td class="text-xs text-center">{ev.releaseYear}</td>
               </tr>
             {/each}
           </tbody>
