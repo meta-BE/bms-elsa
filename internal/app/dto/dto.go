@@ -33,6 +33,7 @@ type SongDetailDTO struct {
 	Artist      string     `json:"artist"`
 	Genre       string     `json:"genre"`
 	EventName   *string    `json:"eventName"`
+	EventID     *int       `json:"eventId"`
 	ReleaseYear *int       `json:"releaseYear"`
 	Charts      []ChartDTO `json:"charts"`
 }
@@ -133,6 +134,7 @@ func SongToDetailDTO(s model.Song) SongDetailDTO {
 		Artist:      s.Artist,
 		Genre:       s.Genre,
 		EventName:   s.EventName,
+		EventID:     s.EventID,
 		ReleaseYear: s.ReleaseYear,
 		Charts:      charts,
 	}

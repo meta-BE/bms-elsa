@@ -11,14 +11,14 @@
   import SplitPane from './components/SplitPane.svelte'
   import ContextMenu from './components/ContextMenu.svelte'
   import Settings from './settings/Settings.svelte'
-  import EventMappingManager from './settings/EventMappingManager.svelte'
+  import EventManager from './settings/EventManager.svelte'
   import RewriteRuleManager from './settings/RewriteRuleManager.svelte'
   import { OpenURL } from '../wailsjs/go/main/App'
   import { OnFileDrop } from '../wailsjs/runtime/runtime'
   import Icon from './components/Icon.svelte'
   import { onMount } from 'svelte'
   let settingsComponent: Settings
-  let eventMappingComponent: EventMappingManager
+  let eventManagerComponent: EventManager
   let rewriteRuleComponent: RewriteRuleManager
   let diffImportView: DiffImportView
   let duplicateViewRef: DuplicateView
@@ -159,7 +159,7 @@
     <button class="btn btn-ghost btn-sm" on:click={() => rewriteRuleComponent.open()} title="URL書き換えルール">
       <Icon name="arrowPath" cls="h-5 w-5" />
     </button>
-    <button class="btn btn-ghost btn-sm" on:click={() => eventMappingComponent.open()} title="イベントマッピング">
+    <button class="btn btn-ghost btn-sm" on:click={() => eventManagerComponent.open()} title="イベント管理">
       <Icon name="calendar" cls="h-5 w-5" />
     </button>
     <button class="btn btn-ghost btn-sm" on:click={() => settingsComponent.open()} title="設定">
@@ -253,7 +253,7 @@
     </div>
   </div>
   <Settings bind:this={settingsComponent} />
-  <EventMappingManager bind:this={eventMappingComponent} />
+  <EventManager bind:this={eventManagerComponent} />
   <RewriteRuleManager bind:this={rewriteRuleComponent} />
   <ContextMenu />
 </div>

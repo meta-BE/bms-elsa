@@ -17,12 +17,10 @@
   import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
   import SortableHeader from '../components/SortableHeader.svelte'
-  import InferenceModal from '../settings/InferenceModal.svelte'
   import { InferWorkingURLs } from '../../wailsjs/go/app/RewriteHandler'
   import { handleArrowNav } from '../utils/arrowNav'
   import Icon from '../components/Icon.svelte'
 
-  let inferenceModal: InferenceModal
   let inferringUrls = false
   let inferUrlResult = ''
 
@@ -196,7 +194,6 @@
       >
         {inferringUrls ? '推定中...' : '動作URL推定'}
       </button>
-      <button class="btn btn-xs btn-outline" on:click|stopPropagation={() => inferenceModal.open()}>メタ推測</button>
       <div class="flex items-center gap-2">
         <SearchInput bind:value={globalFilter} />
         <button
@@ -260,4 +257,3 @@
     </div>
   {/if}
 </div>
-<InferenceModal bind:this={inferenceModal} on:close={loadSongs} />

@@ -1,6 +1,7 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte'
+  import { createEventDispatcher, onMount } from 'svelte'
   import { GetSongDetail, UpdateSongMeta, MoveSongFolder } from '../../wailsjs/go/app/SongHandler'
+  import { ListEvents } from '../../wailsjs/go/app/EventHandler'
   import { LookupByMD5, UpdateChartMeta } from '../../wailsjs/go/app/IRHandler'
   import { SelectDirectory } from '../../wailsjs/go/main/App'
   import type { dto } from '../../wailsjs/go/models'
@@ -20,8 +21,12 @@
   let selectedChart: dto.ChartDTO | null = null
   let loading = false
 
-  let editEventName = ''
   let editReleaseYear = ''
+
+  let allEvents: any[] = []
+  let eventSuggestions: any[] = []
+  let eventSearchText = ''
+  let showEventDropdown = false
 
   let confirmDialog: HTMLDialogElement
   let resultDialog: HTMLDialogElement
@@ -31,6 +36,10 @@
   let moveResult: { destPath: string; fileCount: number } | null = null
   let mouseDownOnBackdrop = false
 
+  onMount(async () => {
+    allEvents = (await ListEvents()) || []
+  })
+
   $: if (folderHash) loadDetail(folderHash)
 
   async function loadDetail(hash: string) {
@@ -39,7 +48,7 @@
       detail = await GetSongDetail(hash)
       selectedChart = null
       if (detail) {
-        editEventName = detail.eventName || ''
+        eventSearchText = detail.eventName || ''
         editReleaseYear = detail.releaseYear ? String(detail.releaseYear) : ''
       }
     } catch (e) {
@@ -49,11 +58,18 @@
     }
   }
 
+  async function selectEvent(eventID: number, shortName: string) {
+    if (!detail) return
+    eventSearchText = shortName
+    showEventDropdown = false
+    await UpdateSongMeta(detail.folderHash, editReleaseYear ? parseInt(editReleaseYear) : null, eventID)
+    await loadDetail(detail.folderHash)
+  }
+
   async function saveMeta() {
     if (!detail) return
     const year = editReleaseYear ? parseInt(editReleaseYear) : null
-    const event = editEventName || null
-    await UpdateSongMeta(detail.folderHash, year, event)
+    await UpdateSongMeta(detail.folderHash, year, null)
     await loadDetail(detail.folderHash)
   }
 
@@ -145,10 +161,54 @@
       </div>
       <div class="divider my-1"></div>
       <div class="flex gap-2 items-center">
-        <label class="text-xs" for="event-input">Event:</label>
-        <input id="event-input" class="input input-xs input-bordered w-32" bind:value={editEventName} on:blur={saveMeta} />
+        <label class="text-xs">Event:</label>
+        <div class="relative">
+          <input
+            class="input input-xs input-bordered w-40"
+            bind:value={eventSearchText}
+            on:input={() => {
+              const q = eventSearchText.toLowerCase()
+              eventSuggestions = allEvents.filter(ev =>
+                ev.shortName.toLowerCase().includes(q) || ev.name.toLowerCase().includes(q)
+              ).slice(0, 10)
+              showEventDropdown = eventSuggestions.length > 0 && eventSearchText.length > 0
+            }}
+            on:focus={() => {
+              if (eventSearchText) {
+                const q = eventSearchText.toLowerCase()
+                eventSuggestions = allEvents.filter(ev =>
+                  ev.shortName.toLowerCase().includes(q) || ev.name.toLowerCase().includes(q)
+                ).slice(0, 10)
+                showEventDropdown = eventSuggestions.length > 0
+              }
+            }}
+            on:blur={() => setTimeout(() => { showEventDropdown = false }, 200)}
+            placeholder="イベント検索..."
+          />
+          {#if showEventDropdown}
+            <ul class="absolute z-50 bg-base-100 border border-base-300 rounded shadow-lg mt-1 max-h-40 overflow-y-auto w-64">
+              {#each eventSuggestions as ev}
+                <li>
+                  <button
+                    class="w-full text-left px-2 py-1 text-xs hover:bg-base-200"
+                    on:mousedown|preventDefault={() => selectEvent(ev.id, ev.shortName)}
+                  >
+                    <span class="font-semibold">{ev.shortName}</span>
+                    {#if ev.shortName !== ev.name}
+                      <span class="text-base-content/50 ml-1 truncate">({ev.name})</span>
+                    {/if}
+                  </button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </div>
         <label class="text-xs ml-2" for="year-input">Year:</label>
-        <input id="year-input" class="input input-xs input-bordered w-16" type="number" bind:value={editReleaseYear} on:blur={saveMeta} />
+        {#if detail?.eventId}
+          <span class="text-xs w-16 text-center">{detail.releaseYear}</span>
+        {:else}
+          <input id="year-input" class="input input-xs input-bordered w-16" type="number" bind:value={editReleaseYear} on:blur={saveMeta} />
+        {/if}
       </div>
     </div>
 
