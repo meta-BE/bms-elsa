@@ -34,6 +34,7 @@
       refreshProgress = { current: data.current, total: data.total }
     })
     offDone = EventsOn('dt:refresh-done', (data: { results: any[] }) => {
+      if (!refreshing) return
       refreshing = false
       refreshResults = data.results
       loadTables()
@@ -66,6 +67,15 @@
     addError = ''
     newTableURL = ''
     refreshResults = null
+    // onMountは初回のみなので、再オープン時もバックエンドと状態を同期する
+    const running = await IsRefreshing()
+    if (running) {
+      refreshing = true
+      const p = await RefreshProgress()
+      refreshProgress = { current: p.current || 0, total: p.total || 0 }
+    } else {
+      refreshing = false
+    }
     await loadTables()
     dialog.showModal()
   }
