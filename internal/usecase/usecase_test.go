@@ -98,7 +98,7 @@ func (m *mockMetaRepo) ListFoldersWithoutEvent(_ context.Context) ([]string, err
 	return nil, nil
 }
 
-func (m *mockMetaRepo) UpdateSongMetaEvent(_ context.Context, _ string, _ int, _ string) error {
+func (m *mockMetaRepo) UpdateSongMetaEvent(_ context.Context, _ string, _ string, _ string) error {
 	return nil
 }
 

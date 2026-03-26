@@ -32,7 +32,7 @@ func RunMigrations(db *sql.DB) error {
 			id              INTEGER PRIMARY KEY AUTOINCREMENT,
 			folder_hash     TEXT NOT NULL UNIQUE,
 			release_year    INTEGER,
-			event_id        INTEGER REFERENCES event(id),
+			event_id        TEXT,
 			bms_search_id   TEXT,
 			created_at      TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
@@ -194,6 +194,11 @@ func RunMigrations(db *sql.DB) error {
 		}
 	}
 
+	// song_meta.event_id: INTEGER(event.id参照) → TEXT(event.bms_search_id)への移行（冪等）
+	if err := migrateSongMetaEventIDToText(db); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -249,7 +254,7 @@ func migrateSongMeta(db *sql.DB) error {
 			id              INTEGER PRIMARY KEY AUTOINCREMENT,
 			folder_hash     TEXT NOT NULL UNIQUE,
 			release_year    INTEGER,
-			event_id        INTEGER REFERENCES event(id),
+			event_id        TEXT,
 			bms_search_id   TEXT,
 			created_at      TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
@@ -271,6 +276,58 @@ func migrateSongMeta(db *sql.DB) error {
 
 	if _, err := db.Exec(`ALTER TABLE song_meta_new RENAME TO song_meta`); err != nil {
 		return fmt.Errorf("rename song_meta_new: %w", err)
+	}
+
+	return nil
+}
+
+// migrateSongMetaEventIDToText はsong_meta.event_idをINTEGER(event.id参照)からTEXT(event.bms_search_id)に移行する
+func migrateSongMetaEventIDToText(db *sql.DB) error {
+	row := db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='song_meta'`)
+	var ddl string
+	if err := row.Scan(&ddl); err != nil {
+		return nil
+	}
+	// DDLに "INTEGER REFERENCES event" か "event_id        INTEGER" が含まれていれば旧スキーマ
+	upper := strings.ToUpper(ddl)
+	if !strings.Contains(upper, "EVENT_ID") {
+		return nil
+	}
+	// 既にTEXT型の場合はスキップ（"EVENT_ID        TEXT" or "event_id TEXT"）
+	if !strings.Contains(upper, "INTEGER REFERENCES EVENT") && !strings.Contains(upper, "EVENT_ID        INTEGER") && !strings.Contains(upper, "EVENT_ID INTEGER") {
+		return nil
+	}
+
+	if _, err := db.Exec(`
+		CREATE TABLE song_meta_new (
+			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			folder_hash     TEXT NOT NULL UNIQUE,
+			release_year    INTEGER,
+			event_id        TEXT,
+			bms_search_id   TEXT,
+			created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+		)
+	`); err != nil {
+		return fmt.Errorf("create song_meta_new for event_id text migration: %w", err)
+	}
+
+	// 旧INTEGER event_id → eventテーブル経由でbms_search_idに変換して移行
+	if _, err := db.Exec(`
+		INSERT OR IGNORE INTO song_meta_new (id, folder_hash, release_year, event_id, bms_search_id, created_at, updated_at)
+		SELECT sm.id, sm.folder_hash, sm.release_year, ev.bms_search_id, sm.bms_search_id, sm.created_at, sm.updated_at
+		FROM song_meta sm
+		LEFT JOIN event ev ON sm.event_id = ev.id
+	`); err != nil {
+		return fmt.Errorf("copy song_meta for event_id text migration: %w", err)
+	}
+
+	if _, err := db.Exec(`DROP TABLE song_meta`); err != nil {
+		return fmt.Errorf("drop song_meta for event_id text migration: %w", err)
+	}
+
+	if _, err := db.Exec(`ALTER TABLE song_meta_new RENAME TO song_meta`); err != nil {
+		return fmt.Errorf("rename song_meta_new for event_id text migration: %w", err)
 	}
 
 	return nil

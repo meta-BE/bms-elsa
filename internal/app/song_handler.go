@@ -61,7 +61,7 @@ func (h *SongHandler) GetSongDetail(folderHash string) (*dto.SongDetailDTO, erro
 	return &result, nil
 }
 
-func (h *SongHandler) UpdateSongMeta(folderHash string, releaseYear *int, eventID *int) error {
+func (h *SongHandler) UpdateSongMeta(folderHash string, releaseYear *int, eventID *string) error {
 	return h.updateMeta.Execute(h.ctx, model.SongMeta{
 		FolderHash:  folderHash,
 		ReleaseYear: releaseYear,

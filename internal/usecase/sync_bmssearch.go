@@ -123,7 +123,7 @@ func (u *SyncBMSSearchUseCase) syncFolder(
 		if bms.Exhibition != nil {
 			event, err := u.metaRepo.GetEventByBMSSearchID(ctx, bms.Exhibition.ID)
 			if err == nil && event != nil {
-				u.metaRepo.UpdateSongMetaEvent(ctx, folderHash, event.ID, bmsID)
+				u.metaRepo.UpdateSongMetaEvent(ctx, folderHash, bms.Exhibition.ID, bmsID)
 				return true
 			}
 		}

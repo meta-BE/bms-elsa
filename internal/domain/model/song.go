@@ -15,7 +15,7 @@ type Song struct {
 	// elsa.db メタデータ
 	ReleaseYear *int
 	EventName   *string
-	EventID     *int
+	EventID     *string
 	// 一覧表示用の集約フィールド（リポジトリが設定）
 	ChartCount int
 	HasIRMeta  bool
@@ -55,7 +55,7 @@ type Event struct {
 type SongMeta struct {
 	FolderHash  string
 	ReleaseYear *int
-	EventID     *int
+	EventID     *string
 	BMSSearchID *string
 }
 

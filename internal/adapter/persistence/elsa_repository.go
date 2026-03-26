@@ -257,7 +257,7 @@ func (r *ElsaRepository) ListFoldersWithoutEvent(ctx context.Context) ([]string,
 	return folders, rows.Err()
 }
 
-func (r *ElsaRepository) UpdateSongMetaEvent(ctx context.Context, folderHash string, eventID int, bmsSearchID string) error {
+func (r *ElsaRepository) UpdateSongMetaEvent(ctx context.Context, folderHash string, eventID string, bmsSearchID string) error {
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO song_meta (folder_hash, event_id, bms_search_id)
 		 VALUES (?, ?, ?)

@@ -58,7 +58,7 @@
     }
   }
 
-  async function selectEvent(eventID: number, shortName: string) {
+  async function selectEvent(eventID: string, shortName: string) {
     if (!detail) return
     eventSearchText = shortName
     showEventDropdown = false
@@ -191,7 +191,7 @@
                 <li>
                   <button
                     class="w-full text-left px-2 py-1 text-xs hover:bg-base-200"
-                    on:mousedown|preventDefault={() => selectEvent(ev.id, ev.shortName)}
+                    on:mousedown|preventDefault={() => selectEvent(ev.bmsSearchId, ev.shortName)}
                   >
                     <span class="font-semibold">{ev.shortName}</span>
                     {#if ev.shortName !== ev.name}

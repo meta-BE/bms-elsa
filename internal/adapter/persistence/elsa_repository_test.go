@@ -31,7 +31,7 @@ func TestUpsertAndGetSongMeta(t *testing.T) {
 	ctx := context.Background()
 
 	year := 2023
-	eventID := 1
+	eventID := "EX-001"
 	meta := model.SongMeta{
 		FolderHash:  "abc123",
 		ReleaseYear: &year,
@@ -57,12 +57,12 @@ func TestUpsertAndGetSongMeta(t *testing.T) {
 	if got.ReleaseYear == nil || *got.ReleaseYear != 2023 {
 		t.Errorf("ReleaseYear = %v, want 2023", got.ReleaseYear)
 	}
-	if got.EventID == nil || *got.EventID != 1 {
-		t.Errorf("EventID = %v, want 1", got.EventID)
+	if got.EventID == nil || *got.EventID != "EX-001" {
+		t.Errorf("EventID = %v, want EX-001", got.EventID)
 	}
 
 	// Update
-	updatedEventID := 2
+	updatedEventID := "EX-002"
 	meta.EventID = &updatedEventID
 	if err := repo.UpsertSongMeta(ctx, meta); err != nil {
 		t.Fatalf("UpsertSongMeta (update) failed: %v", err)
@@ -75,8 +75,8 @@ func TestUpsertAndGetSongMeta(t *testing.T) {
 	if got == nil {
 		t.Fatal("GetSongMeta after update returned nil")
 	}
-	if got.EventID == nil || *got.EventID != 2 {
-		t.Errorf("EventID after update = %v, want 2", got.EventID)
+	if got.EventID == nil || *got.EventID != "EX-002" {
+		t.Errorf("EventID after update = %v, want EX-002", got.EventID)
 	}
 }
 

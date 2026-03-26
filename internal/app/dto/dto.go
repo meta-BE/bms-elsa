@@ -33,7 +33,7 @@ type SongDetailDTO struct {
 	Artist      string     `json:"artist"`
 	Genre       string     `json:"genre"`
 	EventName   *string    `json:"eventName"`
-	EventID     *int       `json:"eventId"`
+	EventID     *string    `json:"eventId"`
 	ReleaseYear *int       `json:"releaseYear"`
 	Charts      []ChartDTO `json:"charts"`
 }

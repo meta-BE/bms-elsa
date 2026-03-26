@@ -126,7 +126,7 @@ func (r *SongdataReader) ListSongs(ctx context.Context, opts model.ListOptions) 
 			COUNT(*) OVER() AS total_count
 		FROM song_groups sg
 		LEFT JOIN main.song_meta sm ON sm.folder_hash = sg.folder
-		LEFT JOIN main.event ev ON sm.event_id = ev.id
+		LEFT JOIN main.event ev ON sm.event_id = ev.bms_search_id
 		WHERE (? = '' OR sg.title LIKE '%%' || ? || '%%'
 		       OR sg.artist LIKE '%%' || ? || '%%'
 		       OR sg.genre LIKE '%%' || ? || '%%')
@@ -224,7 +224,7 @@ func (r *SongdataReader) ListAllSongs(ctx context.Context) ([]model.Song, error)
 			) AS has_ir_meta
 		FROM song_groups sg
 		LEFT JOIN main.song_meta sm ON sm.folder_hash = sg.folder
-		LEFT JOIN main.event ev ON sm.event_id = ev.id
+		LEFT JOIN main.event ev ON sm.event_id = ev.bms_search_id
 		ORDER BY sg.title ASC
 	`
 
@@ -359,7 +359,7 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 			var evShortName sql.NullString
 			var evReleaseYear sql.NullInt64
 			_ = r.db.QueryRowContext(ctx,
-				`SELECT short_name, release_year FROM event WHERE id = ?`, *meta.EventID,
+				`SELECT short_name, release_year FROM event WHERE bms_search_id = ?`, *meta.EventID,
 			).Scan(&evShortName, &evReleaseYear)
 			if evShortName.Valid {
 				song.EventName = &evShortName.String
@@ -454,7 +454,7 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 			) AS has_ir_meta
 		FROM songdata.song s
 		LEFT JOIN main.song_meta sm ON sm.folder_hash = s.folder
-		LEFT JOIN main.event ev ON sm.event_id = ev.id
+		LEFT JOIN main.event ev ON sm.event_id = ev.bms_search_id
 		WHERE s.md5 != ''
 		ORDER BY s.title ASC
 	`
