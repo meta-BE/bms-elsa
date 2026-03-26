@@ -98,27 +98,12 @@ type DifficultyLabelDTO struct {
 	Level     string `json:"level"`
 }
 
-type InferenceResultDTO struct {
-	AutoSetCount   int             `json:"autoSetCount"`
-	UnmatchedSongs []SongIRURLsDTO `json:"unmatchedSongs"`
-	NoIRCount      int             `json:"noIRCount"`
-}
-
-type SongIRURLsDTO struct {
-	FolderHash string   `json:"folderHash"`
-	Title      string   `json:"title"`
-	Artist     string   `json:"artist"`
-	Genre      string   `json:"genre"`
-	BodyURLs   []string `json:"bodyUrls"`
-	ChartCount int      `json:"chartCount"`
-	IRCount    int      `json:"irCount"`
-}
-
-type EventMappingDTO struct {
-	ID          int    `json:"id"`
-	URLPattern  string `json:"urlPattern"`
-	EventName   string `json:"eventName"`
-	ReleaseYear int    `json:"releaseYear"`
+type EventDTO struct {
+	ID          int     `json:"id"`
+	BMSSearchID *string `json:"bmsSearchId"`
+	Name        string  `json:"name"`
+	ShortName   string  `json:"shortName"`
+	ReleaseYear int     `json:"releaseYear"`
 }
 
 func SongToRowDTO(s model.Song) SongRowDTO {

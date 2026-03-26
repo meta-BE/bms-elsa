@@ -487,6 +487,37 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 	return charts, rows.Err()
 }
 
+// ListMD5sByFolder は指定フォルダに含まれる全MD5を返す
+func (r *SongdataReader) ListMD5sByFolder(ctx context.Context, folderHash string) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx, `SELECT md5 FROM songdata.song WHERE folder = ?`, folderHash)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var md5s []string
+	for rows.Next() {
+		var md5 string
+		if err := rows.Scan(&md5); err != nil {
+			return nil, err
+		}
+		md5s = append(md5s, md5)
+	}
+	return md5s, nil
+}
+
+// ListMD5sGroupedByFolder は指定フォルダ群のMD5をフォルダ単位でグルーピングして返す
+func (r *SongdataReader) ListMD5sGroupedByFolder(ctx context.Context, folders []string) (map[string][]string, error) {
+	result := make(map[string][]string)
+	for _, f := range folders {
+		md5s, err := r.ListMD5sByFolder(ctx, f)
+		if err != nil {
+			return nil, err
+		}
+		result[f] = md5s
+	}
+	return result, nil
+}
+
 // ListSongGroupsForDuplicateScan はfolder単位で楽曲グループを返す（重複スキャン用）
 func (r *SongdataReader) ListSongGroupsForDuplicateScan(ctx context.Context) ([]model.SongGroup, error) {
 	query := `
