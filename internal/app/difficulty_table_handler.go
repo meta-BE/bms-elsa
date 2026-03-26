@@ -2,11 +2,14 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"sync"
 
 	"github.com/meta-BE/bms-elsa/internal/adapter/gateway"
 	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	"github.com/meta-BE/bms-elsa/internal/app/dto"
 	"github.com/meta-BE/bms-elsa/internal/usecase"
+	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type DifficultyTableHandler struct {
@@ -15,6 +18,12 @@ type DifficultyTableHandler struct {
 	dtFetcher       *gateway.DifficultyTableFetcher
 	songReader      *persistence.SongdataReader
 	estimateUseCase *usecase.EstimateInstallLocationUseCase
+
+	// 非同期一括更新の状態管理
+	mu         sync.Mutex
+	refreshing bool
+	cancelFunc context.CancelFunc
+	progress   struct{ current, total int }
 }
 
 func NewDifficultyTableHandler(
@@ -226,6 +235,121 @@ func (h *DifficultyTableHandler) EstimateInstallLocation(md5 string, tableID int
 		}
 	}
 	return result, nil
+}
+
+// RefreshAllDifficultyTablesAsync は全難易度表を最大5並列で非同期更新する。
+// 二重実行時はエラーを返す。進捗は dt:refresh-progress イベントで通知する。
+func (h *DifficultyTableHandler) RefreshAllDifficultyTablesAsync() error {
+	h.mu.Lock()
+	if h.refreshing {
+		h.mu.Unlock()
+		return fmt.Errorf("既に更新中です")
+	}
+	h.refreshing = true
+	h.mu.Unlock()
+
+	tables, err := h.dtRepo.ListTables(h.ctx)
+	if err != nil {
+		h.mu.Lock()
+		h.refreshing = false
+		h.mu.Unlock()
+		return err
+	}
+
+	ctx, cancel := context.WithCancel(h.ctx)
+	h.mu.Lock()
+	h.cancelFunc = cancel
+	h.progress.current = 0
+	h.progress.total = len(tables)
+	h.mu.Unlock()
+
+	go func() {
+		defer func() {
+			h.mu.Lock()
+			h.refreshing = false
+			h.cancelFunc = nil
+			h.mu.Unlock()
+		}()
+
+		sem := make(chan struct{}, 5)
+		var wg sync.WaitGroup
+		var mu sync.Mutex
+		results := make([]dto.DifficultyTableRefreshResult, len(tables))
+		completed := 0
+
+		for i, t := range tables {
+			select {
+			case <-ctx.Done():
+				mu.Lock()
+				for j := i; j < len(tables); j++ {
+					results[j] = dto.DifficultyTableRefreshResult{
+						TableName: tables[j].Name, Error: "キャンセルされました",
+					}
+				}
+				mu.Unlock()
+				goto done
+			case sem <- struct{}{}:
+			}
+
+			wg.Add(1)
+			go func(idx int, tbl persistence.DifficultyTable) {
+				defer func() { <-sem; wg.Done() }()
+				result := h.refreshTable(tbl)
+				mu.Lock()
+				results[idx] = result
+				completed++
+				c := completed
+				mu.Unlock()
+
+				h.mu.Lock()
+				h.progress.current = c
+				h.mu.Unlock()
+
+				wailsRuntime.EventsEmit(h.ctx, "dt:refresh-progress", map[string]any{
+					"current":   c,
+					"total":     len(tables),
+					"tableName": tbl.Name,
+					"success":   result.Success,
+					"error":     result.Error,
+				})
+			}(i, t)
+		}
+		wg.Wait()
+
+	done:
+		wg.Wait()
+		wailsRuntime.EventsEmit(h.ctx, "dt:refresh-done", map[string]any{
+			"results": results,
+		})
+	}()
+
+	return nil
+}
+
+// StopDifficultyTableRefresh は実行中の一括更新をキャンセルする
+func (h *DifficultyTableHandler) StopDifficultyTableRefresh() {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	if h.cancelFunc != nil {
+		h.cancelFunc()
+	}
+}
+
+// IsRefreshing は一括更新が実行中かどうかを返す
+func (h *DifficultyTableHandler) IsRefreshing() bool {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return h.refreshing
+}
+
+// RefreshProgress は実行中の一括更新の進捗を返す
+func (h *DifficultyTableHandler) RefreshProgress() map[string]int {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	return map[string]int{
+		"current": h.progress.current,
+		"total":   h.progress.total,
+	}
 }
 
 func (h *DifficultyTableHandler) refreshTable(t persistence.DifficultyTable) dto.DifficultyTableRefreshResult {
