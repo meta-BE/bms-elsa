@@ -44,6 +44,8 @@
     allEvents = (await ListEvents()) || []
   })
 
+  $: eventUrl = detail?.eventId ? allEvents.find(e => e.bmsSearchId === detail?.eventId)?.url || '' : ''
+
   $: if (folderHash) loadDetail(folderHash)
 
   async function loadDetail(hash: string) {
@@ -214,6 +216,12 @@
           <span class="text-xs w-16 text-center">{detail.releaseYear}</span>
         {:else}
           <input id="year-input" class="input input-xs input-bordered w-16" type="number" bind:value={editReleaseYear} on:blur={saveMeta} />
+        {/if}
+        {#if detail?.bmsSearchId}
+          <a href="https://bmssearch.net/bmses/{detail.bmsSearchId}" target="_blank" class="text-xs link link-primary ml-2">BMS Search</a>
+        {/if}
+        {#if eventUrl}
+          <a href={eventUrl} target="_blank" class="text-xs link link-primary ml-1">イベントページ</a>
         {/if}
       </div>
     </div>
