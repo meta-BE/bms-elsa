@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS event (
 
 ```sql
 ALTER TABLE song_meta ADD COLUMN event_id INTEGER REFERENCES event(id);
+ALTER TABLE song_meta ADD COLUMN bms_search_id TEXT;
 ALTER TABLE song_meta DROP COLUMN event_name;
 -- release_year は維持（イベントに属さない楽曲用）
 ```
@@ -51,14 +52,17 @@ ALTER TABLE song_meta DROP COLUMN event_name;
 変更後のスキーマ:
 ```sql
 CREATE TABLE IF NOT EXISTS song_meta (
-    id            INTEGER PRIMARY KEY AUTOINCREMENT,
-    folder_hash   TEXT NOT NULL UNIQUE,
-    release_year  INTEGER,
-    event_id      INTEGER REFERENCES event(id),
-    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-    updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+    id              INTEGER PRIMARY KEY AUTOINCREMENT,
+    folder_hash     TEXT NOT NULL UNIQUE,
+    release_year    INTEGER,
+    event_id        INTEGER REFERENCES event(id),
+    bms_search_id   TEXT,
+    created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 );
 ```
+
+- `bms_search_id`: BMS SearchのBMS ID（例: `"Y--E3erQ36Ap-F"`）。BMS Search同期時に設定。将来的にダウンロードURL等の取得に活用
 
 ### event_mappingテーブル
 
@@ -96,7 +100,7 @@ COALESCE(e.release_year, sm.release_year) AS release_year
 4. レスポンスから `bms.id` を取得
 5. `GET /bmses/{bms.id}` を呼ぶ
 6. `exhibition.id` があれば、eventテーブルの `bms_search_id` と照合してevent_idを取得
-7. song_metaの `event_id` を更新
+7. song_metaの `event_id` と `bms_search_id` を更新
 8. 進捗をWails Eventsで通知
 
 ### レート制限
