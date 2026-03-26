@@ -1,8 +1,9 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte'
+  import { onMount, onDestroy, createEventDispatcher } from 'svelte'
   import { dndzone } from 'svelte-dnd-action'
   import { flip } from 'svelte/animate'
-  import { ListDifficultyTables, AddDifficultyTable, RemoveDifficultyTable, RefreshAllDifficultyTables, ReorderDifficultyTables } from '../../wailsjs/go/app/DifficultyTableHandler'
+  import { ListDifficultyTables, AddDifficultyTable, RemoveDifficultyTable, RefreshAllDifficultyTablesAsync, StopDifficultyTableRefresh, IsRefreshing, RefreshProgress, ReorderDifficultyTables } from '../../wailsjs/go/app/DifficultyTableHandler'
+  import { EventsOn } from '../../wailsjs/runtime/runtime'
 
   const dispatch = createEventDispatcher()
 
@@ -13,7 +14,36 @@
   let addError = ''
   let refreshResults: any[] | null = null
   let refreshing = false
+  let refreshProgress = { current: 0, total: 0 }
   let adding = false
+
+  let offProgress: (() => void) | null = null
+  let offDone: (() => void) | null = null
+
+  onMount(async () => {
+    // ダイアログ再オープン時の進捗復元
+    const running = await IsRefreshing()
+    if (running) {
+      refreshing = true
+      const p = await RefreshProgress()
+      refreshProgress = { current: p.current || 0, total: p.total || 0 }
+    }
+
+    offProgress = EventsOn('dt:refresh-progress', (data: { current: number; total: number }) => {
+      if (!refreshing) return
+      refreshProgress = { current: data.current, total: data.total }
+    })
+    offDone = EventsOn('dt:refresh-done', (data: { results: any[] }) => {
+      refreshing = false
+      refreshResults = data.results
+      loadTables()
+    })
+  })
+
+  onDestroy(() => {
+    offProgress?.()
+    offDone?.()
+  })
 
   const flipDurationMs = 200
 
@@ -71,14 +101,17 @@
   async function handleRefreshAll() {
     refreshing = true
     refreshResults = null
+    refreshProgress = { current: 0, total: 0 }
     try {
-      refreshResults = await RefreshAllDifficultyTables()
-      await loadTables()
+      await RefreshAllDifficultyTablesAsync()
     } catch (e: any) {
-      refreshResults = [{ tableName: '', success: false, error: e?.message || '更新に失敗しました' }]
-    } finally {
       refreshing = false
+      refreshResults = [{ tableName: '', success: false, error: e?.message || '更新に失敗しました' }]
     }
+  }
+
+  function handleStopRefresh() {
+    StopDifficultyTableRefresh()
   }
 
   function handleClose() {
@@ -144,9 +177,14 @@
     {/if}
 
     {#if tables.length > 0}
-      <button class="btn btn-sm btn-outline mt-2" on:click={handleRefreshAll} disabled={refreshing}>
-        {refreshing ? '更新中...' : '全て更新'}
-      </button>
+      <div class="flex items-center gap-2 mt-2">
+        {#if refreshing}
+          <span class="text-sm text-base-content/70">更新中: {refreshProgress.current}/{refreshProgress.total} テーブル完了</span>
+          <button class="btn btn-sm btn-error btn-outline" on:click={handleStopRefresh}>停止</button>
+        {:else}
+          <button class="btn btn-sm btn-outline" on:click={handleRefreshAll}>全て更新</button>
+        {/if}
+      </div>
     {/if}
 
     {#if refreshResults}
