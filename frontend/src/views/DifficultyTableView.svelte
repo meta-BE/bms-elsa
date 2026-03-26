@@ -12,13 +12,14 @@
   import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { writable } from 'svelte/store'
   import { onMount, createEventDispatcher } from 'svelte'
-  import { ListDifficultyTables, ListDifficultyTableEntries } from '../../wailsjs/go/app/DifficultyTableHandler'
+  import { ListDifficultyTables, ListDifficultyTableEntries, RefreshDifficultyTable } from '../../wailsjs/go/app/DifficultyTableHandler'
   import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
   import SortableHeader from '../components/SortableHeader.svelte'
   import { StartDifficultyTableBulkFetch, StopBulkFetch } from '../../wailsjs/go/app/IRHandler'
   import BulkFetchButton from '../components/BulkFetchButton.svelte'
   import DifficultyTableSettings from '../settings/DifficultyTableSettings.svelte'
+  import Icon from '../components/Icon.svelte'
   import { handleArrowNav } from '../utils/arrowNav'
 
   const dispatch = createEventDispatcher<{
@@ -37,6 +38,9 @@
   export let active = true
   let searchText = ''
   let dtSettingsComponent: DifficultyTableSettings
+  let refreshingSingle = false
+  let refreshDoneMessage = ''
+  let refreshDoneTimer: ReturnType<typeof setTimeout> | null = null
 
   const columns: ColumnDef<dto.DifficultyTableEntryDTO>[] = [
     {
@@ -152,7 +156,6 @@
     const target = e.target as HTMLSelectElement
     const id = Number(target.value)
     selectedTableId = id
-    searchText = ''
     dispatch('deselect')
     await loadEntries(id)
   }
@@ -199,6 +202,29 @@
     }
     await loadEntries(selectedTableId!)
   }
+
+  async function handleRefreshCurrent() {
+    if (!selectedTableId || refreshingSingle) return
+    refreshingSingle = true
+    refreshDoneMessage = ''
+    if (refreshDoneTimer) { clearTimeout(refreshDoneTimer); refreshDoneTimer = null }
+    try {
+      const result = await RefreshDifficultyTable(selectedTableId)
+      if (result.success) {
+        refreshDoneMessage = `${result.entryCount}件更新`
+      } else {
+        refreshDoneMessage = result.error || '更新失敗'
+      }
+      await loadEntries(selectedTableId!)
+      // テーブル一覧も更新（entryCountやfetchedAtが変わるため）
+      tables = (await ListDifficultyTables()) || []
+    } catch (e: any) {
+      refreshDoneMessage = e?.message || '更新失敗'
+    } finally {
+      refreshingSingle = false
+      refreshDoneTimer = setTimeout(() => { refreshDoneMessage = '' }, 3000)
+    }
+  }
 </script>
 
 <svelte:window on:keydown={handleKeyNav} />
@@ -230,6 +256,17 @@
             <option value={t.id}>{t.symbol} / {t.name} ({t.entryCount})</option>
           {/each}
         </select>
+        <button
+          class="btn btn-ghost btn-xs"
+          on:click|stopPropagation={handleRefreshCurrent}
+          disabled={refreshingSingle}
+          title="この難易度表を更新"
+        >
+          <Icon name="arrowPath" cls="w-4 h-4 {refreshingSingle ? 'animate-spin' : ''}" />
+        </button>
+        {#if refreshDoneMessage}
+          <span class="text-xs text-success">{refreshDoneMessage}</span>
+        {/if}
       </div>
       <div class="flex items-center gap-2">
         <BulkFetchButton
