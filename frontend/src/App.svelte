@@ -121,10 +121,15 @@
 
   // 楽曲フォルダ移動済みの状態（セッション中のみ）
   let movedFolderHashes: Set<string> = new Set()
+  let songTableComponent: SongTable
 
   function handleSongMoved(e: CustomEvent<{ folderHash: string }>) {
     movedFolderHashes = new Set([...movedFolderHashes, e.detail.folderHash])
     selectedFolderHash = null
+  }
+
+  function handleSongMetaUpdated(e: CustomEvent<{ folderHash: string; eventName: string | null; releaseYear: number | null }>) {
+    songTableComponent?.updateRow(e.detail.folderHash, e.detail.eventName, e.detail.releaseYear)
   }
 
   // 外部リンクをシステムブラウザで開く
@@ -202,10 +207,10 @@
     <!-- 楽曲一覧タブ -->
     <div class="h-full" class:hidden={activeTab !== 'songs'}>
       <SplitPane showDetail={!!selectedFolderHash} bind:splitRatio>
-        <SongTable slot="list" selected={selectedFolderHash} movedHashes={movedFolderHashes} active={activeTab === 'songs'} on:select={handleSelect} on:deselect={handleDeselect} />
+        <SongTable bind:this={songTableComponent} slot="list" selected={selectedFolderHash} movedHashes={movedFolderHashes} active={activeTab === 'songs'} on:select={handleSelect} on:deselect={handleDeselect} />
         <svelte:fragment slot="detail">
           {#if selectedFolderHash}
-            <SongDetail folderHash={selectedFolderHash} moved={movedFolderHashes.has(selectedFolderHash)} on:close={handleClose} on:moved={handleSongMoved} />
+            <SongDetail folderHash={selectedFolderHash} moved={movedFolderHashes.has(selectedFolderHash)} on:close={handleClose} on:moved={handleSongMoved} on:metaUpdated={handleSongMetaUpdated} />
           {/if}
         </svelte:fragment>
       </SplitPane>

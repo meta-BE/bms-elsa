@@ -151,6 +151,13 @@
     }
   }
 
+  export function updateRow(folderHash: string, eventName: string | null, releaseYear: number | null) {
+    const idx = songs.findIndex(s => s.folderHash === folderHash)
+    if (idx === -1) return
+    songs[idx] = { ...songs[idx], eventName, releaseYear }
+    songs = songs // Svelteリアクティビティ発火
+  }
+
   function handleKeyNav(e: KeyboardEvent) {
     if (!active) return
     handleArrowNav(e, {

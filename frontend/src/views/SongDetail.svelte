@@ -12,7 +12,11 @@
   import Icon from '../components/Icon.svelte'
   import AlertModal from '../components/AlertModal.svelte'
 
-  const dispatch = createEventDispatcher<{ close: void; moved: { folderHash: string } }>()
+  const dispatch = createEventDispatcher<{
+    close: void
+    moved: { folderHash: string }
+    metaUpdated: { folderHash: string; eventName: string | null; releaseYear: number | null }
+  }>()
 
   export let folderHash: string
   export let moved = false
@@ -64,6 +68,7 @@
     showEventDropdown = false
     await UpdateSongMeta(detail.folderHash, editReleaseYear ? parseInt(editReleaseYear) : null, eventID)
     await loadDetail(detail.folderHash)
+    dispatch('metaUpdated', { folderHash: detail.folderHash, eventName: detail.eventName ?? null, releaseYear: detail.releaseYear ?? null })
   }
 
   async function saveMeta() {
@@ -71,6 +76,7 @@
     const year = editReleaseYear ? parseInt(editReleaseYear) : null
     await UpdateSongMeta(detail.folderHash, year, null)
     await loadDetail(detail.folderHash)
+    dispatch('metaUpdated', { folderHash: detail.folderHash, eventName: detail.eventName ?? null, releaseYear: detail.releaseYear ?? null })
   }
 
   async function lookupIR(chart: dto.ChartDTO) {
