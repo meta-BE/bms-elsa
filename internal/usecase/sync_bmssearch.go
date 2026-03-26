@@ -2,6 +2,8 @@ package usecase
 
 import (
 	"context"
+	"sync"
+	"sync/atomic"
 
 	"github.com/meta-BE/bms-elsa/internal/adapter/gateway"
 	"github.com/meta-BE/bms-elsa/internal/domain/model"
@@ -38,30 +40,51 @@ func (u *SyncBMSSearchUseCase) Execute(
 	md5sByFolder map[string][]string,
 	progressFn func(SyncBMSSearchProgress),
 ) (*SyncBMSSearchResult, error) {
-	result := &SyncBMSSearchResult{Total: len(folders)}
+	total := len(folders)
+	var synced, notFound atomic.Int64
+	var completed atomic.Int64
+
+	// BMS詳細のキャッシュ（並列安全）
+	var bmsCacheMu sync.Mutex
 	bmsCache := make(map[string]*gateway.BMSSearchBMS)
 
-	for i, folderHash := range folders {
+	sem := make(chan struct{}, 3)
+	var wg sync.WaitGroup
+
+	for _, folderHash := range folders {
 		select {
 		case <-ctx.Done():
-			result.Cancelled = true
-			return result, nil
-		default:
+			wg.Wait()
+			return &SyncBMSSearchResult{
+				Total: total, Synced: int(synced.Load()), NotFound: int(notFound.Load()),
+				Cancelled: true,
+			}, nil
+		case sem <- struct{}{}:
 		}
 
-		if progressFn != nil {
-			progressFn(SyncBMSSearchProgress{Current: i + 1, Total: len(folders)})
-		}
+		wg.Add(1)
+		go func(fh string) {
+			defer func() { <-sem; wg.Done() }()
 
-		md5s := md5sByFolder[folderHash]
-		synced := u.syncFolder(ctx, folderHash, md5s, bmsCache)
-		if synced {
-			result.Synced++
-		} else {
-			result.NotFound++
-		}
+			md5s := md5sByFolder[fh]
+			ok := u.syncFolder(ctx, fh, md5s, bmsCache, &bmsCacheMu)
+			if ok {
+				synced.Add(1)
+			} else {
+				notFound.Add(1)
+			}
+
+			c := int(completed.Add(1))
+			if progressFn != nil {
+				progressFn(SyncBMSSearchProgress{Current: c, Total: total})
+			}
+		}(folderHash)
 	}
-	return result, nil
+	wg.Wait()
+
+	return &SyncBMSSearchResult{
+		Total: total, Synced: int(synced.Load()), NotFound: int(notFound.Load()),
+	}, nil
 }
 
 func (u *SyncBMSSearchUseCase) syncFolder(
@@ -69,6 +92,7 @@ func (u *SyncBMSSearchUseCase) syncFolder(
 	folderHash string,
 	md5s []string,
 	bmsCache map[string]*gateway.BMSSearchBMS,
+	bmsCacheMu *sync.Mutex,
 ) bool {
 	for _, md5 := range md5s {
 		pattern, err := u.bmsClient.LookupPatternByMD5(ctx, md5)
@@ -77,13 +101,20 @@ func (u *SyncBMSSearchUseCase) syncFolder(
 		}
 
 		bmsID := pattern.BMS.ID
+
+		// キャッシュ確認（並列安全）
+		bmsCacheMu.Lock()
 		bms, cached := bmsCache[bmsID]
+		bmsCacheMu.Unlock()
+
 		if !cached {
 			bms, err = u.bmsClient.LookupBMS(ctx, bmsID)
 			if err != nil {
 				continue
 			}
+			bmsCacheMu.Lock()
 			bmsCache[bmsID] = bms
+			bmsCacheMu.Unlock()
 		}
 		if bms == nil {
 			continue
@@ -97,7 +128,7 @@ func (u *SyncBMSSearchUseCase) syncFolder(
 			}
 		}
 
-		// exhibitionがなくてもbms_search_idは保存（event_id=0は設定しない）
+		// exhibitionがなくてもbms_search_idは保存
 		u.metaRepo.UpsertSongMeta(ctx, model.SongMeta{
 			FolderHash:  folderHash,
 			BMSSearchID: &bmsID,

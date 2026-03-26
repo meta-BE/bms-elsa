@@ -12,7 +12,7 @@ import (
 
 const (
 	defaultBMSSearchBaseURL  = "https://api.bmssearch.net/v1"
-	bmsSearchRequestInterval = 500 * time.Millisecond
+	bmsSearchRequestInterval = 100 * time.Millisecond
 )
 
 type BMSSearchPattern struct {
