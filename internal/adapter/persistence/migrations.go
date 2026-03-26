@@ -10,8 +10,8 @@ import (
 	"strings"
 )
 
-//go:embed event_mappings.csv
-var eventMappingsCSV []byte
+//go:embed events.csv
+var eventsCSV []byte
 
 //go:embed rewrite_rules.csv
 var rewriteRulesCSV []byte
@@ -19,13 +19,23 @@ var rewriteRulesCSV []byte
 // RunMigrations はelsa.dbのスキーマを作成する。冪等。
 func RunMigrations(db *sql.DB) error {
 	statements := []string{
+		`CREATE TABLE IF NOT EXISTS event (
+			id             INTEGER PRIMARY KEY AUTOINCREMENT,
+			bms_search_id  TEXT UNIQUE,
+			name           TEXT NOT NULL,
+			short_name     TEXT NOT NULL,
+			release_year   INTEGER NOT NULL,
+			created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
+		)`,
 		`CREATE TABLE IF NOT EXISTS song_meta (
-			id            INTEGER PRIMARY KEY AUTOINCREMENT,
-			folder_hash   TEXT NOT NULL UNIQUE,
-			release_year  INTEGER,
-			event_name    TEXT,
-			created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-			updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			folder_hash     TEXT NOT NULL UNIQUE,
+			release_year    INTEGER,
+			event_id        INTEGER REFERENCES event(id),
+			bms_search_id   TEXT,
+			created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
 		)`,
 		`CREATE TABLE IF NOT EXISTS chart_meta (
 			id               INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -65,12 +75,6 @@ func RunMigrations(db *sql.DB) error {
 			PRIMARY KEY (table_id, md5)
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_dte_md5 ON difficulty_table_entry(md5)`,
-		`CREATE TABLE IF NOT EXISTS event_mapping (
-			id           INTEGER PRIMARY KEY AUTOINCREMENT,
-			url_pattern  TEXT NOT NULL UNIQUE,
-			event_name   TEXT NOT NULL,
-			release_year INTEGER NOT NULL
-		)`,
 		`CREATE TABLE IF NOT EXISTS url_rewrite_rule (
 			id          INTEGER PRIMARY KEY AUTOINCREMENT,
 			rule_type   TEXT NOT NULL CHECK(rule_type IN ('replace', 'regex')),
@@ -89,28 +93,19 @@ func RunMigrations(db *sql.DB) error {
 		}
 	}
 
-	// 埋め込みCSVからシードデータを投入（冪等）
-	records, err := csv.NewReader(bytes.NewReader(eventMappingsCSV)).ReadAll()
-	if err != nil {
-		return fmt.Errorf("event_mappings.csv パース失敗: %w", err)
+	// events.csvからシードデータを投入（冪等）
+	if err := seedEvents(db); err != nil {
+		return err
 	}
-	for i, rec := range records {
-		if i == 0 {
-			continue // ヘッダー行スキップ
-		}
-		if len(rec) != 3 {
-			return fmt.Errorf("event_mappings.csv 行%d: 列数が不正 (%d)", i+1, len(rec))
-		}
-		year, err := strconv.Atoi(rec[2])
-		if err != nil {
-			return fmt.Errorf("event_mappings.csv 行%d: release_year変換失敗: %w", i+1, err)
-		}
-		if _, err := db.Exec(
-			`INSERT OR IGNORE INTO event_mapping (url_pattern, event_name, release_year) VALUES (?, ?, ?)`,
-			rec[0], rec[1], year,
-		); err != nil {
-			return err
-		}
+
+	// 旧event_mappingテーブルを削除（冪等）
+	if _, err := db.Exec(`DROP TABLE IF EXISTS event_mapping`); err != nil {
+		return fmt.Errorf("drop event_mapping: %w", err)
+	}
+
+	// song_metaスキーマ移行: event_nameカラムがあればevent_id+bms_search_idに移行
+	if err := migrateSongMeta(db); err != nil {
+		return err
 	}
 
 	// URL書き換えルールのシードデータ投入（冪等）
@@ -197,6 +192,85 @@ func RunMigrations(db *sql.DB) error {
 		if _, err := db.Exec(`UPDATE difficulty_table SET sort_order = id`); err != nil {
 			return fmt.Errorf("init sort_order: %w", err)
 		}
+	}
+
+	return nil
+}
+
+// seedEvents はevents.csvからeventテーブルにシードデータを投入する（冪等）
+func seedEvents(db *sql.DB) error {
+	records, err := csv.NewReader(bytes.NewReader(eventsCSV)).ReadAll()
+	if err != nil {
+		return fmt.Errorf("events.csv パース失敗: %w", err)
+	}
+	for i, rec := range records {
+		if i == 0 {
+			continue // ヘッダー行スキップ
+		}
+		if len(rec) != 4 {
+			return fmt.Errorf("events.csv 行%d: 列数が不正 (%d)", i+1, len(rec))
+		}
+		bmsSearchID := rec[0]
+		name := rec[1]
+		shortName := rec[2]
+		year, err := strconv.Atoi(rec[3])
+		if err != nil {
+			return fmt.Errorf("events.csv 行%d: release_year変換失敗: %w", i+1, err)
+		}
+
+		// bms_search_idが空文字列の場合はNULLとして挿入
+		var searchIDParam interface{}
+		if bmsSearchID != "" {
+			searchIDParam = bmsSearchID
+		}
+
+		if _, err := db.Exec(
+			`INSERT OR IGNORE INTO event (bms_search_id, name, short_name, release_year) VALUES (?, ?, ?, ?)`,
+			searchIDParam, name, shortName, year,
+		); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// migrateSongMeta は旧song_meta（event_nameカラムあり）を新スキーマに移行する
+func migrateSongMeta(db *sql.DB) error {
+	var hasEventName int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('song_meta') WHERE name='event_name'`).Scan(&hasEventName)
+	if hasEventName == 0 {
+		// 新スキーマ（event_id, bms_search_id）または新規インストール — 移行不要
+		return nil
+	}
+
+	// 旧スキーマからの移行
+	if _, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS song_meta_new (
+			id              INTEGER PRIMARY KEY AUTOINCREMENT,
+			folder_hash     TEXT NOT NULL UNIQUE,
+			release_year    INTEGER,
+			event_id        INTEGER REFERENCES event(id),
+			bms_search_id   TEXT,
+			created_at      TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at      TEXT NOT NULL DEFAULT (datetime('now'))
+		)
+	`); err != nil {
+		return fmt.Errorf("create song_meta_new: %w", err)
+	}
+
+	if _, err := db.Exec(`
+		INSERT OR IGNORE INTO song_meta_new (id, folder_hash, release_year, created_at, updated_at)
+		SELECT id, folder_hash, release_year, created_at, updated_at FROM song_meta
+	`); err != nil {
+		return fmt.Errorf("copy song_meta data: %w", err)
+	}
+
+	if _, err := db.Exec(`DROP TABLE song_meta`); err != nil {
+		return fmt.Errorf("drop old song_meta: %w", err)
+	}
+
+	if _, err := db.Exec(`ALTER TABLE song_meta_new RENAME TO song_meta`); err != nil {
+		return fmt.Errorf("rename song_meta_new: %w", err)
 	}
 
 	return nil

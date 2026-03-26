@@ -59,9 +59,9 @@ func sortColumn(sortBy string) string {
 	case "chartCount":
 		return "sg.chart_count"
 	case "eventName":
-		return "sm.event_name"
+		return "ev.short_name"
 	case "releaseYear":
-		return "sm.release_year"
+		return "COALESCE(ev.release_year, sm.release_year)"
 	default:
 		return "sg.title"
 	}
@@ -116,7 +116,8 @@ func (r *SongdataReader) ListSongs(ctx context.Context, opts model.ListOptions) 
 		SELECT
 			sg.folder, sg.title, sg.artist, sg.genre,
 			sg.min_bpm, sg.max_bpm, sg.chart_count,
-			sm.release_year, sm.event_name,
+			COALESCE(ev.release_year, sm.release_year) AS release_year,
+			ev.short_name AS event_name,
 			EXISTS(
 				SELECT 1 FROM songdata.song ss
 				INNER JOIN main.chart_meta cm ON cm.md5 = ss.md5
@@ -125,6 +126,7 @@ func (r *SongdataReader) ListSongs(ctx context.Context, opts model.ListOptions) 
 			COUNT(*) OVER() AS total_count
 		FROM song_groups sg
 		LEFT JOIN main.song_meta sm ON sm.folder_hash = sg.folder
+		LEFT JOIN main.event ev ON sm.event_id = ev.id
 		WHERE (? = '' OR sg.title LIKE '%%' || ? || '%%'
 		       OR sg.artist LIKE '%%' || ? || '%%'
 		       OR sg.genre LIKE '%%' || ? || '%%')
@@ -213,7 +215,8 @@ func (r *SongdataReader) ListAllSongs(ctx context.Context) ([]model.Song, error)
 		SELECT
 			sg.folder, sg.title, sg.artist, sg.genre, sg.path,
 			sg.min_bpm, sg.max_bpm, sg.chart_count,
-			sm.release_year, sm.event_name,
+			COALESCE(ev.release_year, sm.release_year) AS release_year,
+			ev.short_name AS event_name,
 			EXISTS(
 				SELECT 1 FROM songdata.song ss
 				INNER JOIN main.chart_meta cm ON cm.md5 = ss.md5
@@ -221,6 +224,7 @@ func (r *SongdataReader) ListAllSongs(ctx context.Context) ([]model.Song, error)
 			) AS has_ir_meta
 		FROM song_groups sg
 		LEFT JOIN main.song_meta sm ON sm.folder_hash = sg.folder
+		LEFT JOIN main.event ev ON sm.event_id = ev.id
 		ORDER BY sg.title ASC
 	`
 
@@ -342,14 +346,28 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 		}
 	}
 
-	// song_metaがあれば付与
+	// song_meta + event情報を付与
 	meta, err := r.metaRepo.GetSongMeta(ctx, folderHash)
 	if err != nil {
 		return nil, fmt.Errorf("GetSongByFolder GetSongMeta: %w", err)
 	}
 	if meta != nil {
 		song.ReleaseYear = meta.ReleaseYear
-		song.EventName = meta.EventName
+		if meta.EventID != nil {
+			// eventテーブルからshort_nameとrelease_yearを取得
+			var evShortName sql.NullString
+			var evReleaseYear sql.NullInt64
+			_ = r.db.QueryRowContext(ctx,
+				`SELECT short_name, release_year FROM event WHERE id = ?`, *meta.EventID,
+			).Scan(&evShortName, &evReleaseYear)
+			if evShortName.Valid {
+				song.EventName = &evShortName.String
+			}
+			if evReleaseYear.Valid {
+				v := int(evReleaseYear.Int64)
+				song.ReleaseYear = &v
+			}
+		}
 	}
 
 	return song, nil
@@ -427,14 +445,15 @@ func (r *SongdataReader) ListAllCharts(ctx context.Context) ([]ChartListItem, er
 			s.maxbpm,
 			s.difficulty,
 			s.notes,
-			sm.event_name,
-			sm.release_year,
+			ev.short_name AS event_name,
+			COALESCE(ev.release_year, sm.release_year) AS release_year,
 			EXISTS(
 				SELECT 1 FROM main.chart_meta cm
 				WHERE cm.md5 = s.md5
 			) AS has_ir_meta
 		FROM songdata.song s
 		LEFT JOIN main.song_meta sm ON sm.folder_hash = s.folder
+		LEFT JOIN main.event ev ON sm.event_id = ev.id
 		WHERE s.md5 != ''
 		ORDER BY s.title ASC
 	`

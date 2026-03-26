@@ -41,11 +41,21 @@ type Chart struct {
 	DifficultyLabels []DifficultyLabel
 }
 
+// Event はBMSイベント（大会）
+type Event struct {
+	ID          int
+	BMSSearchID *string
+	Name        string
+	ShortName   string
+	ReleaseYear int
+}
+
 // SongMeta は楽曲レベルの追加メタデータ
 type SongMeta struct {
 	FolderHash  string
 	ReleaseYear *int
-	EventName   *string
+	EventID     *int
+	BMSSearchID *string
 }
 
 // ChartIRMeta はLR2IR + 動作URLメタデータ
@@ -66,25 +76,6 @@ type DifficultyLabel struct {
 	TableName string
 	Symbol    string
 	Level     string
-}
-
-// EventMapping はURLパターンとイベント名のマッピング
-type EventMapping struct {
-	ID          int
-	URLPattern  string
-	EventName   string
-	ReleaseYear int
-}
-
-// SongIRURLs は未設定曲のfolderHashと紐づくIR本体URLの集約
-type SongIRURLs struct {
-	FolderHash string
-	Title      string
-	Artist     string
-	Genre      string
-	BodyURLs   []string // この曲の全譜面のlr2ir_body_url（空文字列除く）
-	ChartCount int      // 総譜面数
-	IRCount    int      // IR取得済み譜面数
 }
 
 // RewriteRule はURL書き換えルール

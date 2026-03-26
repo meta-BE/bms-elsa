@@ -24,12 +24,12 @@ func NewElsaRepository(db *sql.DB) *ElsaRepository {
 
 func (r *ElsaRepository) GetSongMeta(ctx context.Context, folderHash string) (*model.SongMeta, error) {
 	row := r.db.QueryRowContext(ctx,
-		`SELECT folder_hash, release_year, event_name FROM song_meta WHERE folder_hash = ?`,
+		`SELECT folder_hash, release_year, event_id, bms_search_id FROM song_meta WHERE folder_hash = ?`,
 		folderHash,
 	)
 
 	var m model.SongMeta
-	if err := row.Scan(&m.FolderHash, &m.ReleaseYear, &m.EventName); err != nil {
+	if err := row.Scan(&m.FolderHash, &m.ReleaseYear, &m.EventID, &m.BMSSearchID); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -40,13 +40,14 @@ func (r *ElsaRepository) GetSongMeta(ctx context.Context, folderHash string) (*m
 
 func (r *ElsaRepository) UpsertSongMeta(ctx context.Context, meta model.SongMeta) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO song_meta (folder_hash, release_year, event_name)
-		 VALUES (?, ?, ?)
+		`INSERT INTO song_meta (folder_hash, release_year, event_id, bms_search_id)
+		 VALUES (?, ?, ?, ?)
 		 ON CONFLICT(folder_hash) DO UPDATE SET
-		   release_year = excluded.release_year,
-		   event_name   = excluded.event_name,
-		   updated_at   = datetime('now')`,
-		meta.FolderHash, meta.ReleaseYear, meta.EventName,
+		   release_year  = excluded.release_year,
+		   event_id      = excluded.event_id,
+		   bms_search_id = excluded.bms_search_id,
+		   updated_at    = datetime('now')`,
+		meta.FolderHash, meta.ReleaseYear, meta.EventID, meta.BMSSearchID,
 	)
 	return err
 }
@@ -176,42 +177,95 @@ func (r *ElsaRepository) BulkUpsertChartMeta(ctx context.Context, metas []model.
 	return tx.Commit()
 }
 
-func (r *ElsaRepository) ListEventMappings(ctx context.Context) ([]model.EventMapping, error) {
+func (r *ElsaRepository) ListEvents(ctx context.Context) ([]model.Event, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, url_pattern, event_name, release_year FROM event_mapping ORDER BY id`,
+		`SELECT id, bms_search_id, name, short_name, release_year FROM event ORDER BY release_year DESC, name`,
 	)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var mappings []model.EventMapping
+	var events []model.Event
 	for rows.Next() {
-		var m model.EventMapping
-		if err := rows.Scan(&m.ID, &m.URLPattern, &m.EventName, &m.ReleaseYear); err != nil {
+		var e model.Event
+		if err := rows.Scan(&e.ID, &e.BMSSearchID, &e.Name, &e.ShortName, &e.ReleaseYear); err != nil {
 			return nil, err
 		}
-		mappings = append(mappings, m)
+		events = append(events, e)
 	}
-	return mappings, rows.Err()
+	return events, rows.Err()
 }
 
-func (r *ElsaRepository) UpsertEventMapping(ctx context.Context, m model.EventMapping) error {
+func (r *ElsaRepository) GetEventByBMSSearchID(ctx context.Context, bmsSearchID string) (*model.Event, error) {
+	row := r.db.QueryRowContext(ctx,
+		`SELECT id, bms_search_id, name, short_name, release_year FROM event WHERE bms_search_id = ?`,
+		bmsSearchID,
+	)
+	var e model.Event
+	if err := row.Scan(&e.ID, &e.BMSSearchID, &e.Name, &e.ShortName, &e.ReleaseYear); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &e, nil
+}
+
+func (r *ElsaRepository) UpsertEventByBMSSearchID(ctx context.Context, e model.Event) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO event_mapping (url_pattern, event_name, release_year)
-		 VALUES (?, ?, ?)
-		 ON CONFLICT(url_pattern) DO UPDATE SET
-		   event_name   = excluded.event_name,
-		   release_year = excluded.release_year`,
-		m.URLPattern, m.EventName, m.ReleaseYear,
+		`INSERT INTO event (bms_search_id, name, short_name, release_year)
+		 VALUES (?, ?, ?, ?)
+		 ON CONFLICT(bms_search_id) DO UPDATE SET
+		   name         = excluded.name,
+		   short_name   = excluded.short_name,
+		   release_year = excluded.release_year,
+		   updated_at   = datetime('now')`,
+		e.BMSSearchID, e.Name, e.ShortName, e.ReleaseYear,
 	)
 	return err
 }
 
-func (r *ElsaRepository) DeleteEventMapping(ctx context.Context, id int) error {
+func (r *ElsaRepository) UpdateEventShortName(ctx context.Context, id int, shortName string) error {
 	_, err := r.db.ExecContext(ctx,
-		`DELETE FROM event_mapping WHERE id = ?`,
-		id,
+		`UPDATE event SET short_name = ?, updated_at = datetime('now') WHERE id = ?`,
+		shortName, id,
+	)
+	return err
+}
+
+func (r *ElsaRepository) ListFoldersWithoutEvent(ctx context.Context) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx, `
+		SELECT DISTINCT s.folder
+		FROM songdata.song s
+		LEFT JOIN song_meta sm ON s.folder = sm.folder_hash
+		WHERE sm.folder_hash IS NULL OR sm.event_id IS NULL
+		ORDER BY s.folder`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var folders []string
+	for rows.Next() {
+		var f string
+		if err := rows.Scan(&f); err != nil {
+			return nil, err
+		}
+		folders = append(folders, f)
+	}
+	return folders, rows.Err()
+}
+
+func (r *ElsaRepository) UpdateSongMetaEvent(ctx context.Context, folderHash string, eventID int, bmsSearchID string) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO song_meta (folder_hash, event_id, bms_search_id)
+		 VALUES (?, ?, ?)
+		 ON CONFLICT(folder_hash) DO UPDATE SET
+		   event_id      = excluded.event_id,
+		   bms_search_id = excluded.bms_search_id,
+		   updated_at    = datetime('now')`,
+		folderHash, eventID, bmsSearchID,
 	)
 	return err
 }
@@ -367,63 +421,6 @@ func (r *ElsaRepository) UpdateWavMinhash(ctx context.Context, md5 string, minha
 		md5, minhash,
 	)
 	return err
-}
-
-func (r *ElsaRepository) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.SongIRURLs, error) {
-	// songdata.db（sdスキーマ）とelsa.dbのクロスDB JOIN
-	// song_metaにレコードがない or (release_year IS NULL AND event_name IS NULL)の曲が対象
-	rows, err := r.db.QueryContext(ctx, `
-		WITH song_groups AS (
-			SELECT
-				s.folder AS folder_hash,
-				MIN(s.title) AS title,
-				MIN(s.artist) AS artist,
-				MIN(s.genre) AS genre,
-				COUNT(*) AS chart_count
-			FROM songdata.song s
-			GROUP BY s.folder
-		),
-		ir_urls AS (
-			SELECT
-				s.folder AS folder_hash,
-				cm.lr2ir_body_url,
-				CASE WHEN cm.lr2ir_fetched_at IS NOT NULL THEN 1 ELSE 0 END AS has_ir
-			FROM songdata.song s
-			LEFT JOIN chart_meta cm ON s.md5 = cm.md5
-		)
-		SELECT
-			sg.folder_hash, sg.title, sg.artist, sg.genre, sg.chart_count,
-			GROUP_CONCAT(DISTINCT iu.lr2ir_body_url) AS body_urls,
-			COALESCE(SUM(iu.has_ir), 0) AS ir_count
-		FROM song_groups sg
-		LEFT JOIN song_meta sm ON sg.folder_hash = sm.folder_hash
-		LEFT JOIN ir_urls iu ON sg.folder_hash = iu.folder_hash
-		WHERE sm.folder_hash IS NULL
-		   OR (sm.release_year IS NULL AND sm.event_name IS NULL)
-		GROUP BY sg.folder_hash
-		ORDER BY sg.title`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var results []model.SongIRURLs
-	for rows.Next() {
-		var r model.SongIRURLs
-		var bodyURLsStr sql.NullString
-		if err := rows.Scan(&r.FolderHash, &r.Title, &r.Artist, &r.Genre, &r.ChartCount, &bodyURLsStr, &r.IRCount); err != nil {
-			return nil, err
-		}
-		if bodyURLsStr.Valid && bodyURLsStr.String != "" {
-			for _, u := range strings.Split(bodyURLsStr.String, ",") {
-				if u != "" {
-					r.BodyURLs = append(r.BodyURLs, u)
-				}
-			}
-		}
-		results = append(results, r)
-	}
-	return results, rows.Err()
 }
 
 // FindMostSimilarByMinHash はクエリminhashに最も類似するレコードを返す（Go全件スキャン方式）

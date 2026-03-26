@@ -68,10 +68,12 @@ type MetaRepository interface {
 	UpsertChartMeta(ctx context.Context, meta ChartIRMeta) error
 	BulkUpsertChartMeta(ctx context.Context, metas []ChartIRMeta) error
 	UpdateWorkingURLs(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error
-	ListEventMappings(ctx context.Context) ([]EventMapping, error)
-	UpsertEventMapping(ctx context.Context, m EventMapping) error
-	DeleteEventMapping(ctx context.Context, id int) error
-	ListUnsetSongsWithIRURLs(ctx context.Context) ([]SongIRURLs, error)
+	ListEvents(ctx context.Context) ([]Event, error)
+	GetEventByBMSSearchID(ctx context.Context, bmsSearchID string) (*Event, error)
+	UpsertEventByBMSSearchID(ctx context.Context, e Event) error
+	UpdateEventShortName(ctx context.Context, id int, shortName string) error
+	ListFoldersWithoutEvent(ctx context.Context) ([]string, error)
+	UpdateSongMetaEvent(ctx context.Context, folderHash string, eventID int, bmsSearchID string) error
 	// IR未取得の譜面md5一覧（songdata.songベース）
 	ListUnfetchedChartMD5s(ctx context.Context) ([]string, error)
 	// 難易度表の未取得エントリmd5一覧
