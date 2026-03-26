@@ -94,6 +94,15 @@ func RunMigrations(db *sql.DB) error {
 		}
 	}
 
+	// event.urlカラムの追加（冪等、seedEventsより先に実行する必要あり）
+	var hasEventURL int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('event') WHERE name='url'`).Scan(&hasEventURL)
+	if hasEventURL == 0 {
+		if _, err := db.Exec(`ALTER TABLE event ADD COLUMN url TEXT NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("add event url column: %w", err)
+		}
+	}
+
 	// events.csvからシードデータを投入（冪等）
 	if err := seedEvents(db); err != nil {
 		return err
@@ -198,15 +207,6 @@ func RunMigrations(db *sql.DB) error {
 	// song_meta.event_id: INTEGER(event.id参照) → TEXT(event.bms_search_id)への移行（冪等）
 	if err := migrateSongMetaEventIDToText(db); err != nil {
 		return err
-	}
-
-	// event.urlカラムの追加（冪等）
-	var hasEventURL int
-	_ = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('event') WHERE name='url'`).Scan(&hasEventURL)
-	if hasEventURL == 0 {
-		if _, err := db.Exec(`ALTER TABLE event ADD COLUMN url TEXT NOT NULL DEFAULT ''`); err != nil {
-			return fmt.Errorf("add event url column: %w", err)
-		}
 	}
 
 	return nil
