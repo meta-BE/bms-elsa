@@ -40,6 +40,7 @@
   let dtSettingsComponent: DifficultyTableSettings
   let refreshingSingle = false
   let refreshDoneMessage = ''
+  let refreshDoneSuccess = true
   let refreshDoneTimer: ReturnType<typeof setTimeout> | null = null
 
   const columns: ColumnDef<dto.DifficultyTableEntryDTO>[] = [
@@ -210,6 +211,7 @@
     if (refreshDoneTimer) { clearTimeout(refreshDoneTimer); refreshDoneTimer = null }
     try {
       const result = await RefreshDifficultyTable(selectedTableId)
+      refreshDoneSuccess = result.success
       if (result.success) {
         refreshDoneMessage = `${result.entryCount}件更新`
       } else {
@@ -219,6 +221,7 @@
       // テーブル一覧も更新（entryCountやfetchedAtが変わるため）
       tables = (await ListDifficultyTables()) || []
     } catch (e: any) {
+      refreshDoneSuccess = false
       refreshDoneMessage = e?.message || '更新失敗'
     } finally {
       refreshingSingle = false
@@ -265,7 +268,7 @@
           <Icon name="arrowPath" cls="w-4 h-4 {refreshingSingle ? 'animate-spin' : ''}" />
         </button>
         {#if refreshDoneMessage}
-          <span class="text-xs text-success">{refreshDoneMessage}</span>
+          <span class="text-xs {refreshDoneSuccess ? 'text-success' : 'text-error'}">{refreshDoneMessage}</span>
         {/if}
       </div>
       <div class="flex items-center gap-2">
