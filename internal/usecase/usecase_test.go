@@ -46,16 +46,12 @@ func (m *mockSongRepo) ListSongGroupsForDuplicateScan(_ context.Context) ([]mode
 }
 
 type mockMetaRepo struct {
-	getSongMetaFunc              func(ctx context.Context, folderHash string) (*model.SongMeta, error)
-	upsertSongMetaFunc           func(ctx context.Context, meta model.SongMeta) error
-	getChartMetaFunc             func(ctx context.Context, md5 string) (*model.ChartIRMeta, error)
-	upsertChartMetaFunc          func(ctx context.Context, meta model.ChartIRMeta) error
-	bulkUpsertChartMetaFunc      func(ctx context.Context, metas []model.ChartIRMeta) error
-	updateWorkingURLsFunc        func(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error
-	listEventMappingsFunc        func(ctx context.Context) ([]model.EventMapping, error)
-	upsertEventMappingFunc       func(ctx context.Context, m model.EventMapping) error
-	deleteEventMappingFunc       func(ctx context.Context, id int) error
-	listUnsetSongsWithIRURLsFunc func(ctx context.Context) ([]model.SongIRURLs, error)
+	getSongMetaFunc         func(ctx context.Context, folderHash string) (*model.SongMeta, error)
+	upsertSongMetaFunc      func(ctx context.Context, meta model.SongMeta) error
+	getChartMetaFunc        func(ctx context.Context, md5 string) (*model.ChartIRMeta, error)
+	upsertChartMetaFunc     func(ctx context.Context, meta model.ChartIRMeta) error
+	bulkUpsertChartMetaFunc func(ctx context.Context, metas []model.ChartIRMeta) error
+	updateWorkingURLsFunc   func(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error
 }
 
 func (m *mockMetaRepo) GetSongMeta(ctx context.Context, folderHash string) (*model.SongMeta, error) {
@@ -82,20 +78,28 @@ func (m *mockMetaRepo) UpdateWorkingURLs(ctx context.Context, md5, workingBodyUR
 	return m.updateWorkingURLsFunc(ctx, md5, workingBodyURL, workingDiffURL)
 }
 
-func (m *mockMetaRepo) ListEventMappings(ctx context.Context) ([]model.EventMapping, error) {
-	return m.listEventMappingsFunc(ctx)
+func (m *mockMetaRepo) ListEvents(_ context.Context) ([]model.Event, error) {
+	return nil, nil
 }
 
-func (m *mockMetaRepo) UpsertEventMapping(ctx context.Context, em model.EventMapping) error {
-	return m.upsertEventMappingFunc(ctx, em)
+func (m *mockMetaRepo) GetEventByBMSSearchID(_ context.Context, _ string) (*model.Event, error) {
+	return nil, nil
 }
 
-func (m *mockMetaRepo) DeleteEventMapping(ctx context.Context, id int) error {
-	return m.deleteEventMappingFunc(ctx, id)
+func (m *mockMetaRepo) UpsertEventByBMSSearchID(_ context.Context, _ model.Event) error {
+	return nil
 }
 
-func (m *mockMetaRepo) ListUnsetSongsWithIRURLs(ctx context.Context) ([]model.SongIRURLs, error) {
-	return m.listUnsetSongsWithIRURLsFunc(ctx)
+func (m *mockMetaRepo) UpdateEventShortName(_ context.Context, _ int, _ string) error {
+	return nil
+}
+
+func (m *mockMetaRepo) ListFoldersWithoutEvent(_ context.Context) ([]string, error) {
+	return nil, nil
+}
+
+func (m *mockMetaRepo) UpdateSongMetaEvent(_ context.Context, _ string, _ int, _ string) error {
+	return nil
 }
 
 func (m *mockMetaRepo) ListUnfetchedChartMD5s(_ context.Context) ([]string, error) {

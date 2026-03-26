@@ -41,7 +41,7 @@ func main() {
 			app,
 			app.SongHandler,
 			app.IRHandler,
-			app.InferenceHandler,
+			app.EventHandler,
 			app.RewriteHandler,
 			app.ChartHandler,
 			app.DifficultyTableHandler,

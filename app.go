@@ -27,7 +27,7 @@ type App struct {
 	logger                 *logger.FileLogger
 	SongHandler            *internalapp.SongHandler
 	IRHandler              *internalapp.IRHandler
-	InferenceHandler       *internalapp.InferenceHandler
+	EventHandler           *internalapp.EventHandler
 	RewriteHandler         *internalapp.RewriteHandler
 	ChartHandler           *internalapp.ChartHandler
 	DifficultyTableHandler *internalapp.DifficultyTableHandler
@@ -101,8 +101,9 @@ func (a *App) Init() error {
 	a.SongHandler = internalapp.NewSongHandler(listSongs, getSongDetail, updateSongMeta, moveSongFolder)
 	a.IRHandler = internalapp.NewIRHandler(lookupIR, bulkFetchIR, updateChartMeta, elsaRepo)
 
-	inferMeta := usecase.NewInferSongMetaUseCase(elsaRepo)
-	a.InferenceHandler = internalapp.NewInferenceHandler(inferMeta, elsaRepo)
+	bmsSearchClient := gateway.NewBMSSearchClient()
+	syncBMSSearch := usecase.NewSyncBMSSearchUseCase(bmsSearchClient, elsaRepo)
+	a.EventHandler = internalapp.NewEventHandler(bmsSearchClient, syncBMSSearch, elsaRepo, songdataReader)
 
 	inferWorkingURLs := usecase.NewInferWorkingURLUseCase(elsaRepo)
 	a.RewriteHandler = internalapp.NewRewriteHandler(inferWorkingURLs, elsaRepo)
@@ -125,7 +126,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.SongHandler.SetContext(ctx)
 	a.IRHandler.SetContext(ctx)
-	a.InferenceHandler.SetContext(ctx)
+	a.EventHandler.SetContext(ctx)
 	a.RewriteHandler.SetContext(ctx)
 	a.ChartHandler.SetContext(ctx)
 	a.DifficultyTableHandler.SetContext(ctx)
