@@ -12,17 +12,26 @@
     type FilterFn,
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
-  import { onMount, createEventDispatcher } from 'svelte'
+  import { onMount, onDestroy, createEventDispatcher } from 'svelte'
   import { ListAllSongs } from '../../wailsjs/go/app/SongHandler'
   import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
   import SortableHeader from '../components/SortableHeader.svelte'
   import { InferWorkingURLs } from '../../wailsjs/go/app/RewriteHandler'
+  import { StartBMSSearchSync, StopBMSSearchSync, IsSyncing } from '../../wailsjs/go/app/EventHandler'
+  import { EventsOn } from '../../wailsjs/runtime/runtime'
   import { handleArrowNav } from '../utils/arrowNav'
   import Icon from '../components/Icon.svelte'
 
   let inferringUrls = false
   let inferUrlResult = ''
+
+  let syncing = false
+  let syncProgress = { current: 0, total: 0 }
+  let syncDoneMessage = ''
+  let syncDoneTimer: ReturnType<typeof setTimeout> | null = null
+  let offSyncProgress: (() => void) | null = null
+  let offSyncDone: (() => void) | null = null
 
   const dispatch = createEventDispatcher<{ select: string; deselect: void }>()
 
@@ -168,7 +177,51 @@
     }
   }
 
-  onMount(() => { loadSongs() })
+  async function startSync() {
+    syncing = true
+    syncProgress = { current: 0, total: 0 }
+    syncDoneMessage = ''
+    if (syncDoneTimer) { clearTimeout(syncDoneTimer); syncDoneTimer = null }
+    try {
+      await StartBMSSearchSync()
+    } catch (e: any) {
+      syncing = false
+      syncDoneMessage = e?.message || '同期に失敗しました'
+    }
+  }
+
+  function stopSync() {
+    StopBMSSearchSync()
+  }
+
+  onMount(async () => {
+    loadSongs()
+
+    const running = await IsSyncing()
+    if (running) syncing = true
+
+    offSyncProgress = EventsOn('bmssearch:sync-progress', (data: { current: number; total: number }) => {
+      if (!syncing) return
+      syncProgress = { current: data.current, total: data.total }
+    })
+    offSyncDone = EventsOn('bmssearch:sync-done', (data: { total: number; synced: number; notFound: number; cancelled: boolean }) => {
+      if (!syncing) return
+      syncing = false
+      const parts: string[] = []
+      if (data.synced > 0) parts.push(`${data.synced}件紐付け`)
+      if (data.notFound > 0) parts.push(`${data.notFound}件未登録`)
+      if (data.cancelled) parts.push('中断')
+      syncDoneMessage = parts.join(', ') || '完了'
+      syncDoneTimer = setTimeout(() => { syncDoneMessage = '' }, 5000)
+      loadSongs()
+    })
+  })
+
+  onDestroy(() => {
+    offSyncProgress?.()
+    offSyncDone?.()
+    if (syncDoneTimer) clearTimeout(syncDoneTimer)
+  })
 </script>
 
 <svelte:window on:keydown={handleKeyNav} />
@@ -186,6 +239,16 @@
     <div class="flex items-center gap-2">
       {#if inferUrlResult}
         <span class="text-xs text-success">{inferUrlResult}</span>
+      {/if}
+      {#if syncing}
+        <span class="text-xs text-base-content/70">
+          同期中: {syncProgress.current.toLocaleString()} / {syncProgress.total.toLocaleString()}
+        </span>
+        <button class="btn btn-xs btn-error btn-outline" on:click|stopPropagation={stopSync}>停止</button>
+      {:else if syncDoneMessage}
+        <span class="text-xs text-success">{syncDoneMessage}</span>
+      {:else}
+        <button class="btn btn-xs btn-outline" on:click|stopPropagation={startSync}>BMS Search同期</button>
       {/if}
       <button
         class="btn btn-xs btn-outline"
