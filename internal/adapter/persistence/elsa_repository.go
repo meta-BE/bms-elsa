@@ -239,7 +239,7 @@ func (r *ElsaRepository) ListFoldersWithoutEvent(ctx context.Context) ([]string,
 		SELECT DISTINCT s.folder
 		FROM songdata.song s
 		LEFT JOIN song_meta sm ON s.folder = sm.folder_hash
-		WHERE sm.folder_hash IS NULL OR sm.event_id IS NULL
+		WHERE sm.folder_hash IS NULL OR (sm.event_id IS NULL AND sm.bms_search_id IS NULL)
 		ORDER BY s.folder`)
 	if err != nil {
 		return nil, err
