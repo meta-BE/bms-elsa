@@ -179,7 +179,7 @@ func (r *ElsaRepository) BulkUpsertChartMeta(ctx context.Context, metas []model.
 
 func (r *ElsaRepository) ListEvents(ctx context.Context) ([]model.Event, error) {
 	rows, err := r.db.QueryContext(ctx,
-		`SELECT id, bms_search_id, name, short_name, release_year FROM event ORDER BY release_year DESC, name`,
+		`SELECT id, bms_search_id, name, short_name, release_year, url FROM event ORDER BY release_year DESC, name`,
 	)
 	if err != nil {
 		return nil, err
@@ -189,7 +189,7 @@ func (r *ElsaRepository) ListEvents(ctx context.Context) ([]model.Event, error) 
 	var events []model.Event
 	for rows.Next() {
 		var e model.Event
-		if err := rows.Scan(&e.ID, &e.BMSSearchID, &e.Name, &e.ShortName, &e.ReleaseYear); err != nil {
+		if err := rows.Scan(&e.ID, &e.BMSSearchID, &e.Name, &e.ShortName, &e.ReleaseYear, &e.URL); err != nil {
 			return nil, err
 		}
 		events = append(events, e)
@@ -199,11 +199,11 @@ func (r *ElsaRepository) ListEvents(ctx context.Context) ([]model.Event, error) 
 
 func (r *ElsaRepository) GetEventByBMSSearchID(ctx context.Context, bmsSearchID string) (*model.Event, error) {
 	row := r.db.QueryRowContext(ctx,
-		`SELECT id, bms_search_id, name, short_name, release_year FROM event WHERE bms_search_id = ?`,
+		`SELECT id, bms_search_id, name, short_name, release_year, url FROM event WHERE bms_search_id = ?`,
 		bmsSearchID,
 	)
 	var e model.Event
-	if err := row.Scan(&e.ID, &e.BMSSearchID, &e.Name, &e.ShortName, &e.ReleaseYear); err != nil {
+	if err := row.Scan(&e.ID, &e.BMSSearchID, &e.Name, &e.ShortName, &e.ReleaseYear, &e.URL); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -214,14 +214,15 @@ func (r *ElsaRepository) GetEventByBMSSearchID(ctx context.Context, bmsSearchID 
 
 func (r *ElsaRepository) UpsertEventByBMSSearchID(ctx context.Context, e model.Event) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO event (bms_search_id, name, short_name, release_year)
-		 VALUES (?, ?, ?, ?)
+		`INSERT INTO event (bms_search_id, name, short_name, release_year, url)
+		 VALUES (?, ?, ?, ?, ?)
 		 ON CONFLICT(bms_search_id) DO UPDATE SET
 		   name         = excluded.name,
 		   short_name   = excluded.short_name,
 		   release_year = excluded.release_year,
+		   url          = CASE WHEN excluded.url != '' THEN excluded.url ELSE event.url END,
 		   updated_at   = datetime('now')`,
-		e.BMSSearchID, e.Name, e.ShortName, e.ReleaseYear,
+		e.BMSSearchID, e.Name, e.ShortName, e.ReleaseYear, e.URL,
 	)
 	return err
 }

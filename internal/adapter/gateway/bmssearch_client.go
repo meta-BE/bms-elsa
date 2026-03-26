@@ -43,6 +43,11 @@ type BMSSearchExhibitionDetail struct {
 			StartsAt string `json:"startsAt"`
 		} `json:"entry"`
 	} `json:"terms"`
+	LinkedProfile *struct {
+		Websites []struct {
+			URL string `json:"url"`
+		} `json:"websites"`
+	} `json:"linkedProfile"`
 	CreatedAt string `json:"createdAt"`
 }
 

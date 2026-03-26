@@ -25,6 +25,7 @@ func RunMigrations(db *sql.DB) error {
 			name           TEXT NOT NULL,
 			short_name     TEXT NOT NULL,
 			release_year   INTEGER NOT NULL,
+			url            TEXT NOT NULL DEFAULT '',
 			created_at     TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at     TEXT NOT NULL DEFAULT (datetime('now'))
 		)`,
@@ -199,6 +200,15 @@ func RunMigrations(db *sql.DB) error {
 		return err
 	}
 
+	// event.urlカラムの追加（冪等）
+	var hasEventURL int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('event') WHERE name='url'`).Scan(&hasEventURL)
+	if hasEventURL == 0 {
+		if _, err := db.Exec(`ALTER TABLE event ADD COLUMN url TEXT NOT NULL DEFAULT ''`); err != nil {
+			return fmt.Errorf("add event url column: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -212,7 +222,7 @@ func seedEvents(db *sql.DB) error {
 		if i == 0 {
 			continue // ヘッダー行スキップ
 		}
-		if len(rec) != 4 {
+		if len(rec) != 4 && len(rec) != 5 {
 			return fmt.Errorf("events.csv 行%d: 列数が不正 (%d)", i+1, len(rec))
 		}
 		bmsSearchID := rec[0]
@@ -222,6 +232,10 @@ func seedEvents(db *sql.DB) error {
 		if err != nil {
 			return fmt.Errorf("events.csv 行%d: release_year変換失敗: %w", i+1, err)
 		}
+		url := ""
+		if len(rec) == 5 {
+			url = rec[4]
+		}
 
 		// bms_search_idが空文字列の場合はNULLとして挿入
 		var searchIDParam interface{}
@@ -230,8 +244,8 @@ func seedEvents(db *sql.DB) error {
 		}
 
 		if _, err := db.Exec(
-			`INSERT OR IGNORE INTO event (bms_search_id, name, short_name, release_year) VALUES (?, ?, ?, ?)`,
-			searchIDParam, name, shortName, year,
+			`INSERT OR IGNORE INTO event (bms_search_id, name, short_name, release_year, url) VALUES (?, ?, ?, ?, ?)`,
+			searchIDParam, name, shortName, year, url,
 		); err != nil {
 			return err
 		}

@@ -16,6 +16,7 @@ type Song struct {
 	ReleaseYear *int
 	EventName   *string
 	EventID     *string
+	BMSSearchID *string
 	// 一覧表示用の集約フィールド（リポジトリが設定）
 	ChartCount int
 	HasIRMeta  bool
@@ -49,6 +50,7 @@ type Event struct {
 	Name        string
 	ShortName   string
 	ReleaseYear int
+	URL         string
 }
 
 // SongMeta は楽曲レベルの追加メタデータ

@@ -55,6 +55,7 @@ func (h *EventHandler) ListEvents() ([]dto.EventDTO, error) {
 			Name:        e.Name,
 			ShortName:   e.ShortName,
 			ReleaseYear: e.ReleaseYear,
+			URL:         e.URL,
 		}
 	}
 	return result, nil
@@ -74,11 +75,18 @@ func (h *EventHandler) RefreshEventsFromBMSSearch() (int, error) {
 
 	added := 0
 	for _, ex := range exhibitions {
+		url := extractExhibitionURL(ex)
+
 		existing, err := h.metaRepo.GetEventByBMSSearchID(h.ctx, ex.ID)
 		if err != nil {
 			continue
 		}
 		if existing != nil {
+			// 既存イベントでもURLが未設定なら更新
+			if url != "" && existing.URL == "" {
+				existing.URL = url
+				_ = h.metaRepo.UpsertEventByBMSSearchID(h.ctx, *existing)
+			}
 			continue
 		}
 
@@ -88,6 +96,7 @@ func (h *EventHandler) RefreshEventsFromBMSSearch() (int, error) {
 			Name:        ex.Name,
 			ShortName:   ex.Name,
 			ReleaseYear: year,
+			URL:         url,
 		})
 		if err == nil {
 			added++
@@ -176,6 +185,14 @@ func (h *EventHandler) IsSyncing() bool {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	return h.running
+}
+
+// extractExhibitionURL はイベントのURLを抽出する
+func extractExhibitionURL(ex gateway.BMSSearchExhibitionDetail) string {
+	if ex.LinkedProfile != nil && len(ex.LinkedProfile.Websites) > 0 {
+		return ex.LinkedProfile.Websites[0].URL
+	}
+	return ""
 }
 
 // extractExhibitionYear はイベントの開催年を抽出する

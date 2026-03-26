@@ -354,6 +354,7 @@ func (r *SongdataReader) GetSongByFolder(ctx context.Context, folderHash string)
 	if meta != nil {
 		song.ReleaseYear = meta.ReleaseYear
 		song.EventID = meta.EventID
+		song.BMSSearchID = meta.BMSSearchID
 		if meta.EventID != nil {
 			// eventテーブルからshort_nameとrelease_yearを取得
 			var evShortName sql.NullString
