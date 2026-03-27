@@ -94,6 +94,10 @@ func (m *mockMetaRepo) UpdateEventShortName(_ context.Context, _ int, _ string) 
 	return nil
 }
 
+func (m *mockMetaRepo) UpdateEventReleaseYear(_ context.Context, _ int, _ int) error {
+	return nil
+}
+
 func (m *mockMetaRepo) ListFoldersWithoutEvent(_ context.Context) ([]string, error) {
 	return nil, nil
 }

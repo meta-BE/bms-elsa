@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { ListEvents, UpdateEventShortName, RefreshEventsFromBMSSearch } from '../../wailsjs/go/app/EventHandler'
+  import { ListEvents, UpdateEventShortName, UpdateEventReleaseYear, RefreshEventsFromBMSSearch } from '../../wailsjs/go/app/EventHandler'
 
   const dispatch = createEventDispatcher()
 
@@ -27,6 +27,12 @@
   async function handleShortNameChange(id: number, value: string) {
     if (!value.trim()) return
     await UpdateEventShortName(id, value.trim())
+  }
+
+  async function handleReleaseYearChange(id: number, value: string) {
+    const year = parseInt(value)
+    if (isNaN(year)) return
+    await UpdateEventReleaseYear(id, year)
   }
 
   async function handleRefresh() {
@@ -78,7 +84,14 @@
           <tbody>
             {#each events as ev (ev.id)}
               <tr>
-                <td class="text-xs text-center">{ev.releaseYear}</td>
+                <td>
+                  <input
+                    class="input input-xs input-bordered w-16 text-center"
+                    type="number"
+                    value={ev.releaseYear}
+                    on:blur={(e) => handleReleaseYearChange(ev.id, e.currentTarget.value)}
+                  />
+                </td>
                 <td class="text-xs max-w-xs truncate" title={ev.name}>{ev.name}</td>
                 <td>
                   <input

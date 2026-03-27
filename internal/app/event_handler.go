@@ -68,6 +68,11 @@ func (h *EventHandler) UpdateEventShortName(id int, shortName string) error {
 	return h.metaRepo.UpdateEventShortName(h.ctx, id, shortName)
 }
 
+// UpdateEventReleaseYear はイベントのリリース年を更新する
+func (h *EventHandler) UpdateEventReleaseYear(id int, releaseYear int) error {
+	return h.metaRepo.UpdateEventReleaseYear(h.ctx, id, releaseYear)
+}
+
 // RefreshEventsFromBMSSearch はBMS Searchからイベント一覧を取得してDBに反映し、追加件数を返す
 func (h *EventHandler) RefreshEventsFromBMSSearch() (int, error) {
 	exhibitions, err := h.bmsClient.FetchAllExhibitions(h.ctx)

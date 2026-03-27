@@ -235,6 +235,14 @@ func (r *ElsaRepository) UpdateEventShortName(ctx context.Context, id int, short
 	return err
 }
 
+func (r *ElsaRepository) UpdateEventReleaseYear(ctx context.Context, id int, releaseYear int) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE event SET release_year = ?, updated_at = datetime('now') WHERE id = ?`,
+		releaseYear, id,
+	)
+	return err
+}
+
 func (r *ElsaRepository) ListFoldersWithoutEvent(ctx context.Context) ([]string, error) {
 	rows, err := r.db.QueryContext(ctx, `
 		SELECT DISTINCT s.folder

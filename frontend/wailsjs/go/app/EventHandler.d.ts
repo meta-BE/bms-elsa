@@ -15,4 +15,6 @@ export function StartBMSSearchSync():Promise<void>;
 
 export function StopBMSSearchSync():Promise<void>;
 
+export function UpdateEventReleaseYear(arg1:number,arg2:number):Promise<void>;
+
 export function UpdateEventShortName(arg1:number,arg2:string):Promise<void>;

@@ -72,6 +72,7 @@ type MetaRepository interface {
 	GetEventByBMSSearchID(ctx context.Context, bmsSearchID string) (*Event, error)
 	UpsertEventByBMSSearchID(ctx context.Context, e Event) error
 	UpdateEventShortName(ctx context.Context, id int, shortName string) error
+	UpdateEventReleaseYear(ctx context.Context, id int, releaseYear int) error
 	ListFoldersWithoutEvent(ctx context.Context) ([]string, error)
 	UpdateSongMetaEvent(ctx context.Context, folderHash string, eventID string, bmsSearchID string) error
 	// IR未取得の譜面md5一覧（songdata.songベース）

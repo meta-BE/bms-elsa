@@ -26,6 +26,10 @@ export function StopBMSSearchSync() {
   return window['go']['app']['EventHandler']['StopBMSSearchSync']();
 }
 
+export function UpdateEventReleaseYear(arg1, arg2) {
+  return window['go']['app']['EventHandler']['UpdateEventReleaseYear'](arg1, arg2);
+}
+
 export function UpdateEventShortName(arg1, arg2) {
   return window['go']['app']['EventHandler']['UpdateEventShortName'](arg1, arg2);
 }
