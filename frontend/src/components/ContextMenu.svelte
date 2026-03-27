@@ -1,6 +1,6 @@
 <script lang="ts">
   import { ClipboardGetText, ClipboardSetText } from '../../wailsjs/runtime/runtime'
-  import { onMount, onDestroy } from 'svelte'
+  import { onMount, onDestroy, tick } from 'svelte'
   import { OpenURL } from '../../wailsjs/go/main/App'
 
   type MenuItem = {
@@ -9,7 +9,7 @@
     disabled: boolean
   }
 
-  let visible = false
+  let menuEl: HTMLDivElement
   let x = 0
   let y = 0
   let linkItems: MenuItem[] = []
@@ -74,7 +74,7 @@
     }
   }
 
-  function handleContextMenu(e: MouseEvent) {
+  async function handleContextMenu(e: MouseEvent) {
     // devモードではブラウザデフォルトメニューを表示
     if (import.meta.env.DEV) return
 
@@ -183,17 +183,23 @@
     x = e.clientX + menuWidth > window.innerWidth ? e.clientX - menuWidth : e.clientX
     y = e.clientY + menuHeight > window.innerHeight ? e.clientY - menuHeight : e.clientY
 
-    visible = true
+    if (menuEl?.matches(':popover-open')) {
+      menuEl.hidePopover()
+    }
+    await tick()
+    menuEl.showPopover()
   }
 
   function close() {
-    visible = false
+    if (menuEl?.matches(':popover-open')) {
+      menuEl.hidePopover()
+    }
   }
 
   // captureフェーズでmousedownを検知してメニューを閉じる
   // （stopPropagationされたイベントでも確実に閉じるため）
   function handleGlobalMouseDown(e: MouseEvent) {
-    if (!visible) return
+    if (!menuEl?.matches(':popover-open')) return
     const menu = document.querySelector('[data-context-menu]')
     if (menu && menu.contains(e.target as Node)) return
     close()
@@ -227,13 +233,14 @@
   }
 </script>
 
-{#if visible}
-  <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
-  <div
-    data-context-menu
-    class="fixed z-[9999] bg-base-100 border border-base-300 rounded-box shadow-lg py-1 w-fit"
-    style="left: {x}px; top: {y}px;"
-  >
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
+<div
+  bind:this={menuEl}
+  popover="manual"
+  data-context-menu
+  class="fixed bg-base-100 border border-base-300 rounded-box shadow-lg py-1 w-fit m-0"
+  style="left: {x}px; top: {y}px;"
+>
     {#each linkItems as item}
       <button
         class="block w-full text-left px-4 py-1.5 text-sm whitespace-nowrap transition-colors
@@ -258,4 +265,3 @@
       </button>
     {/each}
   </div>
-{/if}
