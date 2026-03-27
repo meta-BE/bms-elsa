@@ -2,6 +2,8 @@ package app
 
 import (
 	"context"
+	"regexp"
+	"strconv"
 	"sync"
 	"time"
 
@@ -196,16 +198,34 @@ func extractExhibitionURL(ex gateway.BMSSearchExhibitionDetail) string {
 }
 
 // extractExhibitionYear はイベントの開催年を抽出する
+// 優先順: entry.startsAt → impression.startsAt → イベント名から年号抽出 → createdAt
 func extractExhibitionYear(ex gateway.BMSSearchExhibitionDetail) int {
-	if ex.Terms != nil && ex.Terms.Entry != nil && ex.Terms.Entry.StartsAt != "" {
-		t, err := time.Parse(time.RFC3339, ex.Terms.Entry.StartsAt)
-		if err == nil {
-			return t.Year()
+	if ex.Terms != nil {
+		if ex.Terms.Entry != nil && ex.Terms.Entry.StartsAt != "" {
+			if t, err := time.Parse(time.RFC3339, ex.Terms.Entry.StartsAt); err == nil {
+				return t.Year()
+			}
+		}
+		if ex.Terms.Impression != nil && ex.Terms.Impression.StartsAt != "" {
+			if t, err := time.Parse(time.RFC3339, ex.Terms.Impression.StartsAt); err == nil {
+				return t.Year()
+			}
+		}
+	}
+	// イベント名から4桁の年号を抽出（例: "BOFU2016" → 2016）
+	if m := regexp.MustCompile(`(19|20)\d{2}`).FindString(ex.Name); m != "" {
+		if y, err := strconv.Atoi(m); err == nil {
+			return y
+		}
+	}
+	// 2桁の年号（例: "BMSをたくさん作るぜ'24" → 2024）
+	if m := regexp.MustCompile(`'(\d{2})`).FindStringSubmatch(ex.Name); len(m) == 2 {
+		if y, err := strconv.Atoi(m[1]); err == nil {
+			return 2000 + y
 		}
 	}
 	if ex.CreatedAt != "" {
-		t, err := time.Parse(time.RFC3339, ex.CreatedAt)
-		if err == nil {
+		if t, err := time.Parse(time.RFC3339, ex.CreatedAt); err == nil {
 			return t.Year()
 		}
 	}
