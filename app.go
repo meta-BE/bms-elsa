@@ -133,6 +133,10 @@ func (a *App) startup(ctx context.Context) {
 	a.ScanHandler.SetContext(ctx)
 	a.DiffImportHandler.SetContext(ctx)
 	a.DuplicateHandler.SetContext(ctx)
+
+	// バックグラウンドタスクを並列起動
+	a.ScanHandler.StartMinHashScan()
+	a.DifficultyTableHandler.RefreshAllDifficultyTablesAsync()
 }
 
 func (a *App) shutdown(ctx context.Context) {
