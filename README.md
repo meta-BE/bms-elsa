@@ -101,7 +101,7 @@ bms-elsa/
 │   └── app/                    # Wailsバインディング層（ハンドラー + DTO）
 ├── frontend/                   # Svelte + TypeScript
 │   └── src/
-│       ├── components/         # 共有UIコンポーネント（ProgressBar等）
+│       ├── components/         # 共有UIコンポーネント
 │       ├── views/              # タブ画面・詳細パネル
 │       ├── settings/           # 設定系モーダル
 │       └── utils/              # ユーティリティ関数
