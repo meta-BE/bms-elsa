@@ -63,7 +63,7 @@
 </script>
 
 {#if fetching}
-  <div class="flex-1">
+  <div class="w-56">
     <ProgressBar current={progress.current} total={progress.total} cancelable on:cancel={stop} />
   </div>
 {:else if doneMessage}

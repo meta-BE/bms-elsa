@@ -225,7 +225,7 @@
     <span class="text-sm font-semibold shrink-0">
       {#if loading}Loading...{:else}{rows.length.toLocaleString()} songs{/if}
     </span>
-    <div class="flex items-center gap-2" class:flex-1={syncing}>
+    <div class="flex items-center gap-2" style:width={syncing ? '50%' : null}>
       {#if syncing}
         <ProgressBar current={syncProgress.current} total={syncProgress.total} cancelable on:cancel={stopSync} />
       {:else if syncDoneMessage}

@@ -188,7 +188,7 @@
     {/if}
 
     {#if tables.length > 0}
-      <div class="flex items-center gap-2 mt-2" class:flex-1={refreshing}>
+      <div class="flex items-center gap-2 mt-2">
         {#if refreshing}
           <ProgressBar current={refreshProgress.current} total={refreshProgress.total} cancelable on:cancel={handleStopRefresh} />
         {:else}

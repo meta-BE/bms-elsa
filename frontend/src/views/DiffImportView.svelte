@@ -119,7 +119,7 @@
         ({importableCount} 件導入可能)
       {/if}
     </span>
-    <div class="flex items-center gap-2" class:flex-1={estimating}>
+    <div class="flex items-center gap-2" style:width={estimating ? '50%' : null}>
       {#if estimating}
         <ProgressBar current={estimateProgress.current} total={estimateProgress.total} cancelable on:cancel={handleStopEstimate} />
       {/if}
