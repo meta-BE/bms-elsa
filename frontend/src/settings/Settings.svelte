@@ -23,6 +23,7 @@
   let dtError = ''
 
   let rewriteState: 'running' | 'done' | 'error' = 'done'
+  let rewriteProgress = { current: 0, total: 0 }
   let rewriteError = ''
   let rewriteResult = ''
 
@@ -86,6 +87,7 @@
   let offScanDone: (() => void) | null = null
   let offDtProgress: (() => void) | null = null
   let offDtDone: (() => void) | null = null
+  let offRewriteProgress: (() => void) | null = null
   let offRewriteDone: (() => void) | null = null
 
   onMount(() => {
@@ -118,6 +120,10 @@
         dtState = 'done'
       }
     })
+    offRewriteProgress = EventsOn('rewrite:progress', (data: { current: number; total: number }) => {
+      rewriteState = 'running'
+      rewriteProgress = data
+    })
     offRewriteDone = EventsOn('rewrite:done', (data: { applied: number; skipped: number; total: number; error: string }) => {
       if (data.error) {
         rewriteState = 'error'
@@ -134,6 +140,7 @@
     offScanDone?.()
     offDtProgress?.()
     offDtDone?.()
+    offRewriteProgress?.()
     offRewriteDone?.()
   })
 </script>
@@ -235,6 +242,12 @@
             <span class="text-xs text-success">完了</span>
           {/if}
         </div>
+        {#if rewriteState === 'running' && rewriteProgress.total > 0}
+          <div class="flex items-center gap-2 text-xs">
+            <progress class="progress progress-primary flex-1" value={rewriteProgress.current} max={rewriteProgress.total}></progress>
+            <span class="text-base-content/50">{rewriteProgress.current.toLocaleString()}/{rewriteProgress.total.toLocaleString()}</span>
+          </div>
+        {/if}
         {#if rewriteState === 'done' && rewriteResult}
           <p class="text-xs text-base-content/50">{rewriteResult}</p>
         {/if}

@@ -60,7 +60,7 @@ func (h *RewriteHandler) DeleteRewriteRule(id int) error {
 }
 
 func (h *RewriteHandler) InferWorkingURLs() (*dto.InferWorkingURLResultDTO, error) {
-	result, err := h.inferWorkingURLs.Execute(h.ctx)
+	result, err := h.inferWorkingURLs.Execute(h.ctx, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,12 @@ func (h *RewriteHandler) StartInferWorkingURLs() {
 			h.mu.Unlock()
 		}()
 
-		result, err := h.inferWorkingURLs.Execute(h.ctx)
+		result, err := h.inferWorkingURLs.Execute(h.ctx, func(p usecase.InferWorkingURLProgress) {
+			wailsRuntime.EventsEmit(h.ctx, "rewrite:progress", map[string]int{
+				"current": p.Current,
+				"total":   p.Total,
+			})
+		})
 
 		doneData := map[string]any{
 			"error": "",

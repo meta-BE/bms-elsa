@@ -24,7 +24,13 @@ func NewInferWorkingURLUseCase(metaRepo model.MetaRepository) *InferWorkingURLUs
 	return &InferWorkingURLUseCase{metaRepo: metaRepo}
 }
 
-func (u *InferWorkingURLUseCase) Execute(ctx context.Context) (*InferWorkingURLResult, error) {
+// InferWorkingURLProgress は進捗情報
+type InferWorkingURLProgress struct {
+	Current int
+	Total   int
+}
+
+func (u *InferWorkingURLUseCase) Execute(ctx context.Context, onProgress func(InferWorkingURLProgress)) (*InferWorkingURLResult, error) {
 	rules, err := u.metaRepo.ListRewriteRules(ctx)
 	if err != nil {
 		return nil, err
@@ -37,19 +43,22 @@ func (u *InferWorkingURLUseCase) Execute(ctx context.Context) (*InferWorkingURLR
 
 	result := &InferWorkingURLResult{Total: len(charts)}
 
-	for _, c := range charts {
+	for i, c := range charts {
 		bodyURL := applyRewriteRules(c.LR2IRBodyURL, rules)
 		diffURL := applyRewriteRules(c.LR2IRDiffURL, rules)
 
 		if bodyURL == "" && diffURL == "" {
 			result.Skipped++
-			continue
+		} else {
+			if err := u.metaRepo.UpdateWorkingURLs(ctx, c.MD5, bodyURL, diffURL); err != nil {
+				return nil, err
+			}
+			result.Applied++
 		}
 
-		if err := u.metaRepo.UpdateWorkingURLs(ctx, c.MD5, bodyURL, diffURL); err != nil {
-			return nil, err
+		if onProgress != nil {
+			onProgress(InferWorkingURLProgress{Current: i + 1, Total: len(charts)})
 		}
-		result.Applied++
 	}
 
 	return result, nil
