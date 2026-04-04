@@ -63,7 +63,9 @@
 </script>
 
 {#if fetching}
-  <ProgressBar current={progress.current} total={progress.total} cancelable on:cancel={stop} />
+  <div class="flex-1">
+    <ProgressBar current={progress.current} total={progress.total} cancelable on:cancel={stop} />
+  </div>
 {:else if doneMessage}
   <span class="text-xs text-success">{doneMessage}</span>
 {:else}
