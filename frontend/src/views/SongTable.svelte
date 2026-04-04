@@ -21,6 +21,7 @@
   import { EventsOn } from '../../wailsjs/runtime/runtime'
   import { handleArrowNav } from '../utils/arrowNav'
   import Icon from '../components/Icon.svelte'
+  import ProgressBar from '../components/ProgressBar.svelte'
 
   let syncing = false
   let syncProgress = { current: 0, total: 0 }
@@ -224,12 +225,9 @@
     <span class="text-sm font-semibold shrink-0">
       {#if loading}Loading...{:else}{rows.length.toLocaleString()} songs{/if}
     </span>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2" style:width={syncing ? '50%' : null}>
       {#if syncing}
-        <span class="text-xs text-base-content/70">
-          同期中: {syncProgress.current.toLocaleString()} / {syncProgress.total.toLocaleString()}
-        </span>
-        <button class="btn btn-xs btn-error btn-outline" on:click|stopPropagation={stopSync}>停止</button>
+        <ProgressBar current={syncProgress.current} total={syncProgress.total} cancelable on:cancel={stopSync} />
       {:else if syncDoneMessage}
         <span class="text-xs text-success">{syncDoneMessage}</span>
       {:else}

@@ -5,6 +5,7 @@
   import type { app } from '../../wailsjs/go/models'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
   import Icon from '../components/Icon.svelte'
+  import ProgressBar from '../components/ProgressBar.svelte'
 
   let candidates: app.DiffImportCandidateDTO[] = []
   let estimating = false
@@ -118,12 +119,9 @@
         ({importableCount} 件導入可能)
       {/if}
     </span>
-    <div class="flex items-center gap-2">
+    <div class="flex items-center gap-2" style:width={estimating ? '50%' : null}>
       {#if estimating}
-        <span class="text-xs text-base-content/70">
-          推定中: {estimateProgress.current.toLocaleString()} / {estimateProgress.total.toLocaleString()}
-        </span>
-        <button class="btn btn-xs btn-error btn-outline" on:click|stopPropagation={handleStopEstimate}>停止</button>
+        <ProgressBar current={estimateProgress.current} total={estimateProgress.total} cancelable on:cancel={handleStopEstimate} />
       {/if}
       {#if importResult}
         <span class="text-xs text-success">

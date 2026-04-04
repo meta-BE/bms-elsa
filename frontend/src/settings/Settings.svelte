@@ -5,6 +5,7 @@
   import { IsMinHashScanRunning } from '../../wailsjs/go/app/ScanHandler'
   import { IsRefreshing, RefreshProgress } from '../../wailsjs/go/app/DifficultyTableHandler'
   import { IsInferring } from '../../wailsjs/go/app/RewriteHandler'
+  import ProgressBar from '../components/ProgressBar.svelte'
 
   let dialog: HTMLDialogElement
   let songdataDBPath = ''
@@ -208,10 +209,7 @@
           {/if}
         </div>
         {#if scanState === 'running' && scanProgress.total > 0}
-          <div class="flex items-center gap-2 text-xs">
-            <progress class="progress progress-primary flex-1" value={scanProgress.current} max={scanProgress.total}></progress>
-            <span class="text-base-content/50">{scanProgress.current.toLocaleString()}/{scanProgress.total.toLocaleString()}</span>
-          </div>
+          <ProgressBar current={scanProgress.current} total={scanProgress.total} />
         {/if}
         {#if scanState !== 'running' && scanResult}
           <p class="text-xs text-base-content/50">{scanResult}</p>
@@ -231,10 +229,7 @@
           {/if}
         </div>
         {#if dtState === 'running' && dtProgress.total > 0}
-          <div class="flex items-center gap-2 text-xs">
-            <progress class="progress progress-primary flex-1" value={dtProgress.current} max={dtProgress.total}></progress>
-            <span class="text-base-content/50">{dtProgress.current}/{dtProgress.total}</span>
-          </div>
+          <ProgressBar current={dtProgress.current} total={dtProgress.total} />
         {/if}
         {#if dtState !== 'running' && dtResult}
           <p class="text-xs text-base-content/50">{dtResult}</p>
@@ -254,10 +249,7 @@
           {/if}
         </div>
         {#if rewriteState === 'running' && rewriteProgress.total > 0}
-          <div class="flex items-center gap-2 text-xs">
-            <progress class="progress progress-primary flex-1" value={rewriteProgress.current} max={rewriteProgress.total}></progress>
-            <span class="text-base-content/50">{rewriteProgress.current.toLocaleString()}/{rewriteProgress.total.toLocaleString()}</span>
-          </div>
+          <ProgressBar current={rewriteProgress.current} total={rewriteProgress.total} />
         {/if}
         {#if rewriteState !== 'running' && rewriteResult}
           <p class="text-xs text-base-content/50">{rewriteResult}</p>

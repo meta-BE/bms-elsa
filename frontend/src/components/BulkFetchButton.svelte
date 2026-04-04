@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onMount, onDestroy, createEventDispatcher } from 'svelte'
+  import ProgressBar from './ProgressBar.svelte'
   import { EventsOn } from '../../wailsjs/runtime/runtime'
 
   // 開始APIを呼ぶ関数。呼び出し元が差し替える
@@ -62,10 +63,9 @@
 </script>
 
 {#if fetching}
-  <span class="text-xs text-base-content/70">
-    取得中: {progress.current.toLocaleString()} / {progress.total.toLocaleString()}
-  </span>
-  <button class="btn btn-xs btn-error btn-outline" on:click|stopPropagation={stop}>停止</button>
+  <div class="w-56">
+    <ProgressBar current={progress.current} total={progress.total} cancelable on:cancel={stop} />
+  </div>
 {:else if doneMessage}
   <span class="text-xs text-success">{doneMessage}</span>
 {:else}
