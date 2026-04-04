@@ -41,11 +41,17 @@
 | `current` | `number` | ○ | 現在の進捗値 |
 | `total` | `number` | ○ | 全体数 |
 
+### Props（続き）
+
+| Prop | 型 | 必須 | 説明 |
+|------|----|------|------|
+| `cancelable` | `boolean` | - | `true` の場合、停止ボタンを表示する。デフォルト `false` |
+
 ### Events
 
 | Event | 説明 |
 |-------|------|
-| `cancel` | 指定された場合のみ停止ボタンを表示。クリック時にディスパッチ |
+| `cancel` | `cancelable` が `true` のとき、停止ボタンクリックで `createEventDispatcher` 経由でディスパッチ |
 
 ### 幅の制御
 
@@ -58,7 +64,7 @@
 <ProgressBar current={scanProgress.current} total={scanProgress.total} />
 
 <!-- 停止ボタンあり（SongTable.svelte等） -->
-<ProgressBar current={syncProgress.current} total={syncProgress.total} on:cancel={stopSync} />
+<ProgressBar current={syncProgress.current} total={syncProgress.total} cancelable on:cancel={stopSync} />
 ```
 
 ## DOM構造
@@ -82,9 +88,9 @@
       {label}
     </span>
   </div>
-  <!-- 停止ボタン（on:cancel指定時のみ） -->
-  {#if hasCancel}
-    <button class="btn btn-xs btn-error btn-outline" on:click={handleCancel}>停止</button>
+  <!-- 停止ボタン（cancelable時のみ） -->
+  {#if cancelable}
+    <button class="btn btn-xs btn-error btn-outline" on:click={() => dispatch('cancel')}>停止</button>
   {/if}
 </div>
 ```
@@ -92,23 +98,26 @@
 ## リアクティブロジック
 
 ```typescript
+import { createEventDispatcher } from 'svelte'
+
 export let current: number
 export let total: number
+export let cancelable = false
+
+const dispatch = createEventDispatcher<{ cancel: void }>()
 
 $: percent = total > 0 ? Math.min((current / total) * 100, 100) : 0
 $: label = `${current.toLocaleString()} / ${total.toLocaleString()}`
 ```
-
-`on:cancel` の有無判定は `$$listeners` を使用する（Svelte 4）。
 
 ## 適用箇所
 
 | ファイル | 現状の表示 | 変更内容 |
 |---------|-----------|---------|
 | `frontend/src/settings/Settings.svelte` | `<progress>` + 横テキスト ×3 | `<ProgressBar>` ×3（停止ボタンなし） |
-| `frontend/src/views/SongTable.svelte` | `同期中: n / m` テキスト + 停止ボタン | `<ProgressBar on:cancel>` |
-| `frontend/src/components/BulkFetchButton.svelte` | `取得中: n / m` テキスト + 停止ボタン | `<ProgressBar on:cancel>` |
-| `frontend/src/views/DiffImportView.svelte` | `推定中: n / m` テキスト + 停止ボタン | `<ProgressBar on:cancel>` |
-| `frontend/src/settings/DifficultyTableSettings.svelte` | `更新中: n/m テーブル完了` テキスト + 停止ボタン | `<ProgressBar on:cancel>`（結果リスト部分はそのまま） |
+| `frontend/src/views/SongTable.svelte` | `同期中: n / m` テキスト + 停止ボタン | `<ProgressBar cancelable on:cancel>` |
+| `frontend/src/components/BulkFetchButton.svelte` | `取得中: n / m` テキスト + 停止ボタン | `<ProgressBar cancelable on:cancel>` |
+| `frontend/src/views/DiffImportView.svelte` | `推定中: n / m` テキスト + 停止ボタン | `<ProgressBar cancelable on:cancel>` |
+| `frontend/src/settings/DifficultyTableSettings.svelte` | `更新中: n/m テーブル完了` テキスト + 停止ボタン | `<ProgressBar cancelable on:cancel>`（結果リスト部分はそのまま） |
 
 各箇所の状態管理（state/running変数、result表示、error表示）やイベント購読ロジックは変更しない。進捗表示のHTML部分のみコンポーネントに差し替える。
