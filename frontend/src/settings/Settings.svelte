@@ -17,14 +17,17 @@
   let scanState: 'running' | 'done' | 'error' = 'done'
   let scanProgress = { current: 0, total: 0 }
   let scanError = ''
+  let scanResult = ''
 
   let dtState: 'running' | 'done' | 'error' = 'done'
   let dtProgress = { current: 0, total: 0 }
   let dtError = ''
+  let dtResult = ''
 
   let rewriteState: 'running' | 'done' | 'error' = 'done'
   let rewriteProgress = { current: 0, total: 0 }
   let rewriteError = ''
+  let rewriteResult = ''
 
   export async function open() {
     saved = false
@@ -94,7 +97,7 @@
       scanState = 'running'
       scanProgress = data
     })
-    offScanDone = EventsOn('scan:done', (data: { total: number; computed: number; failed: number; cancelled: boolean }) => {
+    offScanDone = EventsOn('scan:done', (data: { total: number; computed: number; skipped: number; failed: number; cancelled: boolean }) => {
       if (data.failed > 0) {
         scanState = 'error'
         scanError = `${data.failed}件失敗`
@@ -102,6 +105,12 @@
         scanState = 'done'
       }
       scanProgress = { current: data.total, total: data.total }
+      const parts: string[] = []
+      if (data.computed > 0) parts.push(`${data.computed}件計算`)
+      if (data.skipped > 0) parts.push(`${data.skipped}件スキップ`)
+      if (data.failed > 0) parts.push(`${data.failed}件失敗`)
+      if (data.cancelled) parts.push('中断')
+      scanResult = parts.join(' / ') || '対象なし'
     })
     offDtProgress = EventsOn('dt:refresh-progress', (data: { current: number; total: number; tableName: string; success: boolean; error: string }) => {
       dtState = 'running'
@@ -111,12 +120,15 @@
       }
     })
     offDtDone = EventsOn('dt:refresh-done', (data: { results: Array<{ tableName: string; success: boolean; error: string }> }) => {
+      const succeeded = data.results.filter(r => !r.error)
       const errors = data.results.filter(r => r.error)
       if (errors.length > 0) {
         dtState = 'error'
-        dtError = errors.map(e => `${e.tableName}: ${e.error}`).join(', ')
+        dtError = errors.map(e => e.tableName).join(', ')
+        dtResult = `${succeeded.length}件成功 / ${errors.length}件失敗（${errors.map(e => e.tableName).join(', ')}）`
       } else {
         dtState = 'done'
+        dtResult = `${succeeded.length}件成功`
       }
     })
     offRewriteProgress = EventsOn('rewrite:progress', (data: { current: number; total: number }) => {
@@ -129,6 +141,7 @@
         rewriteError = data.error
       } else {
         rewriteState = 'done'
+        rewriteResult = `${data.applied}件適用 / ${data.skipped}件スキップ`
       }
     })
   })
@@ -200,8 +213,8 @@
             <span class="text-base-content/50">{scanProgress.current.toLocaleString()}/{scanProgress.total.toLocaleString()}</span>
           </div>
         {/if}
-        {#if scanState === 'error' && scanError}
-          <p class="text-xs text-error mt-1">{scanError}</p>
+        {#if scanState !== 'running' && scanResult}
+          <p class="text-xs text-base-content/50">{scanResult}</p>
         {/if}
       </div>
 
@@ -223,8 +236,8 @@
             <span class="text-base-content/50">{dtProgress.current}/{dtProgress.total}</span>
           </div>
         {/if}
-        {#if dtState === 'error' && dtError}
-          <p class="text-xs text-error mt-1">{dtError}</p>
+        {#if dtState !== 'running' && dtResult}
+          <p class="text-xs text-base-content/50">{dtResult}</p>
         {/if}
       </div>
 
@@ -246,8 +259,8 @@
             <span class="text-base-content/50">{rewriteProgress.current.toLocaleString()}/{rewriteProgress.total.toLocaleString()}</span>
           </div>
         {/if}
-        {#if rewriteState === 'error' && rewriteError}
-          <p class="text-xs text-error mt-1">{rewriteError}</p>
+        {#if rewriteState !== 'running' && rewriteResult}
+          <p class="text-xs text-base-content/50">{rewriteResult}</p>
         {/if}
       </div>
     </div>
