@@ -25,7 +25,6 @@
   let rewriteState: 'running' | 'done' | 'error' = 'done'
   let rewriteProgress = { current: 0, total: 0 }
   let rewriteError = ''
-  let rewriteResult = ''
 
   export async function open() {
     saved = false
@@ -130,7 +129,6 @@
         rewriteError = data.error
       } else {
         rewriteState = 'done'
-        rewriteResult = `${data.applied}件適用 / ${data.skipped}件スキップ / ${data.total}件中`
       }
     })
   })
@@ -247,9 +245,6 @@
             <progress class="progress progress-primary flex-1" value={rewriteProgress.current} max={rewriteProgress.total}></progress>
             <span class="text-base-content/50">{rewriteProgress.current.toLocaleString()}/{rewriteProgress.total.toLocaleString()}</span>
           </div>
-        {/if}
-        {#if rewriteState === 'done' && rewriteResult}
-          <p class="text-xs text-base-content/50">{rewriteResult}</p>
         {/if}
         {#if rewriteState === 'error' && rewriteError}
           <p class="text-xs text-error mt-1">{rewriteError}</p>
