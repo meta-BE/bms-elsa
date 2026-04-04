@@ -137,6 +137,7 @@ func (a *App) startup(ctx context.Context) {
 	// バックグラウンドタスクを並列起動
 	a.ScanHandler.StartMinHashScan()
 	a.DifficultyTableHandler.RefreshAllDifficultyTablesAsync()
+	a.RewriteHandler.StartInferWorkingURLs()
 }
 
 func (a *App) shutdown(ctx context.Context) {
