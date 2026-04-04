@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy, createEventDispatcher } from 'svelte'
+  import { onMount, createEventDispatcher } from 'svelte'
   import {
     createSvelteTable,
     getCoreRowModel,
@@ -17,9 +17,7 @@
   import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
   import SortableHeader from '../components/SortableHeader.svelte'
-  import { EventsOn } from '../../wailsjs/runtime/runtime'
   import { StartBulkFetch, StopBulkFetch } from '../../wailsjs/go/app/IRHandler'
-  import { StartMinHashScan, StopMinHashScan } from '../../wailsjs/go/app/ScanHandler'
   import BulkFetchButton from '../components/BulkFetchButton.svelte'
   import { InferWorkingURLs } from '../../wailsjs/go/app/RewriteHandler'
   import { handleArrowNav } from '../utils/arrowNav'
@@ -32,12 +30,6 @@
 
   let charts: dto.ChartListItemDTO[] = []
   let loading = false
-
-  // MinHashスキャンの状態
-  let scanRunning = false
-  let scanProgress = { current: 0, total: 0 }
-  let scanDoneMessage = ''
-  let scanDoneTimer: ReturnType<typeof setTimeout> | null = null
 
   let inferringUrls = false
   let inferUrlResult = ''
@@ -55,21 +47,6 @@
     } finally {
       inferringUrls = false
     }
-  }
-
-  function startMinHashScan() {
-    scanRunning = true
-    scanProgress = { current: 0, total: 0 }
-    scanDoneMessage = ''
-    if (scanDoneTimer) { clearTimeout(scanDoneTimer); scanDoneTimer = null }
-    StartMinHashScan().catch((e: Error) => {
-      console.error('[Scan] StartMinHashScan failed:', e)
-      scanRunning = false
-    })
-  }
-
-  function stopMinHashScan() {
-    StopMinHashScan()
   }
 
   export let selected: string | null = null
@@ -180,39 +157,12 @@
   $: virtualItems = $virtualizer.getVirtualItems()
   $: totalSize = $virtualizer.getTotalSize()
 
-  let offScanProgress: (() => void) | null = null
-  let offScanDone: (() => void) | null = null
-
   onMount(() => {
-    offScanProgress = EventsOn('scan:progress', (data: { current: number; total: number }) => {
-      scanProgress = data
-    })
-    offScanDone = EventsOn('scan:done', (data: { total: number; computed: number; skipped: number; failed: number; cancelled: boolean }) => {
-      scanRunning = false
-      const parts: string[] = []
-      if (data.total === 0) {
-        scanDoneMessage = '対象なし'
-      } else {
-        if (data.computed > 0) parts.push(`${data.computed}件計算`)
-        if (data.skipped > 0) parts.push(`${data.skipped}件スキップ`)
-        if (data.failed > 0) parts.push(`${data.failed}件失敗`)
-        if (data.cancelled) parts.push('中断')
-        scanDoneMessage = parts.join(', ') || '完了'
-      }
-      scanDoneTimer = setTimeout(() => { scanDoneMessage = '' }, 5000)
-    })
-
     // 譜面リスト読み込み
     loading = true
     ListCharts().then(c => { charts = c || [] }).catch(e => {
       console.error('Failed to load charts:', e)
     }).finally(() => { loading = false })
-  })
-
-  onDestroy(() => {
-    offScanProgress?.()
-    offScanDone?.()
-    if (scanDoneTimer) clearTimeout(scanDoneTimer)
   })
 
   function handleKeyNav(e: KeyboardEvent) {
@@ -257,16 +207,6 @@
       >
         {inferringUrls ? '推定中...' : '動作URL推定'}
       </button>
-      {#if scanRunning}
-        <span class="text-xs text-base-content/70">
-          計算中: {scanProgress.current.toLocaleString()} / {scanProgress.total.toLocaleString()}
-        </span>
-        <button class="btn btn-xs btn-error btn-outline" on:click|stopPropagation={stopMinHashScan}>停止</button>
-      {:else if scanDoneMessage}
-        <span class="text-xs text-success">{scanDoneMessage}</span>
-      {:else}
-        <button class="btn btn-xs btn-outline" on:click|stopPropagation={startMinHashScan}>MinHash計算</button>
-      {/if}
       <BulkFetchButton
         startFn={StartBulkFetch}
         stopFn={StopBulkFetch}
