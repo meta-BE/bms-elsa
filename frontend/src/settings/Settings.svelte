@@ -1,5 +1,9 @@
 <script lang="ts">
   import { GetConfig, SaveConfig, SelectFile } from '../../wailsjs/go/main/App'
+  import { onMount, onDestroy } from 'svelte'
+  import { EventsOn } from '../../wailsjs/runtime/runtime'
+  import { IsMinHashScanRunning } from '../../wailsjs/go/app/ScanHandler'
+  import { IsRefreshing, RefreshProgress } from '../../wailsjs/go/app/DifficultyTableHandler'
 
   let dialog: HTMLDialogElement
   let songdataDBPath = ''
@@ -7,6 +11,15 @@
   let saved = false
   let error = ''
   let mouseDownOnBackdrop = false
+
+  // バックグラウンドタスクの状態
+  let scanState: 'running' | 'done' | 'error' = 'done'
+  let scanProgress = { current: 0, total: 0 }
+  let scanError = ''
+
+  let dtState: 'running' | 'done' | 'error' = 'done'
+  let dtProgress = { current: 0, total: 0 }
+  let dtError = ''
 
   export async function open() {
     saved = false
@@ -18,6 +31,19 @@
     } catch (e) {
       songdataDBPath = ''
     }
+    // バックグラウンドタスクの現在状態を取得
+    try {
+      if (await IsMinHashScanRunning()) {
+        scanState = 'running'
+      }
+    } catch {}
+    try {
+      if (await IsRefreshing()) {
+        dtState = 'running'
+        const p = await RefreshProgress()
+        dtProgress = { current: p.current, total: p.total }
+      }
+    } catch {}
     dialog.showModal()
   }
 
@@ -45,6 +71,50 @@
   function handleClose() {
     dialog.close()
   }
+
+  let offScanProgress: (() => void) | null = null
+  let offScanDone: (() => void) | null = null
+  let offDtProgress: (() => void) | null = null
+  let offDtDone: (() => void) | null = null
+
+  onMount(() => {
+    offScanProgress = EventsOn('scan:progress', (data: { current: number; total: number }) => {
+      scanState = 'running'
+      scanProgress = data
+    })
+    offScanDone = EventsOn('scan:done', (data: { total: number; computed: number; failed: number; cancelled: boolean }) => {
+      if (data.failed > 0) {
+        scanState = 'error'
+        scanError = `${data.failed}件失敗`
+      } else {
+        scanState = 'done'
+      }
+      scanProgress = { current: data.total, total: data.total }
+    })
+    offDtProgress = EventsOn('dt:refresh-progress', (data: { current: number; total: number; tableName: string; success: boolean; error: string }) => {
+      dtState = 'running'
+      dtProgress = { current: data.current, total: data.total }
+      if (data.error) {
+        dtError = `${data.tableName}: ${data.error}`
+      }
+    })
+    offDtDone = EventsOn('dt:refresh-done', (data: { results: Array<{ tableName: string; success: boolean; error: string }> }) => {
+      const errors = data.results.filter(r => r.error)
+      if (errors.length > 0) {
+        dtState = 'error'
+        dtError = errors.map(e => `${e.tableName}: ${e.error}`).join(', ')
+      } else {
+        dtState = 'done'
+      }
+    })
+  })
+
+  onDestroy(() => {
+    offScanProgress?.()
+    offScanDone?.()
+    offDtProgress?.()
+    offDtDone?.()
+  })
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
@@ -80,6 +150,57 @@
           </span>
         </div>
       </label>
+    </div>
+
+    <!-- バックグラウンドタスク -->
+    <div class="divider text-xs text-base-content/50">バックグラウンドタスク</div>
+
+    <div class="space-y-3">
+      <!-- MinHashスキャン -->
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1">
+          <span>MinHashスキャン</span>
+          {#if scanState === 'running'}
+            <span class="text-xs text-base-content/50">実行中...</span>
+          {:else if scanState === 'error'}
+            <span class="text-xs text-error">エラー</span>
+          {:else}
+            <span class="text-xs text-success">完了</span>
+          {/if}
+        </div>
+        {#if scanState === 'running' && scanProgress.total > 0}
+          <div class="flex items-center gap-2 text-xs">
+            <progress class="progress progress-primary flex-1" value={scanProgress.current} max={scanProgress.total}></progress>
+            <span class="text-base-content/50">{scanProgress.current.toLocaleString()}/{scanProgress.total.toLocaleString()}</span>
+          </div>
+        {/if}
+        {#if scanState === 'error' && scanError}
+          <p class="text-xs text-error mt-1">{scanError}</p>
+        {/if}
+      </div>
+
+      <!-- 難易度表更新 -->
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1">
+          <span>難易度表更新</span>
+          {#if dtState === 'running'}
+            <span class="text-xs text-base-content/50">実行中...</span>
+          {:else if dtState === 'error'}
+            <span class="text-xs text-error">エラー</span>
+          {:else}
+            <span class="text-xs text-success">完了</span>
+          {/if}
+        </div>
+        {#if dtState === 'running' && dtProgress.total > 0}
+          <div class="flex items-center gap-2 text-xs">
+            <progress class="progress progress-primary flex-1" value={dtProgress.current} max={dtProgress.total}></progress>
+            <span class="text-base-content/50">{dtProgress.current}/{dtProgress.total}</span>
+          </div>
+        {/if}
+        {#if dtState === 'error' && dtError}
+          <p class="text-xs text-error mt-1">{dtError}</p>
+        {/if}
+      </div>
     </div>
 
     {#if saved}
