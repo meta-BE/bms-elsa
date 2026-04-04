@@ -4,6 +4,7 @@
   import { EventsOn } from '../../wailsjs/runtime/runtime'
   import { IsMinHashScanRunning } from '../../wailsjs/go/app/ScanHandler'
   import { IsRefreshing, RefreshProgress } from '../../wailsjs/go/app/DifficultyTableHandler'
+  import { IsInferring } from '../../wailsjs/go/app/RewriteHandler'
 
   let dialog: HTMLDialogElement
   let songdataDBPath = ''
@@ -20,6 +21,10 @@
   let dtState: 'running' | 'done' | 'error' = 'done'
   let dtProgress = { current: 0, total: 0 }
   let dtError = ''
+
+  let rewriteState: 'running' | 'done' | 'error' = 'done'
+  let rewriteError = ''
+  let rewriteResult = ''
 
   export async function open() {
     saved = false
@@ -42,6 +47,11 @@
         dtState = 'running'
         const p = await RefreshProgress()
         dtProgress = { current: p.current, total: p.total }
+      }
+    } catch {}
+    try {
+      if (await IsInferring()) {
+        rewriteState = 'running'
       }
     } catch {}
     dialog.showModal()
@@ -76,6 +86,7 @@
   let offScanDone: (() => void) | null = null
   let offDtProgress: (() => void) | null = null
   let offDtDone: (() => void) | null = null
+  let offRewriteDone: (() => void) | null = null
 
   onMount(() => {
     offScanProgress = EventsOn('scan:progress', (data: { current: number; total: number }) => {
@@ -107,6 +118,15 @@
         dtState = 'done'
       }
     })
+    offRewriteDone = EventsOn('rewrite:done', (data: { applied: number; skipped: number; total: number; error: string }) => {
+      if (data.error) {
+        rewriteState = 'error'
+        rewriteError = data.error
+      } else {
+        rewriteState = 'done'
+        rewriteResult = `${data.applied}件適用 / ${data.skipped}件スキップ / ${data.total}件中`
+      }
+    })
   })
 
   onDestroy(() => {
@@ -114,6 +134,7 @@
     offScanDone?.()
     offDtProgress?.()
     offDtDone?.()
+    offRewriteDone?.()
   })
 </script>
 
@@ -199,6 +220,26 @@
         {/if}
         {#if dtState === 'error' && dtError}
           <p class="text-xs text-error mt-1">{dtError}</p>
+        {/if}
+      </div>
+
+      <!-- 動作URL推定 -->
+      <div>
+        <div class="flex items-center justify-between text-sm mb-1">
+          <span>動作URL推定</span>
+          {#if rewriteState === 'running'}
+            <span class="text-xs text-base-content/50">実行中...</span>
+          {:else if rewriteState === 'error'}
+            <span class="text-xs text-error">エラー</span>
+          {:else}
+            <span class="text-xs text-success">完了</span>
+          {/if}
+        </div>
+        {#if rewriteState === 'done' && rewriteResult}
+          <p class="text-xs text-base-content/50">{rewriteResult}</p>
+        {/if}
+        {#if rewriteState === 'error' && rewriteError}
+          <p class="text-xs text-error mt-1">{rewriteError}</p>
         {/if}
       </div>
     </div>
