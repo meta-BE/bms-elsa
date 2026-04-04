@@ -4,6 +4,7 @@
   import { flip } from 'svelte/animate'
   import { ListDifficultyTables, AddDifficultyTable, RemoveDifficultyTable, RefreshAllDifficultyTablesAsync, StopDifficultyTableRefresh, IsRefreshing, RefreshProgress, ReorderDifficultyTables } from '../../wailsjs/go/app/DifficultyTableHandler'
   import { EventsOn } from '../../wailsjs/runtime/runtime'
+  import ProgressBar from '../components/ProgressBar.svelte'
 
   const dispatch = createEventDispatcher()
 
@@ -189,8 +190,7 @@
     {#if tables.length > 0}
       <div class="flex items-center gap-2 mt-2">
         {#if refreshing}
-          <span class="text-sm text-base-content/70">更新中: {refreshProgress.current}/{refreshProgress.total} テーブル完了</span>
-          <button class="btn btn-sm btn-error btn-outline" on:click={handleStopRefresh}>停止</button>
+          <ProgressBar current={refreshProgress.current} total={refreshProgress.total} cancelable on:cancel={handleStopRefresh} />
         {:else}
           <button class="btn btn-sm btn-outline" on:click={handleRefreshAll}>全て更新</button>
         {/if}
