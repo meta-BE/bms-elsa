@@ -17,14 +17,10 @@
   import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
   import SortableHeader from '../components/SortableHeader.svelte'
-  import { InferWorkingURLs } from '../../wailsjs/go/app/RewriteHandler'
   import { StartBMSSearchSync, StopBMSSearchSync, IsSyncing } from '../../wailsjs/go/app/EventHandler'
   import { EventsOn } from '../../wailsjs/runtime/runtime'
   import { handleArrowNav } from '../utils/arrowNav'
   import Icon from '../components/Icon.svelte'
-
-  let inferringUrls = false
-  let inferUrlResult = ''
 
   let syncing = false
   let syncProgress = { current: 0, total: 0 }
@@ -169,21 +165,6 @@
     })
   }
 
-  async function runInferWorkingURLs() {
-    inferringUrls = true
-    inferUrlResult = ''
-    try {
-      const result = await InferWorkingURLs()
-      inferUrlResult = `${result.applied}件適用 / ${result.skipped}件スキップ / ${result.total}件中`
-      setTimeout(() => inferUrlResult = '', 5000)
-      loadSongs()
-    } catch (e: any) {
-      inferUrlResult = e?.message || '推定に失敗しました'
-    } finally {
-      inferringUrls = false
-    }
-  }
-
   async function startSync() {
     syncing = true
     syncProgress = { current: 0, total: 0 }
@@ -244,9 +225,6 @@
       {#if loading}Loading...{:else}{rows.length.toLocaleString()} songs{/if}
     </span>
     <div class="flex items-center gap-2">
-      {#if inferUrlResult}
-        <span class="text-xs text-success">{inferUrlResult}</span>
-      {/if}
       {#if syncing}
         <span class="text-xs text-base-content/70">
           同期中: {syncProgress.current.toLocaleString()} / {syncProgress.total.toLocaleString()}
@@ -257,13 +235,6 @@
       {:else}
         <button class="btn btn-xs btn-outline" on:click|stopPropagation={startSync}>BMS Search同期</button>
       {/if}
-      <button
-        class="btn btn-xs btn-outline"
-        on:click|stopPropagation={runInferWorkingURLs}
-        disabled={inferringUrls}
-      >
-        {inferringUrls ? '推定中...' : '動作URL推定'}
-      </button>
       <div class="flex items-center gap-2">
         <SearchInput bind:value={globalFilter} />
         <button

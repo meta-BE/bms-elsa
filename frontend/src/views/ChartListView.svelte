@@ -19,7 +19,6 @@
   import SortableHeader from '../components/SortableHeader.svelte'
   import { StartBulkFetch, StopBulkFetch } from '../../wailsjs/go/app/IRHandler'
   import BulkFetchButton from '../components/BulkFetchButton.svelte'
-  import { InferWorkingURLs } from '../../wailsjs/go/app/RewriteHandler'
   import { handleArrowNav } from '../utils/arrowNav'
   import Icon from '../components/Icon.svelte'
 
@@ -30,24 +29,6 @@
 
   let charts: dto.ChartListItemDTO[] = []
   let loading = false
-
-  let inferringUrls = false
-  let inferUrlResult = ''
-
-  async function runInferWorkingURLs() {
-    inferringUrls = true
-    inferUrlResult = ''
-    try {
-      const result = await InferWorkingURLs()
-      inferUrlResult = `${result.applied}件適用 / ${result.skipped}件スキップ / ${result.total}件中`
-      setTimeout(() => inferUrlResult = '', 5000)
-      ListCharts().then(c => { charts = c || [] }).catch(console.error)
-    } catch (e: any) {
-      inferUrlResult = e?.message || '推定に失敗しました'
-    } finally {
-      inferringUrls = false
-    }
-  }
 
   export let selected: string | null = null
   export let active = true
@@ -197,16 +178,6 @@
       {rows.length.toLocaleString()} charts
     </span>
     <div class="flex items-center gap-2">
-      {#if inferUrlResult}
-        <span class="text-xs text-success">{inferUrlResult}</span>
-      {/if}
-      <button
-        class="btn btn-xs btn-outline"
-        on:click|stopPropagation={runInferWorkingURLs}
-        disabled={inferringUrls}
-      >
-        {inferringUrls ? '推定中...' : '動作URL推定'}
-      </button>
       <BulkFetchButton
         startFn={StartBulkFetch}
         stopFn={StopBulkFetch}
