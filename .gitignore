@@ -11,3 +11,4 @@ testdata/*/
 !testdata/*/*.bms
 !testdata/*/*.bme
 !testdata/*/*.bml
+.superpowers/*
