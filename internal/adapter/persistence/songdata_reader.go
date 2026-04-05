@@ -556,6 +556,31 @@ func (r *SongdataReader) ListSongGroupsForDuplicateScan(ctx context.Context) ([]
 	return groups, rows.Err()
 }
 
+// ListMD5DuplicateFolders は同一MD5が複数フォルダに存在するペアを返す
+func (r *SongdataReader) ListMD5DuplicateFolders(ctx context.Context) ([]model.MD5DuplicatePair, error) {
+	query := `
+		SELECT s1.folder, s2.folder, s1.md5
+		FROM songdata.song s1
+		JOIN songdata.song s2 ON s1.md5 = s2.md5 AND s1.folder < s2.folder
+		WHERE s1.md5 IS NOT NULL AND s1.md5 != ''
+	`
+	rows, err := r.db.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("ListMD5DuplicateFolders: %w", err)
+	}
+	defer rows.Close()
+
+	var pairs []model.MD5DuplicatePair
+	for rows.Next() {
+		var p model.MD5DuplicatePair
+		if err := rows.Scan(&p.FolderA, &p.FolderB, &p.MD5); err != nil {
+			return nil, err
+		}
+		pairs = append(pairs, p)
+	}
+	return pairs, rows.Err()
+}
+
 // GetChartByMD5 はmd5（とfolderHash）で譜面を1件取得し、IRメタ・難易度ラベルを付与して返す
 // folderHashが指定された場合はそのフォルダの譜面を優先取得し、同一MD5の異なるフォルダを区別する
 func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5, folderHash string) (*model.Chart, error) {
