@@ -15,10 +15,10 @@ type SongInfo struct {
 	WavMinHash []byte `json:"-"` // MinHash署名（フロントエンドには送らない）
 }
 
-func (s SongInfo) GetTitle() string   { return s.Title }
-func (s SongInfo) GetArtist() string  { return s.Artist }
-func (s SongInfo) GetGenre() string   { return s.Genre }
-func (s SongInfo) GetMinBPM() float64 { return s.MinBPM }
+func (s SongInfo) GetTitle() string      { return s.Title }
+func (s SongInfo) GetArtist() string     { return s.Artist }
+func (s SongInfo) GetGenre() string      { return s.Genre }
+func (s SongInfo) GetMinBPM() float64    { return s.MinBPM }
 func (s SongInfo) GetMaxBPM() float64    { return s.MaxBPM }
 func (s SongInfo) GetWavMinHash() []byte { return s.WavMinHash }
 
@@ -29,14 +29,76 @@ type DuplicateGroup struct {
 	Score   int // グループ内の最高類似度（%）
 }
 
+// FolderPair はMD5完全一致で検出されたフォルダのペア
+type FolderPair struct {
+	FolderA string
+	FolderB string
+}
+
 // DuplicateMember はグループ内の各楽曲
 type DuplicateMember struct {
 	SongInfo
-	Scores ScoreResult // グループ内で最も類似度が高いペアのスコア
+	Scores   ScoreResult // グループ内で最も類似度が高いペアのスコア
+	MD5Match bool        // MD5完全一致で検出されたか
 }
 
-// FindDuplicateGroups はartist正規化によるブロッキング→グループ内ファジー比較で重複グループを返す
-func FindDuplicateGroups(songs []SongInfo, threshold int) []DuplicateGroup {
+// FindDuplicateGroups はMD5完全一致→ファジー比較の2段階で重複グループを返す
+func FindDuplicateGroups(songs []SongInfo, md5Pairs []FolderPair, threshold int) []DuplicateGroup {
+	// FolderHash → index マップ
+	folderIdx := make(map[string]int, len(songs))
+	for i, s := range songs {
+		folderIdx[s.FolderHash] = i
+	}
+
+	// Union-Find
+	parent := make([]int, len(songs))
+	for i := range parent {
+		parent[i] = i
+	}
+	var find func(int) int
+	find = func(x int) int {
+		if parent[x] != x {
+			parent[x] = find(parent[x])
+		}
+		return parent[x]
+	}
+	union := func(x, y int) {
+		px, py := find(x), find(y)
+		if px != py {
+			parent[px] = py
+		}
+	}
+
+	bestScore := make(map[int]ScoreResult)
+	md5Matched := make(map[[2]int]bool) // MD5一致済みペア
+	md5MatchedIdx := make(map[int]bool) // MD5一致に関与したindex
+
+	// --- 第1段階: MD5完全一致ペア ---
+	md5Score := ScoreResult{Total: 100}
+	for _, p := range md5Pairs {
+		idxA, okA := folderIdx[p.FolderA]
+		idxB, okB := folderIdx[p.FolderB]
+		if !okA || !okB {
+			continue
+		}
+		union(idxA, idxB)
+		if md5Score.Total > bestScore[idxA].Total {
+			bestScore[idxA] = md5Score
+		}
+		if md5Score.Total > bestScore[idxB].Total {
+			bestScore[idxB] = md5Score
+		}
+		key := [2]int{idxA, idxB}
+		if idxA > idxB {
+			key = [2]int{idxB, idxA}
+		}
+		md5Matched[key] = true
+		md5MatchedIdx[idxA] = true
+		md5MatchedIdx[idxB] = true
+	}
+
+	// --- 第2段階: ファジーマッチ ---
+
 	// ブロッキング: artist正規化でグループ化
 	blocks := make(map[string][]int)
 	for i, s := range songs {
@@ -57,62 +119,51 @@ func FindDuplicateGroups(songs []SongInfo, threshold int) []DuplicateGroup {
 		}
 	}
 
-	// グループ内でペア比較
-	type pair struct{ i, j int }
-	matched := make(map[pair]ScoreResult)
+	// グループ内でペア比較（MD5一致済みペアはスキップ）
 	for _, indices := range blocks {
 		if len(indices) < 2 {
 			continue
 		}
 		for a := 0; a < len(indices); a++ {
 			for b := a + 1; b < len(indices); b++ {
-				p := pair{indices[a], indices[b]}
-				if _, ok := matched[p]; ok {
+				idxA, idxB := indices[a], indices[b]
+				key := [2]int{idxA, idxB}
+				if idxA > idxB {
+					key = [2]int{idxB, idxA}
+				}
+				if md5Matched[key] {
 					continue
 				}
-				result := Score(songs[p.i], songs[p.j])
+				result := Score(songs[idxA], songs[idxB])
 				if result.Total >= threshold {
-					matched[p] = result
+					union(idxA, idxB)
+					if result.Total > bestScore[idxA].Total {
+						bestScore[idxA] = result
+					}
+					if result.Total > bestScore[idxB].Total {
+						bestScore[idxB] = result
+					}
 				}
 			}
 		}
 	}
 
-	// Union-Findでグループ化
-	parent := make([]int, len(songs))
-	for i := range parent {
-		parent[i] = i
-	}
-	var find func(int) int
-	find = func(x int) int {
-		if parent[x] != x {
-			parent[x] = find(parent[x])
-		}
-		return parent[x]
-	}
-	union := func(x, y int) {
-		px, py := find(x), find(y)
-		if px != py {
-			parent[px] = py
-		}
-	}
-
-	bestScore := make(map[int]ScoreResult)
-	for p, score := range matched {
-		union(p.i, p.j)
-		if score.Total > bestScore[p.i].Total {
-			bestScore[p.i] = score
-		}
-		if score.Total > bestScore[p.j].Total {
-			bestScore[p.j] = score
-		}
-	}
-
 	// グループ集約
 	groupMap := make(map[int][]int)
-	for p := range matched {
-		groupMap[find(p.i)] = nil
-		groupMap[find(p.j)] = nil
+	// MD5一致ペアのルートを登録
+	for p := range md5Matched {
+		groupMap[find(p[0])] = nil
+		groupMap[find(p[1])] = nil
+	}
+	// ファジーマッチのルートを登録
+	for i := range songs {
+		root := find(i)
+		if _, ok := groupMap[root]; ok {
+			continue
+		}
+		if bestScore[i].Total > 0 {
+			groupMap[root] = nil
+		}
 	}
 	for i := range songs {
 		root := find(i)
@@ -132,6 +183,7 @@ func FindDuplicateGroups(songs []SongInfo, threshold int) []DuplicateGroup {
 			g.Members = append(g.Members, DuplicateMember{
 				SongInfo: songs[idx],
 				Scores:   bestScore[idx],
+				MD5Match: md5MatchedIdx[idx],
 			})
 			if bestScore[idx].Total > g.Score {
 				g.Score = bestScore[idx].Total

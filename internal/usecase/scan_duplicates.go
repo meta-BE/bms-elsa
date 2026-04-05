@@ -36,5 +36,5 @@ func (u *ScanDuplicatesUseCase) Execute(ctx context.Context) ([]similarity.Dupli
 		}
 	}
 
-	return similarity.FindDuplicateGroups(songs, 60), nil
+	return similarity.FindDuplicateGroups(songs, nil, 60), nil
 }
