@@ -165,16 +165,23 @@
     {/each}
 
     {#if group.Members.length >= 2}
-      {@const scores = group.Members[0].Scores}
+      {@const hasMD5Match = group.Members.some(m => m.MD5Match)}
+      {@const fuzzyMembers = group.Members.filter(m => !m.MD5Match)}
       <div class="text-base-content/60 space-y-1">
-        <div class="text-sm font-semibold">類似度内訳</div>
-        <div class="text-sm flex gap-4">
-          <span>WAV定義 {scores.WAV}%</span>
-          <span>title {scores.Title}%</span>
-          <span>artist {scores.Artist}%</span>
-          <span>genre {scores.Genre}%</span>
-          <span>BPM {scores.BPM}%</span>
-        </div>
+        {#if hasMD5Match}
+          <div class="text-sm"><span class="badge badge-sm badge-success">MD5一致</span></div>
+        {/if}
+        {#if fuzzyMembers.length > 0}
+          {@const scores = fuzzyMembers[0].Scores}
+          <div class="text-sm font-semibold">類似度内訳</div>
+          <div class="text-sm flex gap-4">
+            <span>WAV定義 {scores.WAV}%</span>
+            <span>title {scores.Title}%</span>
+            <span>artist {scores.Artist}%</span>
+            <span>genre {scores.Genre}%</span>
+            <span>BPM {scores.BPM}%</span>
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
