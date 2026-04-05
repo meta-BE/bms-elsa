@@ -45,6 +45,10 @@ func (m *mockSongRepo) ListSongGroupsForDuplicateScan(_ context.Context) ([]mode
 	return nil, nil
 }
 
+func (m *mockSongRepo) ListMD5DuplicateFolders(ctx context.Context) ([]model.MD5DuplicatePair, error) {
+	return nil, nil
+}
+
 type mockMetaRepo struct {
 	getSongMetaFunc         func(ctx context.Context, folderHash string) (*model.SongMeta, error)
 	upsertSongMetaFunc      func(ctx context.Context, meta model.SongMeta) error

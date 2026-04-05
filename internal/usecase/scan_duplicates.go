@@ -7,6 +7,8 @@ import (
 	"github.com/meta-BE/bms-elsa/internal/domain/similarity"
 )
 
+const defaultThreshold = 60
+
 type ScanDuplicatesUseCase struct {
 	songRepo model.SongRepository
 }
@@ -16,6 +18,11 @@ func NewScanDuplicatesUseCase(songRepo model.SongRepository) *ScanDuplicatesUseC
 }
 
 func (u *ScanDuplicatesUseCase) Execute(ctx context.Context) ([]similarity.DuplicateGroup, error) {
+	md5Pairs, err := u.songRepo.ListMD5DuplicateFolders(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	groups, err := u.songRepo.ListSongGroupsForDuplicateScan(ctx)
 	if err != nil {
 		return nil, err
@@ -36,5 +43,10 @@ func (u *ScanDuplicatesUseCase) Execute(ctx context.Context) ([]similarity.Dupli
 		}
 	}
 
-	return similarity.FindDuplicateGroups(songs, nil, 60), nil
+	folderPairs := make([]similarity.FolderPair, len(md5Pairs))
+	for i, p := range md5Pairs {
+		folderPairs[i] = similarity.FolderPair{FolderA: p.FolderA, FolderB: p.FolderB}
+	}
+
+	return similarity.FindDuplicateGroups(songs, folderPairs, defaultThreshold), nil
 }
