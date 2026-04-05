@@ -36,6 +36,13 @@ type SongGroup struct {
 	WavMinHash []byte // 代表MinHash署名（未計算ならnil）
 }
 
+// MD5DuplicatePair は同一MD5を共有するフォルダのペア
+type MD5DuplicatePair struct {
+	FolderA string
+	FolderB string
+	MD5     string
+}
+
 // SongRepository はsongdata.dbから楽曲・譜面を読み取る（読み取り専用）
 type SongRepository interface {
 	ListSongs(ctx context.Context, opts ListOptions) ([]Song, int, error)
@@ -49,6 +56,8 @@ type SongRepository interface {
 	FindChartFoldersByArtist(ctx context.Context, artist string) ([]InstallCandidate, error)
 	// folder単位で楽曲グループを返す（重複スキャン用）
 	ListSongGroupsForDuplicateScan(ctx context.Context) ([]SongGroup, error)
+	// 同一MD5が複数フォルダに存在するペアを返す
+	ListMD5DuplicateFolders(ctx context.Context) ([]MD5DuplicatePair, error)
 }
 
 // MinHashMatch はMinHash類似度検索の結果
