@@ -135,7 +135,9 @@ func (a *App) startup(ctx context.Context) {
 	a.DuplicateHandler.SetContext(ctx)
 
 	// バックグラウンドタスクを並列起動
-	a.ScanHandler.StartMinHashScan()
+	a.ScanHandler.StartMinHashScan(func() {
+		a.DuplicateHandler.StartScanDuplicates()
+	})
 	a.DifficultyTableHandler.RefreshAllDifficultyTablesAsync()
 	a.RewriteHandler.StartInferWorkingURLs()
 }
