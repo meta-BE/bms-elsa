@@ -1,7 +1,8 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte'
+  import { createEventDispatcher, onMount, onDestroy } from 'svelte'
   import { handleArrowNav } from '../utils/arrowNav'
-  import { ScanDuplicates } from '../../wailsjs/go/app/DuplicateHandler'
+  import { GetDuplicateGroups, IsDuplicateScanRunning } from '../../wailsjs/go/app/DuplicateHandler'
+  import { EventsOn } from '../../wailsjs/runtime/runtime'
   import type { similarity } from '../../wailsjs/go/models'
 
   const dispatch = createEventDispatcher()
@@ -9,20 +10,33 @@
   export let active = false
 
   let groups: similarity.DuplicateGroup[] = []
-  let scanning = false
-  let scanned = false
+  let scanning = true
   let selectedGroupID: number | null = null
 
-  async function handleScan() {
-    scanning = true
-    try {
-      const result = await ScanDuplicates()
-      groups = (result || []).sort((a, b) => b.Score - a.Score)
-      scanned = true
-    } finally {
+  async function loadResults() {
+    const result = await GetDuplicateGroups()
+    groups = (result || []).sort((a, b) => b.Score - a.Score)
+  }
+
+  let offDupDone: (() => void) | null = null
+
+  onMount(async () => {
+    // 既に完了しているか確認
+    const running = await IsDuplicateScanRunning()
+    if (!running) {
+      await loadResults()
       scanning = false
     }
-  }
+
+    offDupDone = EventsOn('dup:done', async () => {
+      await loadResults()
+      scanning = false
+    })
+  })
+
+  onDestroy(() => {
+    offDupDone?.()
+  })
 
   function handleSelect(group: similarity.DuplicateGroup) {
     selectedGroupID = group.ID
@@ -30,7 +44,7 @@
   }
 
   function handleKeyNav(e: KeyboardEvent) {
-    if (!active || !scanned) return
+    if (!active || scanning) return
     handleArrowNav(e, {
       selected: selectedGroupID !== null ? String(selectedGroupID) : null,
       items: groups,
@@ -63,17 +77,16 @@
 
 <svelte:window on:keydown={handleKeyNav} />
 
-{#if !scanned}
-  <div class="flex items-center justify-center h-full">
-    <button class="btn btn-primary" on:click={handleScan} disabled={scanning}>
-      {scanning ? 'スキャン中...' : 'スキャン実行'}
-    </button>
+{#if scanning}
+  <div class="flex items-center justify-center h-full text-base-content/40 text-sm">
+    スキャン中...
+  </div>
+{:else if groups.length === 0}
+  <div class="flex items-center justify-center h-full text-base-content/40 text-sm">
+    重複グループなし
   </div>
 {:else}
   <div class="flex items-center gap-2 px-2 py-1 text-sm text-base-content/60 border-b border-base-300">
-    <button class="btn btn-xs btn-ghost" on:click={handleScan} disabled={scanning}>
-      {scanning ? '...' : '再スキャン'}
-    </button>
     <span>{groups.length} グループ</span>
   </div>
   <div class="overflow-y-auto h-full">
