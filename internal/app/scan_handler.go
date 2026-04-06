@@ -26,7 +26,7 @@ func NewScanHandler(metaRepo model.MetaRepository, scanMinHash *usecase.ScanMinH
 func (h *ScanHandler) SetContext(ctx context.Context) { h.ctx = ctx }
 
 // StartMinHashScan はMinHash一括計算をバックグラウンドで開始する。二重起動不可。
-func (h *ScanHandler) StartMinHashScan() error {
+func (h *ScanHandler) StartMinHashScan(onDone func()) error {
 	h.mu.Lock()
 	if h.running {
 		h.mu.Unlock()
@@ -70,6 +70,10 @@ func (h *ScanHandler) StartMinHashScan() error {
 			"failed":    result.Failed,
 			"cancelled": result.Cancelled,
 		})
+
+		if onDone != nil {
+			onDone()
+		}
 	}()
 
 	return nil
