@@ -97,29 +97,51 @@
                 {/each}
               </div>
             {/if}
+            {#if header.column.getCanResize()}
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <div
+                class="absolute top-0 right-0 w-1 h-full cursor-col-resize select-none touch-none
+                  {header.column.getIsResizing() ? 'bg-primary' : 'hover:bg-primary/50'}"
+                on:mousedown|stopPropagation={header.getResizeHandler()}
+                on:touchstart|stopPropagation={header.getResizeHandler()}
+              />
+            {/if}
           </div>
         {:else}
           <!-- ソートヘッダー -->
           <div
-            role="columnheader"
-            tabindex="0"
-            class="px-2 py-1.5 text-xs font-bold uppercase cursor-pointer select-none hover:bg-base-300 transition-colors truncate"
+            class="relative"
             style={header.column.columnDef.meta?.flex ? `flex: 1 1 ${header.getSize()}px; min-width: ${header.getSize()}px` : `flex: 0 0 ${header.getSize()}px`}
-            on:click|stopPropagation={header.column.getToggleSortingHandler()}
-            on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') header.column.getToggleSortingHandler()?.(e) }}
           >
-            <span class="flex items-center gap-1">
-              {#if !header.isPlaceholder}
-                <svelte:component
-                  this={flexRender(header.column.columnDef.header, header.getContext())}
-                />
-              {/if}
-              {#if header.column.getIsSorted() === 'asc'}
-                <span>▲</span>
-              {:else if header.column.getIsSorted() === 'desc'}
-                <span>▼</span>
-              {/if}
-            </span>
+            <div
+              role="columnheader"
+              tabindex="0"
+              class="px-2 py-1.5 text-xs font-bold uppercase cursor-pointer select-none hover:bg-base-300 transition-colors truncate"
+              on:click|stopPropagation={header.column.getToggleSortingHandler()}
+              on:keydown={(e) => { if (e.key === 'Enter' || e.key === ' ') header.column.getToggleSortingHandler()?.(e) }}
+            >
+              <span class="flex items-center gap-1">
+                {#if !header.isPlaceholder}
+                  <svelte:component
+                    this={flexRender(header.column.columnDef.header, header.getContext())}
+                  />
+                {/if}
+                {#if header.column.getIsSorted() === 'asc'}
+                  <span>▲</span>
+                {:else if header.column.getIsSorted() === 'desc'}
+                  <span>▼</span>
+                {/if}
+              </span>
+            </div>
+            {#if header.column.getCanResize()}
+              <!-- svelte-ignore a11y-no-static-element-interactions -->
+              <div
+                class="absolute top-0 right-0 w-1 h-full cursor-col-resize select-none touch-none
+                  {header.column.getIsResizing() ? 'bg-primary' : 'hover:bg-primary/50'}"
+                on:mousedown|stopPropagation={header.getResizeHandler()}
+                on:touchstart|stopPropagation={header.getResizeHandler()}
+              />
+            {/if}
           </div>
         {/if}
       {/each}
