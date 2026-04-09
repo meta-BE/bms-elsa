@@ -76,7 +76,6 @@ type MetaRepository interface {
 	GetChartMeta(ctx context.Context, md5 string) (*ChartIRMeta, error)
 	UpsertChartMeta(ctx context.Context, meta ChartIRMeta) error
 	BulkUpsertChartMeta(ctx context.Context, metas []ChartIRMeta) error
-	UpdateWorkingURLs(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error
 	ListEvents(ctx context.Context) ([]Event, error)
 	GetEventByBMSSearchID(ctx context.Context, bmsSearchID string) (*Event, error)
 	UpsertEventByBMSSearchID(ctx context.Context, e Event) error
@@ -92,8 +91,6 @@ type MetaRepository interface {
 	ListRewriteRules(ctx context.Context) ([]RewriteRule, error)
 	UpsertRewriteRule(ctx context.Context, rule RewriteRule) error
 	DeleteRewriteRule(ctx context.Context, id int) error
-	// 動作URL未設定の譜面（lr2ir URLあり）を取得
-	ListChartsForWorkingURLInference(ctx context.Context) ([]ChartIRMeta, error)
 	// MinHashスキャン対象の譜面リスト
 	ListChartsWithoutMinhash(ctx context.Context) ([]ChartScanTarget, error)
 	// wav_minhashを更新（レコードがなければINSERT）

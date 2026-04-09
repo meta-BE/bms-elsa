@@ -61,17 +61,15 @@ type SongMeta struct {
 	BMSSearchID *string
 }
 
-// ChartIRMeta はLR2IR + 動作URLメタデータ
+// ChartIRMeta はLR2IRメタデータ
 type ChartIRMeta struct {
-	MD5            string
-	SHA256         string
-	Tags           []string
-	LR2IRBodyURL   string
-	LR2IRDiffURL   string
-	LR2IRNotes     string
-	WorkingBodyURL string
-	WorkingDiffURL string
-	FetchedAt      *time.Time
+	MD5          string
+	SHA256       string
+	Tags         []string
+	LR2IRBodyURL string
+	LR2IRDiffURL string
+	LR2IRNotes   string
+	FetchedAt    *time.Time
 }
 
 // DifficultyLabel は難易度表から取得した難易度ラベル
