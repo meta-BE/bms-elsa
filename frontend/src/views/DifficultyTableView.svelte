@@ -57,7 +57,7 @@
     {
       accessorKey: 'level',
       header: 'Level',
-      size: 80,
+      size: 70,
       meta: { align: 'right' },
       enableResizing: false,
       sortingFn: (rowA, rowB, columnId) => {

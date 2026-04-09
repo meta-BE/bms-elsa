@@ -99,7 +99,7 @@
         return `${Math.round(row.minBpm)}-${Math.round(row.maxBpm)}`
       },
     },
-    { accessorKey: 'chartCount', header: 'Charts', size: 80, enableResizing: false, meta: { align: 'right' } },
+    { accessorKey: 'chartCount', header: 'Charts', size: 75, enableResizing: false, meta: { align: 'right' } },
     {
       id: 'ir',
       header: 'IR',

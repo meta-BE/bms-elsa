@@ -101,7 +101,7 @@
     {
       id: 'notes',
       header: 'Notes',
-      size: 80,
+      size: 70,
       enableResizing: false,
       meta: { align: 'right' },
       accessorFn: (row) => row.notes || 0,
