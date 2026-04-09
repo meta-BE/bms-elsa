@@ -38,7 +38,7 @@ export async function loadColumnWidths(
 
   const available = Math.max(0, containerWidth - config.fixedColumnsWidth)
   const sizing: ColumnSizingState = {}
-  for (const [id, ratio] of Object.entries(saved)) {
+  for (const [id, ratio] of Object.entries(saved as Record<string, number>)) {
     sizing[id] = Math.round(ratio * available)
   }
   return sizing
