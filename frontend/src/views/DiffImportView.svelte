@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte'
+  import { onMount, onDestroy, afterUpdate } from 'svelte'
   import {
     createSvelteTable,
     flexRender,
@@ -81,6 +81,8 @@
   function clearAll() {
     candidates = []
     importResult = null
+    columnSizing = {}
+    widthsLocked = false
   }
 
   async function handleImport() {
@@ -201,6 +203,30 @@
 
   $: virtualItems = $virtualizer.getVirtualItems()
   $: totalSize = $virtualizer.getTotalSize()
+
+  // 初回レンダリング後にコンテナ幅を測定し、flexカラムの実ピクセル幅をcolumnSizingにロック
+  let widthsLocked = false
+
+  afterUpdate(() => {
+    if (candidates.length > 0 && scrollElement && !widthsLocked) {
+      widthsLocked = true
+      requestAnimationFrame(() => {
+        const containerWidth = scrollElement.clientWidth - 16 // 行のpx-2パディング分
+        const fixedWidth = columns
+          .filter(c => !(c.meta as { flex?: boolean })?.flex)
+          .reduce((sum, c) => sum + (c.size || 150), 0)
+        const flexCols = columns.filter(c => (c.meta as { flex?: boolean })?.flex)
+        const flexDefined = flexCols.reduce((sum, c) => sum + (c.size || 150), 0)
+        const available = Math.max(0, containerWidth - fixedWidth)
+        const newSizing: ColumnSizingState = {}
+        for (const col of flexCols) {
+          const id = col.id || (col as { accessorKey?: string }).accessorKey || ''
+          newSizing[id] = Math.round(((col.size || 150) / flexDefined) * available)
+        }
+        columnSizing = newSizing
+      })
+    }
+  })
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -262,7 +288,7 @@
               {#each row.getVisibleCells() as cell}
                 <div
                   class="px-2 text-sm truncate"
-                  style={cell.column.columnDef.meta?.flex ? `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px` : `flex: 0 0 ${cell.column.getSize()}px`}
+                  style={widthsLocked || !cell.column.columnDef.meta?.flex ? `flex: 0 0 ${cell.column.getSize()}px` : `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px`}
                 >
                   {#if cell.column.id === 'fileName'}
                     <span class="flex items-center gap-1 font-mono">

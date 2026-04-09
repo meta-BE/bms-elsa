@@ -6,6 +6,9 @@
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   export let table: Table<any>
 
+  // リサイズが有効かつcolumnSizingが設定済みの場合、flex伸縮を無効化して固定幅に切り替え
+  $: resizeLocked = table.options.enableColumnResizing && Object.keys(table.getState().columnSizing).length > 0
+
   let scrollbarWidth = 0
   onMount(() => {
     const outer = document.createElement('div')
@@ -63,7 +66,7 @@
           <!-- フィルタヘッダー -->
           <div
             class="relative"
-            style={header.column.columnDef.meta?.flex ? `flex: 1 1 ${header.getSize()}px; min-width: ${header.getSize()}px` : `flex: 0 0 ${header.getSize()}px`}
+            style={resizeLocked || !header.column.columnDef.meta?.flex ? `flex: 0 0 ${header.getSize()}px` : `flex: 1 1 ${header.getSize()}px; min-width: ${header.getSize()}px`}
           >
             <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
             <div
@@ -111,7 +114,7 @@
           <!-- ソートヘッダー -->
           <div
             class="relative"
-            style={header.column.columnDef.meta?.flex ? `flex: 1 1 ${header.getSize()}px; min-width: ${header.getSize()}px` : `flex: 0 0 ${header.getSize()}px`}
+            style={resizeLocked || !header.column.columnDef.meta?.flex ? `flex: 0 0 ${header.getSize()}px` : `flex: 1 1 ${header.getSize()}px; min-width: ${header.getSize()}px`}
           >
             <div
               role="columnheader"
