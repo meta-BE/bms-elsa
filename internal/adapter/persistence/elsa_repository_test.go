@@ -105,8 +105,6 @@ func TestUpsertAndGetChartMeta(t *testing.T) {
 		LR2IRBodyURL:   "http://example.com",
 		LR2IRDiffURL:   "http://example.com/diff",
 		LR2IRNotes:     "some notes",
-		WorkingBodyURL: "http://example.com/working",
-		WorkingDiffURL: "http://example.com/working/diff",
 		FetchedAt:      &now,
 	}
 
@@ -171,104 +169,6 @@ func TestBulkUpsertChartMeta(t *testing.T) {
 	}
 }
 
-func TestUpsertChartMeta_PreservesWorkingURLs(t *testing.T) {
-	repo := setupRepo(t)
-	ctx := context.Background()
-
-	// 先にworking URLを含む完全なレコードを挿入
-	now := time.Now().Truncate(time.Second)
-	meta := model.ChartIRMeta{
-		MD5:            "aaa",
-		SHA256:         "bbb",
-		Tags:           []string{"Stella"},
-		LR2IRBodyURL:   "http://lr2ir.com/body",
-		LR2IRDiffURL:   "http://lr2ir.com/diff",
-		LR2IRNotes:     "notes",
-		WorkingBodyURL: "http://working.com/body",
-		WorkingDiffURL: "http://working.com/diff",
-		FetchedAt:      &now,
-	}
-	if err := repo.UpsertChartMeta(ctx, meta); err != nil {
-		t.Fatal(err)
-	}
-
-	// LR2IR再取得（working URLは空）をシミュレート
-	newNow := time.Now().Truncate(time.Second)
-	irMeta := model.ChartIRMeta{
-		MD5:          "aaa",
-		SHA256:       "bbb",
-		Tags:         []string{"Stella", "st2"},
-		LR2IRBodyURL: "http://lr2ir.com/body-new",
-		LR2IRDiffURL: "http://lr2ir.com/diff-new",
-		LR2IRNotes:   "new notes",
-		FetchedAt:    &newNow,
-	}
-	if err := repo.UpsertChartMeta(ctx, irMeta); err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := repo.GetChartMeta(ctx, "aaa")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// LR2IRデータは更新されている
-	if got.LR2IRBodyURL != "http://lr2ir.com/body-new" {
-		t.Errorf("LR2IRBodyURL = %q, want %q", got.LR2IRBodyURL, "http://lr2ir.com/body-new")
-	}
-	// working URLは保持されている
-	if got.WorkingBodyURL != "http://working.com/body" {
-		t.Errorf("WorkingBodyURL = %q, want %q (should be preserved)", got.WorkingBodyURL, "http://working.com/body")
-	}
-	if got.WorkingDiffURL != "http://working.com/diff" {
-		t.Errorf("WorkingDiffURL = %q, want %q (should be preserved)", got.WorkingDiffURL, "http://working.com/diff")
-	}
-}
-
-func TestUpdateWorkingURLs(t *testing.T) {
-	repo := setupRepo(t)
-	ctx := context.Background()
-
-	// 先にLR2IRデータを含むレコードを挿入
-	now := time.Now().Truncate(time.Second)
-	meta := model.ChartIRMeta{
-		MD5:          "aaa",
-		SHA256:       "bbb",
-		Tags:         []string{"Stella"},
-		LR2IRBodyURL: "http://lr2ir.com/body",
-		LR2IRDiffURL: "http://lr2ir.com/diff",
-		LR2IRNotes:   "notes",
-		FetchedAt:    &now,
-	}
-	if err := repo.UpsertChartMeta(ctx, meta); err != nil {
-		t.Fatal(err)
-	}
-
-	// working URLのみ更新
-	if err := repo.UpdateWorkingURLs(ctx, "aaa", "http://working.com/body", "http://working.com/diff"); err != nil {
-		t.Fatal(err)
-	}
-
-	got, err := repo.GetChartMeta(ctx, "aaa")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// working URLが更新されている
-	if got.WorkingBodyURL != "http://working.com/body" {
-		t.Errorf("WorkingBodyURL = %q, want %q", got.WorkingBodyURL, "http://working.com/body")
-	}
-	if got.WorkingDiffURL != "http://working.com/diff" {
-		t.Errorf("WorkingDiffURL = %q, want %q", got.WorkingDiffURL, "http://working.com/diff")
-	}
-	// LR2IRデータは保持されている
-	if got.LR2IRBodyURL != "http://lr2ir.com/body" {
-		t.Errorf("LR2IRBodyURL = %q, want %q (should be preserved)", got.LR2IRBodyURL, "http://lr2ir.com/body")
-	}
-	if len(got.Tags) != 1 || got.Tags[0] != "Stella" {
-		t.Errorf("Tags = %v, want [Stella] (should be preserved)", got.Tags)
-	}
-}
 
 func TestUpsertChartMeta_Update(t *testing.T) {
 	repo := setupRepo(t)

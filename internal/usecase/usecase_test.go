@@ -55,7 +55,6 @@ type mockMetaRepo struct {
 	getChartMetaFunc        func(ctx context.Context, md5 string) (*model.ChartIRMeta, error)
 	upsertChartMetaFunc     func(ctx context.Context, meta model.ChartIRMeta) error
 	bulkUpsertChartMetaFunc func(ctx context.Context, metas []model.ChartIRMeta) error
-	updateWorkingURLsFunc   func(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error
 }
 
 func (m *mockMetaRepo) GetSongMeta(ctx context.Context, folderHash string) (*model.SongMeta, error) {
@@ -76,10 +75,6 @@ func (m *mockMetaRepo) UpsertChartMeta(ctx context.Context, meta model.ChartIRMe
 
 func (m *mockMetaRepo) BulkUpsertChartMeta(ctx context.Context, metas []model.ChartIRMeta) error {
 	return m.bulkUpsertChartMetaFunc(ctx, metas)
-}
-
-func (m *mockMetaRepo) UpdateWorkingURLs(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error {
-	return m.updateWorkingURLsFunc(ctx, md5, workingBodyURL, workingDiffURL)
 }
 
 func (m *mockMetaRepo) ListEvents(_ context.Context) ([]model.Event, error) {
@@ -128,10 +123,6 @@ func (m *mockMetaRepo) UpsertRewriteRule(_ context.Context, _ model.RewriteRule)
 
 func (m *mockMetaRepo) DeleteRewriteRule(_ context.Context, _ int) error {
 	return nil
-}
-
-func (m *mockMetaRepo) ListChartsForWorkingURLInference(_ context.Context) ([]model.ChartIRMeta, error) {
-	return nil, nil
 }
 
 func (m *mockMetaRepo) FindMostSimilarByMinHash(_ context.Context, _ []byte, _ float64) (*model.MinHashMatch, error) {
@@ -234,34 +225,6 @@ func TestUpdateSongMeta(t *testing.T) {
 	}
 	if *calledMeta.ReleaseYear != 2020 {
 		t.Errorf("calledMeta.ReleaseYear = %d, want %d", *calledMeta.ReleaseYear, 2020)
-	}
-}
-
-func TestUpdateChartMeta(t *testing.T) {
-	var calledMD5, calledBodyURL, calledDiffURL string
-	repo := &mockMetaRepo{
-		updateWorkingURLsFunc: func(_ context.Context, md5, workingBodyURL, workingDiffURL string) error {
-			calledMD5 = md5
-			calledBodyURL = workingBodyURL
-			calledDiffURL = workingDiffURL
-			return nil
-		},
-	}
-
-	uc := usecase.NewUpdateChartMetaUseCase(repo)
-	err := uc.Execute(context.Background(), "md5hash", "http://body.url", "http://diff.url")
-
-	if err != nil {
-		t.Fatalf("予期しないエラー: %v", err)
-	}
-	if calledMD5 != "md5hash" {
-		t.Errorf("calledMD5 = %q, want %q", calledMD5, "md5hash")
-	}
-	if calledBodyURL != "http://body.url" {
-		t.Errorf("calledBodyURL = %q, want %q", calledBodyURL, "http://body.url")
-	}
-	if calledDiffURL != "http://diff.url" {
-		t.Errorf("calledDiffURL = %q, want %q", calledDiffURL, "http://diff.url")
 	}
 }
 
