@@ -4,7 +4,6 @@
   import { EventsOn, EventsEmit } from '../../wailsjs/runtime/runtime'
   import { IsMinHashScanRunning } from '../../wailsjs/go/app/ScanHandler'
   import { IsRefreshing, RefreshProgress } from '../../wailsjs/go/app/DifficultyTableHandler'
-  import { IsInferring } from '../../wailsjs/go/app/RewriteHandler'
   import { IsDuplicateScanRunning } from '../../wailsjs/go/app/DuplicateHandler'
   import ProgressBar from '../components/ProgressBar.svelte'
 
@@ -25,11 +24,6 @@
   let dtProgress = { current: 0, total: 0 }
   let dtError = ''
   let dtResult = ''
-
-  let rewriteState: 'running' | 'done' | 'error' = 'done'
-  let rewriteProgress = { current: 0, total: 0 }
-  let rewriteError = ''
-  let rewriteResult = ''
 
   let dupState: 'running' | 'done' | 'error' = 'done'
   let dupProgress = { current: 0, total: 0 }
@@ -57,11 +51,6 @@
         dtState = 'running'
         const p = await RefreshProgress()
         dtProgress = { current: p.current, total: p.total }
-      }
-    } catch {}
-    try {
-      if (await IsInferring()) {
-        rewriteState = 'running'
       }
     } catch {}
     try {
@@ -116,8 +105,6 @@
   let offScanDone: (() => void) | null = null
   let offDtProgress: (() => void) | null = null
   let offDtDone: (() => void) | null = null
-  let offRewriteProgress: (() => void) | null = null
-  let offRewriteDone: (() => void) | null = null
   let offDupProgress: (() => void) | null = null
   let offDupDone: (() => void) | null = null
 
@@ -160,19 +147,6 @@
         dtResult = `${succeeded.length}件成功`
       }
     })
-    offRewriteProgress = EventsOn('rewrite:progress', (data: { current: number; total: number }) => {
-      rewriteState = 'running'
-      rewriteProgress = data
-    })
-    offRewriteDone = EventsOn('rewrite:done', (data: { applied: number; skipped: number; total: number; error: string }) => {
-      if (data.error) {
-        rewriteState = 'error'
-        rewriteError = data.error
-      } else {
-        rewriteState = 'done'
-        rewriteResult = `${data.applied}件適用 / ${data.skipped}件スキップ`
-      }
-    })
     offDupProgress = EventsOn('dup:progress', (data: { current: number; total: number }) => {
       dupState = 'running'
       dupProgress = data
@@ -194,8 +168,6 @@
     offScanDone?.()
     offDtProgress?.()
     offDtDone?.()
-    offRewriteProgress?.()
-    offRewriteDone?.()
     offDupProgress?.()
     offDupDone?.()
   })
@@ -289,26 +261,6 @@
         {/if}
         {#if dtState !== 'running' && dtResult}
           <p class="text-xs text-base-content/50">{dtResult}</p>
-        {/if}
-      </div>
-
-      <!-- 動作URL推定 -->
-      <div>
-        <div class="flex items-center justify-between text-sm mb-1">
-          <span>動作URL推定</span>
-          {#if rewriteState === 'running'}
-            <span class="text-xs text-base-content/50">実行中...</span>
-          {:else if rewriteState === 'error'}
-            <span class="text-xs text-error">エラー</span>
-          {:else}
-            <span class="text-xs text-success">完了</span>
-          {/if}
-        </div>
-        {#if rewriteState === 'running' && rewriteProgress.total > 0}
-          <ProgressBar current={rewriteProgress.current} total={rewriteProgress.total} />
-        {/if}
-        {#if rewriteState !== 'running' && rewriteResult}
-          <p class="text-xs text-base-content/50">{rewriteResult}</p>
         {/if}
       </div>
 
