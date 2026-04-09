@@ -1,6 +1,7 @@
 <script lang="ts">
   import { ListRewriteRules, UpsertRewriteRule, DeleteRewriteRule } from '../../wailsjs/go/app/RewriteHandler'
   import type { dto } from '../../wailsjs/go/models'
+  import { rewriteRules } from '../stores/rewriteRules'
 
   let dialog: HTMLDialogElement
   let mouseDownOnBackdrop = false
@@ -30,6 +31,7 @@
   async function loadRules() {
     try {
       rules = (await ListRewriteRules()) || []
+      rewriteRules.set(rules)
     } catch (e: any) {
       rules = []
       error = e?.message || 'ルール一覧の取得に失敗しました'
