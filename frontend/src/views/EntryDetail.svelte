@@ -2,7 +2,7 @@
   import { createEventDispatcher } from 'svelte'
   import { GetChartDetailByMD5, GetChartMetaByMD5 } from '../../wailsjs/go/app/ChartHandler'
   import { GetDifficultyTableEntry } from '../../wailsjs/go/app/DifficultyTableHandler'
-  import { LookupByMD5, UpdateChartMeta } from '../../wailsjs/go/app/IRHandler'
+  import { LookupByMD5 } from '../../wailsjs/go/app/IRHandler'
   import type { dto } from '../../wailsjs/go/models'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
@@ -48,10 +48,6 @@
     await loadEntry(md5, tableID)
   }
 
-  async function saveWorkingUrls(e: CustomEvent<{ bodyUrl: string; diffUrl: string }>) {
-    await UpdateChartMeta(md5, e.detail.bodyUrl, e.detail.diffUrl)
-    await loadEntry(md5, tableID)
-  }
 
 </script>
 
@@ -118,6 +114,6 @@
     {/if}
 
     <!-- IR情報（導入済・未導入共通） -->
-    <IRInfoCard {md5} {ir} on:lookup={lookupIR} on:save={saveWorkingUrls} />
+    <IRInfoCard {md5} {ir} on:lookup={lookupIR} />
   </div>
 {/if}

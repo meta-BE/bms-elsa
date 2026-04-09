@@ -15,6 +15,8 @@
   import RewriteRuleManager from './settings/RewriteRuleManager.svelte'
   import { OpenURL } from '../wailsjs/go/main/App'
   import { OnFileDrop } from '../wailsjs/runtime/runtime'
+  import { rewriteRules } from './stores/rewriteRules'
+  import { ListRewriteRules } from '../wailsjs/go/app/RewriteHandler'
   import Icon from './components/Icon.svelte'
   import { onMount } from 'svelte'
   let settingsComponent: Settings
@@ -135,6 +137,10 @@
   // 外部リンクをシステムブラウザで開く
   // capture: true でstopPropagationより先に実行する
   onMount(() => {
+    ListRewriteRules().then(rules => {
+      rewriteRules.set(rules ?? [])
+    })
+
     document.addEventListener('click', (e) => {
       const anchor = (e.target as Element).closest('a[href]')
       if (!anchor) return

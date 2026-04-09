@@ -93,20 +93,18 @@ func (a *App) Init() error {
 	listSongs := usecase.NewListSongsUseCase(songdataReader)
 	getSongDetail := usecase.NewGetSongDetailUseCase(songdataReader)
 	updateSongMeta := usecase.NewUpdateSongMetaUseCase(elsaRepo)
-	updateChartMeta := usecase.NewUpdateChartMetaUseCase(elsaRepo)
 	lookupIR := usecase.NewLookupIRUseCase(irClient, elsaRepo)
 	bulkFetchIR := usecase.NewBulkFetchIRUseCase(irClient, elsaRepo)
 
 	moveSongFolder := usecase.NewMoveSongFolderUseCase(appLogger)
 	a.SongHandler = internalapp.NewSongHandler(listSongs, getSongDetail, updateSongMeta, moveSongFolder)
-	a.IRHandler = internalapp.NewIRHandler(lookupIR, bulkFetchIR, updateChartMeta, elsaRepo)
+	a.IRHandler = internalapp.NewIRHandler(lookupIR, bulkFetchIR, elsaRepo)
 
 	bmsSearchClient := gateway.NewBMSSearchClient()
 	syncBMSSearch := usecase.NewSyncBMSSearchUseCase(bmsSearchClient, elsaRepo)
 	a.EventHandler = internalapp.NewEventHandler(bmsSearchClient, syncBMSSearch, elsaRepo, songdataReader)
 
-	inferWorkingURLs := usecase.NewInferWorkingURLUseCase(elsaRepo)
-	a.RewriteHandler = internalapp.NewRewriteHandler(inferWorkingURLs, elsaRepo)
+	a.RewriteHandler = internalapp.NewRewriteHandler(elsaRepo)
 
 	a.ChartHandler = internalapp.NewChartHandler(songdataReader, elsaRepo)
 	estimateInstallLocation := usecase.NewEstimateInstallLocationUseCase(songdataReader, elsaRepo)
@@ -139,7 +137,6 @@ func (a *App) startup(ctx context.Context) {
 		a.DuplicateHandler.StartScanDuplicates()
 	})
 	a.DifficultyTableHandler.RefreshAllDifficultyTablesAsync()
-	a.RewriteHandler.StartInferWorkingURLs()
 }
 
 func (a *App) shutdown(ctx context.Context) {

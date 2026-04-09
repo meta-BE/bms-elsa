@@ -47,8 +47,6 @@ func RunMigrations(db *sql.DB) error {
 			lr2ir_diff_url   TEXT,
 			lr2ir_notes      TEXT,
 			lr2ir_fetched_at TEXT,
-			working_body_url TEXT,
-			working_diff_url TEXT,
 			created_at       TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at       TEXT NOT NULL DEFAULT (datetime('now'))
 		)`,
@@ -207,6 +205,22 @@ func RunMigrations(db *sql.DB) error {
 	// song_meta.event_id: INTEGER(event.id参照) → TEXT(event.bms_search_id)への移行（冪等）
 	if err := migrateSongMetaEventIDToText(db); err != nil {
 		return err
+	}
+
+	// working_body_url / working_diff_url カラムの削除（冪等）
+	var hasWorkingBodyURL int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('chart_meta') WHERE name='working_body_url'`).Scan(&hasWorkingBodyURL)
+	if hasWorkingBodyURL > 0 {
+		if _, err := db.Exec(`ALTER TABLE chart_meta DROP COLUMN working_body_url`); err != nil {
+			return fmt.Errorf("drop working_body_url: %w", err)
+		}
+	}
+	var hasWorkingDiffURL int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('chart_meta') WHERE name='working_diff_url'`).Scan(&hasWorkingDiffURL)
+	if hasWorkingDiffURL > 0 {
+		if _, err := db.Exec(`ALTER TABLE chart_meta DROP COLUMN working_diff_url`); err != nil {
+			return fmt.Errorf("drop working_diff_url: %w", err)
+		}
 	}
 
 	return nil

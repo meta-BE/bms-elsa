@@ -56,7 +56,7 @@ func (r *ElsaRepository) GetChartMeta(ctx context.Context, md5 string) (*model.C
 	row := r.db.QueryRowContext(ctx,
 		`SELECT md5, sha256, lr2ir_tags,
 		        COALESCE(lr2ir_body_url, ''), COALESCE(lr2ir_diff_url, ''), COALESCE(lr2ir_notes, ''),
-		        lr2ir_fetched_at, COALESCE(working_body_url, ''), COALESCE(working_diff_url, '')
+		        lr2ir_fetched_at
 		 FROM chart_meta WHERE md5 = ?`,
 		md5,
 	)
@@ -68,7 +68,7 @@ func (r *ElsaRepository) GetChartMeta(ctx context.Context, md5 string) (*model.C
 	if err := row.Scan(
 		&m.MD5, &m.SHA256, &tagsStr,
 		&m.LR2IRBodyURL, &m.LR2IRDiffURL, &m.LR2IRNotes,
-		&fetchedAtStr, &m.WorkingBodyURL, &m.WorkingDiffURL,
+		&fetchedAtStr,
 	); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -100,8 +100,8 @@ func (r *ElsaRepository) UpsertChartMeta(ctx context.Context, meta model.ChartIR
 	}
 
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO chart_meta (md5, sha256, lr2ir_tags, lr2ir_body_url, lr2ir_diff_url, lr2ir_notes, lr2ir_fetched_at, working_body_url, working_diff_url)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO chart_meta (md5, sha256, lr2ir_tags, lr2ir_body_url, lr2ir_diff_url, lr2ir_notes, lr2ir_fetched_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT(md5) DO UPDATE SET
 		   sha256           = COALESCE(NULLIF(excluded.sha256, ''), chart_meta.sha256),
 		   lr2ir_tags       = excluded.lr2ir_tags,
@@ -109,24 +109,10 @@ func (r *ElsaRepository) UpsertChartMeta(ctx context.Context, meta model.ChartIR
 		   lr2ir_diff_url   = excluded.lr2ir_diff_url,
 		   lr2ir_notes      = excluded.lr2ir_notes,
 		   lr2ir_fetched_at = excluded.lr2ir_fetched_at,
-		   working_body_url = COALESCE(NULLIF(excluded.working_body_url, ''), chart_meta.working_body_url),
-		   working_diff_url = COALESCE(NULLIF(excluded.working_diff_url, ''), chart_meta.working_diff_url),
 		   updated_at       = datetime('now')`,
 		meta.MD5, meta.SHA256, tagsStr,
 		meta.LR2IRBodyURL, meta.LR2IRDiffURL, meta.LR2IRNotes,
-		fetchedAtStr, meta.WorkingBodyURL, meta.WorkingDiffURL,
-	)
-	return err
-}
-
-func (r *ElsaRepository) UpdateWorkingURLs(ctx context.Context, md5, workingBodyURL, workingDiffURL string) error {
-	_, err := r.db.ExecContext(ctx,
-		`UPDATE chart_meta SET
-			working_body_url = ?,
-			working_diff_url = ?,
-			updated_at = datetime('now')
-		 WHERE md5 = ?`,
-		workingBodyURL, workingDiffURL, md5,
+		fetchedAtStr,
 	)
 	return err
 }
@@ -139,8 +125,8 @@ func (r *ElsaRepository) BulkUpsertChartMeta(ctx context.Context, metas []model.
 	defer tx.Rollback()
 
 	stmt, err := tx.PrepareContext(ctx,
-		`INSERT INTO chart_meta (md5, sha256, lr2ir_tags, lr2ir_body_url, lr2ir_diff_url, lr2ir_notes, lr2ir_fetched_at, working_body_url, working_diff_url)
-		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`INSERT INTO chart_meta (md5, sha256, lr2ir_tags, lr2ir_body_url, lr2ir_diff_url, lr2ir_notes, lr2ir_fetched_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)
 		 ON CONFLICT(md5) DO UPDATE SET
 		   sha256           = COALESCE(NULLIF(excluded.sha256, ''), chart_meta.sha256),
 		   lr2ir_tags       = excluded.lr2ir_tags,
@@ -148,8 +134,6 @@ func (r *ElsaRepository) BulkUpsertChartMeta(ctx context.Context, metas []model.
 		   lr2ir_diff_url   = excluded.lr2ir_diff_url,
 		   lr2ir_notes      = excluded.lr2ir_notes,
 		   lr2ir_fetched_at = excluded.lr2ir_fetched_at,
-		   working_body_url = COALESCE(NULLIF(excluded.working_body_url, ''), chart_meta.working_body_url),
-		   working_diff_url = COALESCE(NULLIF(excluded.working_diff_url, ''), chart_meta.working_diff_url),
 		   updated_at       = datetime('now')`,
 	)
 	if err != nil {
@@ -168,7 +152,7 @@ func (r *ElsaRepository) BulkUpsertChartMeta(ctx context.Context, metas []model.
 		if _, err := stmt.ExecContext(ctx,
 			meta.MD5, meta.SHA256, tagsStr,
 			meta.LR2IRBodyURL, meta.LR2IRDiffURL, meta.LR2IRNotes,
-			fetchedAtStr, meta.WorkingBodyURL, meta.WorkingDiffURL,
+			fetchedAtStr,
 		); err != nil {
 			return err
 		}
@@ -364,34 +348,6 @@ func (r *ElsaRepository) UpsertRewriteRule(ctx context.Context, rule model.Rewri
 func (r *ElsaRepository) DeleteRewriteRule(ctx context.Context, id int) error {
 	_, err := r.db.ExecContext(ctx, `DELETE FROM url_rewrite_rule WHERE id = ?`, id)
 	return err
-}
-
-func (r *ElsaRepository) ListChartsForWorkingURLInference(ctx context.Context) ([]model.ChartIRMeta, error) {
-	rows, err := r.db.QueryContext(ctx,
-		`SELECT md5, sha256, lr2ir_body_url, lr2ir_diff_url
-		 FROM chart_meta
-		 WHERE (working_body_url IS NULL OR working_body_url = '')
-		   AND (working_diff_url IS NULL OR working_diff_url = '')
-		   AND (lr2ir_body_url IS NOT NULL AND lr2ir_body_url != ''
-		        OR lr2ir_diff_url IS NOT NULL AND lr2ir_diff_url != '')`,
-	)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var charts []model.ChartIRMeta
-	for rows.Next() {
-		var c model.ChartIRMeta
-		var bodyURL, diffURL sql.NullString
-		if err := rows.Scan(&c.MD5, &c.SHA256, &bodyURL, &diffURL); err != nil {
-			return nil, err
-		}
-		c.LR2IRBodyURL = bodyURL.String
-		c.LR2IRDiffURL = diffURL.String
-		charts = append(charts, c)
-	}
-	return charts, rows.Err()
 }
 
 // ListChartsWithoutMinhash はwav_minhashが未計算の譜面リストを返す

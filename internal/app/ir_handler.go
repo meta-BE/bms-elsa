@@ -15,7 +15,6 @@ type IRHandler struct {
 	ctx         context.Context
 	lookupIR    *usecase.LookupIRUseCase
 	bulkFetchIR *usecase.BulkFetchIRUseCase
-	updateChart *usecase.UpdateChartMetaUseCase
 	metaRepo    model.MetaRepository
 
 	mu         sync.Mutex
@@ -26,10 +25,9 @@ type IRHandler struct {
 func NewIRHandler(
 	li *usecase.LookupIRUseCase,
 	bf *usecase.BulkFetchIRUseCase,
-	uc *usecase.UpdateChartMetaUseCase,
 	mr model.MetaRepository,
 ) *IRHandler {
-	return &IRHandler{lookupIR: li, bulkFetchIR: bf, updateChart: uc, metaRepo: mr}
+	return &IRHandler{lookupIR: li, bulkFetchIR: bf, metaRepo: mr}
 }
 
 func (h *IRHandler) SetContext(ctx context.Context) { h.ctx = ctx }
@@ -52,10 +50,6 @@ func (h *IRHandler) LookupByMD5(md5, sha256 string) (*dto.ChartDTO, error) {
 		LR2IRNotes:   resp.Notes,
 	}
 	return result, nil
-}
-
-func (h *IRHandler) UpdateChartMeta(md5, workingBodyURL, workingDiffURL string) error {
-	return h.updateChart.Execute(h.ctx, md5, workingBodyURL, workingDiffURL)
 }
 
 // startBulkFetchWith はIR一括取得の共通処理。fetchMD5s で取得対象を差し替える。

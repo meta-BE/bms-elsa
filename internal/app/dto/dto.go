@@ -55,11 +55,9 @@ type ChartDTO struct {
 	Notes          int     `json:"notes"`
 	HasIRMeta      bool    `json:"hasIrMeta"`
 	LR2IRTags      string  `json:"lr2irTags,omitempty"`
-	LR2IRBodyURL   string  `json:"lr2irBodyUrl,omitempty"`
-	LR2IRDiffURL   string  `json:"lr2irDiffUrl,omitempty"`
-	LR2IRNotes     string  `json:"lr2irNotes,omitempty"`
-	WorkingBodyURL string  `json:"workingBodyUrl,omitempty"`
-	WorkingDiffURL   string               `json:"workingDiffUrl,omitempty"`
+	LR2IRBodyURL     string               `json:"lr2irBodyUrl,omitempty"`
+	LR2IRDiffURL     string               `json:"lr2irDiffUrl,omitempty"`
+	LR2IRNotes       string               `json:"lr2irNotes,omitempty"`
 	DifficultyLabels []DifficultyLabelDTO `json:"difficultyLabels,omitempty"`
 }
 
@@ -68,11 +66,9 @@ type ChartIRMetaDTO struct {
 	MD5            string `json:"md5"`
 	HasIRMeta      bool   `json:"hasIrMeta"`
 	LR2IRTags      string `json:"lr2irTags,omitempty"`
-	LR2IRBodyURL   string `json:"lr2irBodyUrl,omitempty"`
-	LR2IRDiffURL   string `json:"lr2irDiffUrl,omitempty"`
-	LR2IRNotes     string `json:"lr2irNotes,omitempty"`
-	WorkingBodyURL string `json:"workingBodyUrl,omitempty"`
-	WorkingDiffURL string `json:"workingDiffUrl,omitempty"`
+	LR2IRBodyURL string `json:"lr2irBodyUrl,omitempty"`
+	LR2IRDiffURL string `json:"lr2irDiffUrl,omitempty"`
+	LR2IRNotes   string `json:"lr2irNotes,omitempty"`
 }
 
 // ChartListItemDTO は譜面一覧用の軽量DTO
@@ -165,8 +161,6 @@ func ChartToDTO(c model.Chart) ChartDTO {
 		d.LR2IRBodyURL = c.IRMeta.LR2IRBodyURL
 		d.LR2IRDiffURL = c.IRMeta.LR2IRDiffURL
 		d.LR2IRNotes = c.IRMeta.LR2IRNotes
-		d.WorkingBodyURL = c.IRMeta.WorkingBodyURL
-		d.WorkingDiffURL = c.IRMeta.WorkingDiffURL
 	}
 	if c.DifficultyLabels != nil {
 		d.DifficultyLabels = make([]DifficultyLabelDTO, len(c.DifficultyLabels))
@@ -214,12 +208,6 @@ type RewriteRuleDTO struct {
 	Priority    int    `json:"priority"`
 }
 
-type InferWorkingURLResultDTO struct {
-	Applied int `json:"applied"`
-	Skipped int `json:"skipped"`
-	Total   int `json:"total"`
-}
-
 type InstallCandidateDTO struct {
 	FolderPath string   `json:"folderPath"`
 	Title      string   `json:"title"`
@@ -244,8 +232,6 @@ func ChartIRMetaToDTO(m model.ChartIRMeta) ChartIRMetaDTO {
 		d.LR2IRBodyURL = m.LR2IRBodyURL
 		d.LR2IRDiffURL = m.LR2IRDiffURL
 		d.LR2IRNotes = m.LR2IRNotes
-		d.WorkingBodyURL = m.WorkingBodyURL
-		d.WorkingDiffURL = m.WorkingDiffURL
 	}
 	return d
 }
