@@ -241,10 +241,10 @@
     <div class="space-y-2">
       <p class="text-sm text-base-content/70">各テーブルのカラム幅をデフォルトに戻します</p>
       <div class="flex flex-wrap gap-2">
-        <button class="btn btn-xs btn-outline" on:click={() => resetColumnWidths('songList')}>楽曲一覧</button>
-        <button class="btn btn-xs btn-outline" on:click={() => resetColumnWidths('chartList')}>譜面一覧</button>
-        <button class="btn btn-xs btn-outline" on:click={() => resetColumnWidths('difficultyTable')}>難易度表</button>
-        <button class="btn btn-xs btn-outline" on:click={() => resetColumnWidths('diffImport')}>差分導入</button>
+        <button class="btn btn-xs btn-outline btn-error" on:click={() => resetColumnWidths('songList')}>楽曲一覧</button>
+        <button class="btn btn-xs btn-outline btn-error" on:click={() => resetColumnWidths('chartList')}>譜面一覧</button>
+        <button class="btn btn-xs btn-outline btn-error" on:click={() => resetColumnWidths('difficultyTable')}>難易度表</button>
+        <button class="btn btn-xs btn-outline btn-error" on:click={() => resetColumnWidths('diffImport')}>差分導入</button>
       </div>
     </div>
 
