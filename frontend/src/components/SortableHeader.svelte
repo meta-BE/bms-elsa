@@ -5,6 +5,7 @@
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   export let table: Table<any>
+  export let onResizeEnd: (() => void) | undefined = undefined
 
   // リサイズが有効かつcolumnSizingが設定済みの場合、flex伸縮を無効化して固定幅に切り替え
   $: resizeLocked = table.options.enableColumnResizing && Object.keys(table.getState().columnSizing).length > 0
@@ -97,6 +98,7 @@
       document.removeEventListener('mouseup', onEnd)
       document.removeEventListener('touchmove', onMove as EventListener)
       document.removeEventListener('touchend', onEnd)
+      onResizeEnd?.()
     }
 
     document.addEventListener('mousemove', onMove as EventListener)

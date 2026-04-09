@@ -8,10 +8,12 @@
     type ColumnDef,
     type SortingState,
     type TableOptions,
+    type ColumnSizingState,
+    type ColumnSizingInfoState,
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { writable } from 'svelte/store'
-  import { onMount, createEventDispatcher } from 'svelte'
+  import { onMount, afterUpdate, onDestroy, createEventDispatcher } from 'svelte'
   import { ListDifficultyTables, ListDifficultyTableEntries, RefreshDifficultyTable } from '../../wailsjs/go/app/DifficultyTableHandler'
   import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
@@ -21,6 +23,14 @@
   import DifficultyTableSettings from '../settings/DifficultyTableSettings.svelte'
   import Icon from '../components/Icon.svelte'
   import { handleArrowNav } from '../utils/arrowNav'
+  import { EventsOn } from '../../wailsjs/runtime/runtime'
+  import {
+    loadColumnWidths,
+    saveColumnWidths,
+    recalcFromRatios,
+    toRatios,
+    type ViewId,
+  } from '../utils/columnResize'
 
   const dispatch = createEventDispatcher<{
     select: { md5: string; tableID: number }
@@ -47,8 +57,9 @@
     {
       accessorKey: 'level',
       header: 'Level',
-      size: 80,
+      size: 70,
       meta: { align: 'right' },
+      enableResizing: false,
       sortingFn: (rowA, rowB, columnId) => {
         const a = Number(rowA.getValue(columnId)) || 0
         const b = Number(rowB.getValue(columnId)) || 0
@@ -62,12 +73,14 @@
       header: 'URL',
       size: 60,
       meta: { align: 'center' },
+      enableResizing: false,
       accessorFn: (row) => row.url ? '○' : '',
     },
     {
       id: 'statusLabel',
       header: 'Status',
       size: 100,
+      enableResizing: false,
       accessorFn: (row) => {
         if (row.status === 'installed') return '導入済'
         if (row.status === 'not_installed') return '未導入'
@@ -82,10 +95,27 @@
 
   let sorting: SortingState = []
 
+  const VIEW_ID: ViewId = 'difficultyTable'
+  const RESIZABLE_IDS = columns
+    .filter(c => (c.meta as { flex?: boolean })?.flex)
+    .map(c => c.id || (c as { accessorKey?: string }).accessorKey || '')
+  const FIXED_WIDTH = columns
+    .filter(c => !(c.meta as { flex?: boolean })?.flex)
+    .reduce((sum, c) => sum + (c.size || 150), 0)
+  const CONTAINER_PADDING = 16
+
+  let columnSizing: ColumnSizingState = {}
+  let columnSizingInfo: ColumnSizingInfoState = {} as ColumnSizingInfoState
+  let widthsLocked = false
+  let currentRatios: Record<string, number> = {}
+  let offResetWidths: (() => void) | null = null
+
   const options = writable<TableOptions<dto.DifficultyTableEntryDTO>>({
     data: entries,
     columns,
-    state: { sorting },
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
+    state: { sorting, columnSizing, columnSizingInfo },
     onSortingChange: (updater) => {
       if (typeof updater === 'function') {
         sorting = updater(sorting)
@@ -93,6 +123,14 @@
         sorting = updater
       }
       options.update((o) => ({ ...o, state: { ...o.state, sorting } }))
+    },
+    onColumnSizingChange: (updater) => {
+      columnSizing = typeof updater === 'function' ? updater(columnSizing) : updater
+      options.update((o) => ({ ...o, state: { ...o.state, columnSizing } }))
+    },
+    onColumnSizingInfoChange: (updater) => {
+      columnSizingInfo = typeof updater === 'function' ? updater(columnSizingInfo) : updater
+      options.update((o) => ({ ...o, state: { ...o.state, columnSizingInfo } }))
     },
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
@@ -128,6 +166,18 @@
     } finally {
       loading = false
     }
+
+    offResetWidths = EventsOn('column-width-reset', (id: string) => {
+      if (id !== VIEW_ID) return
+      columnSizing = {}
+      currentRatios = {}
+      widthsLocked = false
+      options.update((o) => ({ ...o, state: { ...o.state, columnSizing: {} } }))
+    })
+  })
+
+  onDestroy(() => {
+    offResetWidths?.()
   })
 
   async function loadEntries(tableId: number) {
@@ -150,7 +200,7 @@
           return e.title.toLowerCase().includes(s) || e.artist.toLowerCase().includes(s)
         })
       : entries
-    options.update((o) => ({ ...o, data: filtered }))
+    options.update((o) => ({ ...o, data: filtered, state: { ...o.state, columnSizing, columnSizingInfo } }))
   }
 
   async function handleTableChange(e: Event) {
@@ -184,6 +234,51 @@
     } else {
       dispatch('select', { md5: entry.md5, tableID: selectedTableId! })
     }
+  }
+
+  afterUpdate(() => {
+    if (entries.length > 0 && scrollElement && !widthsLocked && scrollElement.clientWidth > 0) {
+      widthsLocked = true
+      requestAnimationFrame(async () => {
+        const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+        if (containerWidth <= 0) { widthsLocked = false; return }
+        const restored = await loadColumnWidths(
+          { viewId: VIEW_ID, resizableColumnIds: RESIZABLE_IDS, fixedColumnsWidth: FIXED_WIDTH },
+          containerWidth,
+        )
+        if (restored) {
+          columnSizing = restored
+          currentRatios = toRatios(restored, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+          options.update((o) => ({ ...o, state: { ...o.state, columnSizing } }))
+          return
+        }
+        const flexCols = columns.filter(c => (c.meta as { flex?: boolean })?.flex)
+        const flexDefined = flexCols.reduce((sum, c) => sum + (c.size || 150), 0)
+        const available = Math.max(0, containerWidth - FIXED_WIDTH)
+        const newSizing: Record<string, number> = {}
+        for (const col of flexCols) {
+          const id = col.id || (col as { accessorKey?: string }).accessorKey || ''
+          newSizing[id] = Math.round(((col.size || 150) / flexDefined) * available)
+        }
+        columnSizing = newSizing
+        currentRatios = toRatios(newSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+        options.update((o) => ({ ...o, state: { ...o.state, columnSizing } }))
+      })
+    }
+  })
+
+  function handleResizeEnd() {
+    if (!scrollElement) return
+    const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+    currentRatios = toRatios(columnSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+    saveColumnWidths(VIEW_ID, columnSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+  }
+
+  function handleWindowResize() {
+    if (!scrollElement || !widthsLocked || Object.keys(currentRatios).length === 0) return
+    const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+    columnSizing = recalcFromRatios(currentRatios, FIXED_WIDTH, containerWidth)
+    options.update((o) => ({ ...o, state: { ...o.state, columnSizing } }))
   }
 
   async function handleSettingsClose() {
@@ -230,7 +325,7 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeyNav} />
+<svelte:window on:keydown={handleKeyNav} on:resize={handleWindowResize} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div
@@ -286,7 +381,7 @@
   </div>
 
   {#if tables.length > 0}
-    <SortableHeader table={$table} />
+    <SortableHeader table={$table} onResizeEnd={handleResizeEnd} />
 
     <!-- 仮想スクロール領域 -->
     <div
@@ -319,7 +414,7 @@
               {#each row.getVisibleCells() as cell}
                 <div
                   class="px-2 text-sm truncate {cell.column.columnDef.meta?.align === 'center' ? 'text-center' : cell.column.columnDef.meta?.align === 'right' ? 'text-right' : ''}"
-                  style={cell.column.columnDef.meta?.flex ? `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px` : `flex: 0 0 ${cell.column.getSize()}px`}
+                  style={widthsLocked || !cell.column.columnDef.meta?.flex ? `flex: 0 0 ${cell.column.getSize()}px` : `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px`}
                 >
                   <svelte:component
                     this={flexRender(cell.column.columnDef.cell, cell.getContext())}

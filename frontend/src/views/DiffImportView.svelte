@@ -16,6 +16,13 @@
   import Icon from '../components/Icon.svelte'
   import ProgressBar from '../components/ProgressBar.svelte'
   import SortableHeader from '../components/SortableHeader.svelte'
+  import {
+    loadColumnWidths,
+    saveColumnWidths,
+    recalcFromRatios,
+    toRatios,
+    type ViewId,
+  } from '../utils/columnResize'
 
   let candidates: app.DiffImportCandidateDTO[] = []
   let estimating = false
@@ -42,11 +49,19 @@
     offDone = EventsOn('diff-import:done', () => {
       estimating = false
     })
+
+    offResetWidths = EventsOn('column-width-reset', (id: string) => {
+      if (id !== VIEW_ID) return
+      columnSizing = {}
+      currentRatios = {}
+      widthsLocked = false
+    })
   })
 
   onDestroy(() => {
     offProgress?.()
     offDone?.()
+    offResetWidths?.()
     if (importResultTimer) clearTimeout(importResultTimer)
   })
 
@@ -82,6 +97,7 @@
     candidates = []
     importResult = null
     columnSizing = {}
+    currentRatios = {}
     widthsLocked = false
   }
 
@@ -171,10 +187,21 @@
     },
   ]
 
+  const VIEW_ID: ViewId = 'diffImport'
+  const RESIZABLE_IDS = columns
+    .filter(c => (c.meta as { flex?: boolean })?.flex)
+    .map(c => c.id || (c as { accessorKey?: string }).accessorKey || '')
+  const FIXED_WIDTH = columns
+    .filter(c => !(c.meta as { flex?: boolean })?.flex)
+    .reduce((sum, c) => sum + (c.size || 150), 0)
+  const CONTAINER_PADDING = 16
+
   $: importableCount = candidates.filter(c => c.destFolder).length
 
   let columnSizing: ColumnSizingState = {}
   let columnSizingInfo: ColumnSizingInfoState = {} as ColumnSizingInfoState
+  let currentRatios: Record<string, number> = {}
+  let offResetWidths: (() => void) | null = null
 
   $: table = createSvelteTable({
     data: candidates,
@@ -210,26 +237,49 @@
   let widthsLocked = false
 
   afterUpdate(() => {
-    if (candidates.length > 0 && scrollElement && !widthsLocked) {
+    if (candidates.length > 0 && scrollElement && !widthsLocked && scrollElement.clientWidth > 0) {
       widthsLocked = true
-      requestAnimationFrame(() => {
-        const containerWidth = scrollElement.clientWidth - 16 // 行のpx-2パディング分
-        const fixedWidth = columns
-          .filter(c => !(c.meta as { flex?: boolean })?.flex)
-          .reduce((sum, c) => sum + (c.size || 150), 0)
+      requestAnimationFrame(async () => {
+        const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+        if (containerWidth <= 0) { widthsLocked = false; return }
+        const restored = await loadColumnWidths(
+          { viewId: VIEW_ID, resizableColumnIds: RESIZABLE_IDS, fixedColumnsWidth: FIXED_WIDTH },
+          containerWidth,
+        )
+        if (restored) {
+          columnSizing = restored
+          currentRatios = toRatios(restored, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+          return
+        }
         const flexCols = columns.filter(c => (c.meta as { flex?: boolean })?.flex)
         const flexDefined = flexCols.reduce((sum, c) => sum + (c.size || 150), 0)
-        const available = Math.max(0, containerWidth - fixedWidth)
-        const newSizing: ColumnSizingState = {}
+        const available = Math.max(0, containerWidth - FIXED_WIDTH)
+        const newSizing: Record<string, number> = {}
         for (const col of flexCols) {
           const id = col.id || (col as { accessorKey?: string }).accessorKey || ''
           newSizing[id] = Math.round(((col.size || 150) / flexDefined) * available)
         }
         columnSizing = newSizing
+        currentRatios = toRatios(newSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
       })
     }
   })
+
+  function handleResizeEnd() {
+    if (!scrollElement) return
+    const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+    currentRatios = toRatios(columnSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+    saveColumnWidths(VIEW_ID, columnSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+  }
+
+  function handleWindowResize() {
+    if (!scrollElement || !widthsLocked || Object.keys(currentRatios).length === 0) return
+    const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+    columnSizing = recalcFromRatios(currentRatios, FIXED_WIDTH, containerWidth)
+  }
 </script>
+
+<svelte:window on:resize={handleWindowResize} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div
@@ -275,7 +325,7 @@
   {:else}
     <!-- テーブル -->
     <div class="flex-1 overflow-hidden flex flex-col">
-      <SortableHeader table={$table} />
+      <SortableHeader table={$table} onResizeEnd={handleResizeEnd} />
 
       <div bind:this={scrollElement} class="flex-1 overflow-y-scroll">
         <div style="height: {totalSize}px; position: relative;">

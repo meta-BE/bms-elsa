@@ -220,8 +220,9 @@ func (a *App) SelectDirectory() (string, error) {
 
 // Config はアプリケーション設定
 type Config struct {
-	SongdataDBPath string `json:"songdataDBPath"`
-	FileLog        bool   `json:"fileLog"`
+	SongdataDBPath string                        `json:"songdataDBPath"`
+	FileLog        bool                          `json:"fileLog"`
+	ColumnWidths   map[string]map[string]float64 `json:"columnWidths,omitempty"`
 }
 
 // loadConfig は実行ファイルと同じディレクトリの config.json を読み込む。

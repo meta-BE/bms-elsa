@@ -10,9 +10,11 @@
     type ColumnDef,
     type SortingState,
     type FilterFn,
+    type ColumnSizingState,
+    type ColumnSizingInfoState,
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
-  import { onMount, onDestroy, createEventDispatcher } from 'svelte'
+  import { onMount, onDestroy, afterUpdate, createEventDispatcher } from 'svelte'
   import { ListAllSongs } from '../../wailsjs/go/app/SongHandler'
   import type { dto } from '../../wailsjs/go/models'
   import SearchInput from '../components/SearchInput.svelte'
@@ -22,6 +24,13 @@
   import { handleArrowNav } from '../utils/arrowNav'
   import Icon from '../components/Icon.svelte'
   import ProgressBar from '../components/ProgressBar.svelte'
+  import {
+    loadColumnWidths,
+    saveColumnWidths,
+    recalcFromRatios,
+    toRatios,
+    type ViewId,
+  } from '../utils/columnResize'
 
   let syncing = false
   let syncProgress = { current: 0, total: 0 }
@@ -62,41 +71,59 @@
     { accessorKey: 'artist', header: 'Artist', size: 200, meta: { flex: true } },
     { accessorKey: 'genre', header: 'Genre', size: 140, meta: { flex: true } },
     {
-      id: 'bpm',
-      header: 'BPM',
-      size: 100,
-      accessorFn: (row) => {
-        if (row.minBpm === row.maxBpm) return String(Math.round(row.minBpm))
-        return `${Math.round(row.minBpm)}-${Math.round(row.maxBpm)}`
-      },
-    },
-    {
-      id: 'releaseYear',
-      header: 'Year',
-      size: 60,
-      accessorFn: (row) => row.releaseYear ? String(row.releaseYear) : '',
-      enableSorting: false,
-      filterFn: 'equalsString',
-      meta: { filterType: 'select', filterSort: 'desc'},
-    },
-    {
       id: 'eventName',
       header: 'Event',
       size: 140,
       accessorFn: (row) => row.eventName || '',
       enableSorting: false,
       filterFn: 'equalsString',
-      meta: { filterType: 'select' },
+      meta: { flex: true, filterType: 'select' },
     },
-    { accessorKey: 'chartCount', header: 'Charts', size: 80, meta: { align: 'right' } },
+    {
+      id: 'releaseYear',
+      header: 'Year',
+      size: 60,
+      enableResizing: false,
+      accessorFn: (row) => row.releaseYear ? String(row.releaseYear) : '',
+      enableSorting: false,
+      filterFn: 'equalsString',
+      meta: { filterType: 'select', filterSort: 'desc' },
+    },
+    {
+      id: 'bpm',
+      header: 'BPM',
+      size: 100,
+      enableResizing: false,
+      accessorFn: (row) => {
+        if (row.minBpm === row.maxBpm) return String(Math.round(row.minBpm))
+        return `${Math.round(row.minBpm)}-${Math.round(row.maxBpm)}`
+      },
+    },
+    { accessorKey: 'chartCount', header: 'Charts', size: 75, enableResizing: false, meta: { align: 'right' } },
     {
       id: 'ir',
       header: 'IR',
       size: 40,
+      enableResizing: false,
       meta: { align: 'center' },
       accessorFn: (row) => row.hasIrMeta ? '●' : '',
     },
   ]
+
+  const VIEW_ID: ViewId = 'songList'
+  const RESIZABLE_IDS = columns
+    .filter(c => (c.meta as { flex?: boolean })?.flex)
+    .map(c => c.id || (c as { accessorKey?: string }).accessorKey || '')
+  const FIXED_WIDTH = columns
+    .filter(c => !(c.meta as { flex?: boolean })?.flex)
+    .reduce((sum, c) => sum + (c.size || 150), 0)
+  const CONTAINER_PADDING = 16
+
+  let columnSizing: ColumnSizingState = {}
+  let columnSizingInfo: ColumnSizingInfoState = {} as ColumnSizingInfoState
+  let widthsLocked = false
+  let currentRatios: Record<string, number> = {}
+  let offResetWidths: (() => void) | null = null
 
   let sorting: SortingState = []
 
@@ -112,9 +139,17 @@
   $: table = createSvelteTable({
     data: songs,
     columns,
-    state: { sorting, globalFilter },
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
+    state: { sorting, globalFilter, columnSizing, columnSizingInfo },
     onSortingChange: (updater) => {
       sorting = typeof updater === 'function' ? updater(sorting) : updater
+    },
+    onColumnSizingChange: (updater) => {
+      columnSizing = typeof updater === 'function' ? updater(columnSizing) : updater
+    },
+    onColumnSizingInfoChange: (updater) => {
+      columnSizingInfo = typeof updater === 'function' ? updater(columnSizingInfo) : updater
     },
     globalFilterFn: searchFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -204,16 +239,66 @@
       syncDoneTimer = setTimeout(() => { syncDoneMessage = '' }, 5000)
       loadSongs()
     })
+
+    offResetWidths = EventsOn('column-width-reset', (id: string) => {
+      if (id !== VIEW_ID) return
+      columnSizing = {}
+      currentRatios = {}
+      widthsLocked = false
+    })
   })
 
   onDestroy(() => {
     offSyncProgress?.()
     offSyncDone?.()
     if (syncDoneTimer) clearTimeout(syncDoneTimer)
+    offResetWidths?.()
   })
+
+  afterUpdate(() => {
+    if (songs.length > 0 && scrollElement && !widthsLocked && scrollElement.clientWidth > 0) {
+      widthsLocked = true
+      requestAnimationFrame(async () => {
+        const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+        if (containerWidth <= 0) { widthsLocked = false; return }
+        const restored = await loadColumnWidths(
+          { viewId: VIEW_ID, resizableColumnIds: RESIZABLE_IDS, fixedColumnsWidth: FIXED_WIDTH },
+          containerWidth,
+        )
+        if (restored) {
+          columnSizing = restored
+          currentRatios = toRatios(restored, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+          return
+        }
+        const flexCols = columns.filter(c => (c.meta as { flex?: boolean })?.flex)
+        const flexDefined = flexCols.reduce((sum, c) => sum + (c.size || 150), 0)
+        const available = Math.max(0, containerWidth - FIXED_WIDTH)
+        const newSizing: Record<string, number> = {}
+        for (const col of flexCols) {
+          const id = col.id || (col as { accessorKey?: string }).accessorKey || ''
+          newSizing[id] = Math.round(((col.size || 150) / flexDefined) * available)
+        }
+        columnSizing = newSizing
+        currentRatios = toRatios(newSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+      })
+    }
+  })
+
+  function handleResizeEnd() {
+    if (!scrollElement) return
+    const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+    currentRatios = toRatios(columnSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+    saveColumnWidths(VIEW_ID, columnSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+  }
+
+  function handleWindowResize() {
+    if (!scrollElement || !widthsLocked || Object.keys(currentRatios).length === 0) return
+    const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+    columnSizing = recalcFromRatios(currentRatios, FIXED_WIDTH, containerWidth)
+  }
 </script>
 
-<svelte:window on:keydown={handleKeyNav} />
+<svelte:window on:keydown={handleKeyNav} on:resize={handleWindowResize} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div
@@ -255,7 +340,7 @@
       <span class="loading loading-spinner"></span>
     </div>
   {:else}
-    <SortableHeader table={$table} />
+    <SortableHeader table={$table} onResizeEnd={handleResizeEnd} />
 
     <!-- 仮想スクロール領域 -->
     <div
@@ -280,7 +365,7 @@
             {#each row.getVisibleCells() as cell}
               <div
                 class="px-2 text-sm truncate {cell.column.columnDef.meta?.align === 'center' ? 'text-center' : cell.column.columnDef.meta?.align === 'right' ? 'text-right' : ''}"
-                style={cell.column.columnDef.meta?.flex ? `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px` : `flex: 0 0 ${cell.column.getSize()}px`}
+                style={widthsLocked || !cell.column.columnDef.meta?.flex ? `flex: 0 0 ${cell.column.getSize()}px` : `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px`}
               >
                 {#if cell.column.id === 'title' && movedHashes.has(row.original.folderHash)}
                   <span class="badge badge-warning badge-xs mr-1">移動済み</span>
