@@ -56,7 +56,8 @@
     importResult = null
     try {
       const result = await ParseAndEstimate(filePaths)
-      candidates = [...candidates, ...(result || [])]
+      const existingPaths = new Set(candidates.map(c => c.filePath))
+      candidates = [...candidates, ...(result || []).filter(c => !existingPaths.has(c.filePath))]
     } catch (e: any) {
       console.error('ParseAndEstimate failed:', e)
     } finally {
