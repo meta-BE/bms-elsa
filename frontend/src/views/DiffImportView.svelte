@@ -153,12 +153,14 @@
       id: 'score',
       header: 'スコア',
       size: 64,
+      enableResizing: false,
       accessorFn: (row) => row.score > 0 ? Math.round(row.score * 10) : null,
     },
     {
       id: 'matchMethod',
       header: '推定方法',
       size: 80,
+      enableResizing: false,
       accessorFn: (row) => matchMethodLabels[row.matchMethod] || row.matchMethod || '-',
     },
     {

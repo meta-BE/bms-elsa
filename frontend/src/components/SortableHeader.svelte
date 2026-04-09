@@ -54,6 +54,56 @@
     column.setFilterValue(value)
     openFilterColumnId = null
   }
+
+  // カスタムリサイズ: ハンドルを境界として左右カラムの幅を同時に調整（合計幅不変）
+  let resizingColumnId: string | null = null
+  const MIN_COL_WIDTH = 40
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function canShowResizeHandle(headerIndex: number, headers: any[]): boolean {
+    const current = headers[headerIndex]
+    if (!current.column.getCanResize()) return false
+    const next = headers[headerIndex + 1]
+    return !!next && next.column.getCanResize()
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function startResize(e: MouseEvent | TouchEvent, headerIndex: number, headers: any[]) {
+    const leftHeader = headers[headerIndex]
+    const rightHeader = headers[headerIndex + 1]
+    if (!rightHeader) return
+
+    const startX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const leftInitial = leftHeader.getSize()
+    const rightInitial = rightHeader.getSize()
+
+    resizingColumnId = leftHeader.column.id
+
+    function onMove(ev: MouseEvent | TouchEvent) {
+      const clientX = 'touches' in ev ? ev.touches[0].clientX : (ev as MouseEvent).clientX
+      const rawDelta = clientX - startX
+      const delta = Math.max(-(leftInitial - MIN_COL_WIDTH), Math.min(rawDelta, rightInitial - MIN_COL_WIDTH))
+
+      table.setColumnSizing((prev: Record<string, number>) => ({
+        ...prev,
+        [leftHeader.column.id]: leftInitial + delta,
+        [rightHeader.column.id]: rightInitial - delta,
+      }))
+    }
+
+    function onEnd() {
+      resizingColumnId = null
+      document.removeEventListener('mousemove', onMove as EventListener)
+      document.removeEventListener('mouseup', onEnd)
+      document.removeEventListener('touchmove', onMove as EventListener)
+      document.removeEventListener('touchend', onEnd)
+    }
+
+    document.addEventListener('mousemove', onMove as EventListener)
+    document.addEventListener('mouseup', onEnd)
+    document.addEventListener('touchmove', onMove as EventListener)
+    document.addEventListener('touchend', onEnd)
+  }
 </script>
 
 <svelte:window on:click={closeFilterMenu} />
@@ -61,7 +111,7 @@
 <div class="bg-base-200 border-b border-base-300 px-2 shrink-0" style="padding-right: {scrollbarWidth + 8}px">
   {#each table.getHeaderGroups() as headerGroup}
     <div class="flex">
-      {#each headerGroup.headers as header}
+      {#each headerGroup.headers as header, headerIndex}
         {#if isFilterColumn(header.column)}
           <!-- フィルタヘッダー -->
           <div
@@ -100,13 +150,13 @@
                 {/each}
               </div>
             {/if}
-            {#if header.column.getCanResize()}
+            {#if canShowResizeHandle(headerIndex, headerGroup.headers)}
               <!-- svelte-ignore a11y-no-static-element-interactions -->
               <div
                 class="absolute top-0 right-0 w-1 h-full cursor-col-resize select-none touch-none
-                  {header.column.getIsResizing() ? 'bg-primary' : 'hover:bg-primary/50'}"
-                on:mousedown|stopPropagation={header.getResizeHandler()}
-                on:touchstart|stopPropagation={header.getResizeHandler()}
+                  {resizingColumnId === header.column.id ? 'bg-primary' : 'hover:bg-primary/50'}"
+                on:mousedown|stopPropagation={(e) => startResize(e, headerIndex, headerGroup.headers)}
+                on:touchstart|stopPropagation={(e) => startResize(e, headerIndex, headerGroup.headers)}
               />
             {/if}
           </div>
@@ -136,13 +186,13 @@
                 {/if}
               </span>
             </div>
-            {#if header.column.getCanResize()}
+            {#if canShowResizeHandle(headerIndex, headerGroup.headers)}
               <!-- svelte-ignore a11y-no-static-element-interactions -->
               <div
                 class="absolute top-0 right-0 w-1 h-full cursor-col-resize select-none touch-none
-                  {header.column.getIsResizing() ? 'bg-primary' : 'hover:bg-primary/50'}"
-                on:mousedown|stopPropagation={header.getResizeHandler()}
-                on:touchstart|stopPropagation={header.getResizeHandler()}
+                  {resizingColumnId === header.column.id ? 'bg-primary' : 'hover:bg-primary/50'}"
+                on:mousedown|stopPropagation={(e) => startResize(e, headerIndex, headerGroup.headers)}
+                on:touchstart|stopPropagation={(e) => startResize(e, headerIndex, headerGroup.headers)}
               />
             {/if}
           </div>
