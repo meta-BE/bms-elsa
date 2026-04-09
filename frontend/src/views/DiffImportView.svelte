@@ -1,11 +1,21 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte'
+  import { onMount, onDestroy, afterUpdate } from 'svelte'
+  import {
+    createSvelteTable,
+    flexRender,
+    getCoreRowModel,
+    type ColumnDef,
+    type ColumnSizingState,
+    type ColumnSizingInfoState,
+  } from '@tanstack/svelte-table'
+  import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { EventsOn } from '../../wailsjs/runtime/runtime'
   import { ParseAndEstimate, ExecuteImport, StopEstimate } from '../../wailsjs/go/app/DiffImportHandler'
   import type { app } from '../../wailsjs/go/models'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
   import Icon from '../components/Icon.svelte'
   import ProgressBar from '../components/ProgressBar.svelte'
+  import SortableHeader from '../components/SortableHeader.svelte'
 
   let candidates: app.DiffImportCandidateDTO[] = []
   let estimating = false
@@ -46,7 +56,8 @@
     importResult = null
     try {
       const result = await ParseAndEstimate(filePaths)
-      candidates = [...candidates, ...(result || [])]
+      const existingPaths = new Set(candidates.map(c => c.filePath))
+      candidates = [...candidates, ...(result || []).filter(c => !existingPaths.has(c.filePath))]
     } catch (e: any) {
       console.error('ParseAndEstimate failed:', e)
     } finally {
@@ -54,13 +65,13 @@
     }
   }
 
-  function clearCandidate(index: number) {
-    candidates = candidates.filter((_, i) => i !== index)
+  function clearCandidate(filePath: string) {
+    candidates = candidates.filter(c => c.filePath !== filePath)
   }
 
-  function clearDestFolder(index: number) {
-    candidates = candidates.map((c, i) => {
-      if (i === index) {
+  function clearDestFolder(filePath: string) {
+    candidates = candidates.map(c => {
+      if (c.filePath === filePath) {
         return { ...c, destFolder: '' }
       }
       return c
@@ -70,6 +81,8 @@
   function clearAll() {
     candidates = []
     importResult = null
+    columnSizing = {}
+    widthsLocked = false
   }
 
   async function handleImport() {
@@ -101,7 +114,121 @@
     title: 'タイトル',
   }
 
+  const ROW_HEIGHT = 32
+
+  const columns: ColumnDef<app.DiffImportCandidateDTO>[] = [
+    {
+      accessorKey: 'fileName',
+      header: 'ファイル名',
+      size: 200,
+      meta: { flex: true },
+    },
+    {
+      id: 'title',
+      header: 'TITLE',
+      size: 200,
+      meta: { flex: true },
+      accessorFn: (row) => {
+        const parts = [row.title, row.subtitle].filter(Boolean)
+        return parts.join(' ')
+      },
+    },
+    {
+      id: 'artist',
+      header: 'ARTIST',
+      size: 200,
+      meta: { flex: true },
+      accessorFn: (row) => {
+        const parts = [row.artist, row.subartist].filter(Boolean)
+        return parts.join(' ')
+      },
+    },
+    {
+      accessorKey: 'destFolder',
+      header: '推定先',
+      size: 250,
+      meta: { flex: true },
+    },
+    {
+      id: 'score',
+      header: 'スコア',
+      size: 64,
+      enableResizing: false,
+      accessorFn: (row) => row.score > 0 ? Math.round(row.score * 10) : null,
+    },
+    {
+      id: 'matchMethod',
+      header: '推定方法',
+      size: 80,
+      enableResizing: false,
+      accessorFn: (row) => matchMethodLabels[row.matchMethod] || row.matchMethod || '-',
+    },
+    {
+      id: 'actions',
+      header: '',
+      size: 64,
+      enableResizing: false,
+    },
+  ]
+
   $: importableCount = candidates.filter(c => c.destFolder).length
+
+  let columnSizing: ColumnSizingState = {}
+  let columnSizingInfo: ColumnSizingInfoState = {} as ColumnSizingInfoState
+
+  $: table = createSvelteTable({
+    data: candidates,
+    columns,
+    enableSorting: false,
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
+    state: { columnSizing, columnSizingInfo },
+    onColumnSizingChange: (updater) => {
+      columnSizing = typeof updater === 'function' ? updater(columnSizing) : updater
+    },
+    onColumnSizingInfoChange: (updater) => {
+      columnSizingInfo = typeof updater === 'function' ? updater(columnSizingInfo) : updater
+    },
+    getCoreRowModel: getCoreRowModel(),
+  })
+
+  let scrollElement: HTMLDivElement
+
+  $: rows = $table.getRowModel().rows
+
+  $: virtualizer = createVirtualizer<HTMLDivElement, HTMLDivElement>({
+    count: rows.length,
+    getScrollElement: () => scrollElement,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 20,
+  })
+
+  $: virtualItems = $virtualizer.getVirtualItems()
+  $: totalSize = $virtualizer.getTotalSize()
+
+  // 初回レンダリング後にコンテナ幅を測定し、flexカラムの実ピクセル幅をcolumnSizingにロック
+  let widthsLocked = false
+
+  afterUpdate(() => {
+    if (candidates.length > 0 && scrollElement && !widthsLocked) {
+      widthsLocked = true
+      requestAnimationFrame(() => {
+        const containerWidth = scrollElement.clientWidth - 16 // 行のpx-2パディング分
+        const fixedWidth = columns
+          .filter(c => !(c.meta as { flex?: boolean })?.flex)
+          .reduce((sum, c) => sum + (c.size || 150), 0)
+        const flexCols = columns.filter(c => (c.meta as { flex?: boolean })?.flex)
+        const flexDefined = flexCols.reduce((sum, c) => sum + (c.size || 150), 0)
+        const available = Math.max(0, containerWidth - fixedWidth)
+        const newSizing: ColumnSizingState = {}
+        for (const col of flexCols) {
+          const id = col.id || (col as { accessorKey?: string }).accessorKey || ''
+          newSizing[id] = Math.round(((col.size || 150) / flexDefined) * available)
+        }
+        columnSizing = newSizing
+      })
+    }
+  })
 </script>
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -147,75 +274,75 @@
     </div>
   {:else}
     <!-- テーブル -->
-    <div class="flex-1 overflow-auto">
-      <table class="table table-xs table-pin-rows">
-        <thead>
-          <tr>
-            <th>ファイル名</th>
-            <th>TITLE</th>
-            <th>ARTIST</th>
-            <th>推定先</th>
-            <th class="w-16">スコア</th>
-            <th class="w-20">推定方法</th>
-            <th class="w-16"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each candidates as candidate, i}
-            <tr class="hover:bg-base-200">
-              <td class="text-sm font-mono max-w-48">
-                <span class="flex items-center gap-1">
-                  <OpenFolderButton path={candidate.filePath} size="xs" title="ファイルのフォルダを開く" />
-                  <span class="truncate" title={candidate.filePath}>{candidate.fileName}</span>
-                </span>
-              </td>
-              <td class="text-sm truncate max-w-48">
-                {candidate.title}{candidate.subtitle ? ' ' + candidate.subtitle : ''}
-              </td>
-              <td class="text-sm truncate max-w-48">
-                {candidate.artist}{candidate.subartist ? ' ' + candidate.subartist : ''}
-              </td>
-              <td class="text-sm max-w-64">
-                {#if candidate.destFolder}
-                  <span class="flex items-center gap-1">
-                    <OpenFolderButton path={candidate.destFolder} size="xs" title="推定先フォルダを開く" />
-                    <span class="truncate text-success" title={candidate.destFolder}>{candidate.destFolder}</span>
-                  </span>
-                {:else}
-                  <span class="text-base-content/30">-</span>
-                {/if}
-              </td>
-              <td class="text-sm font-mono">
-                {#if candidate.score > 0}
-                  {Math.round(candidate.score * 10)}
-                {:else}
-                  -
-                {/if}
-              </td>
-              <td class="text-xs">{matchMethodLabels[candidate.matchMethod] || candidate.matchMethod || '-'}</td>
-              <td>
-                <div class="flex gap-1">
-                  <button
-                    class="btn btn-xs btn-ghost"
-                    title="推定先をクリア"
-                    disabled={!candidate.destFolder}
-                    on:click|stopPropagation={() => clearDestFolder(i)}
-                  >
-                    <Icon name="close" cls="h-3 w-3" />
-                  </button>
-                  <button
-                    class="btn btn-xs btn-ghost text-error"
-                    title="削除"
-                    on:click|stopPropagation={() => clearCandidate(i)}
-                  >
-                    <Icon name="trash" cls="h-3 w-3" />
-                  </button>
+    <div class="flex-1 overflow-hidden flex flex-col">
+      <SortableHeader table={$table} />
+
+      <div bind:this={scrollElement} class="flex-1 overflow-y-scroll">
+        <div style="height: {totalSize}px; position: relative;">
+          {#each virtualItems as virtualRow (virtualRow.index)}
+            {@const row = rows[virtualRow.index]}
+            {@const original = row.original}
+            <div
+              role="row"
+              class="flex absolute w-full border-b border-base-300/50 items-center px-2 hover:bg-base-200"
+              style="height: {ROW_HEIGHT}px; transform: translateY({virtualRow.start}px);"
+            >
+              {#each row.getVisibleCells() as cell}
+                <div
+                  class="px-2 text-sm truncate"
+                  style={widthsLocked || !cell.column.columnDef.meta?.flex ? `flex: 0 0 ${cell.column.getSize()}px` : `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px`}
+                >
+                  {#if cell.column.id === 'fileName'}
+                    <span class="flex items-center gap-1 font-mono">
+                      <OpenFolderButton path={original.filePath} size="xs" title="ファイルのフォルダを開く" />
+                      <span class="truncate" title={original.filePath}>{original.fileName}</span>
+                    </span>
+                  {:else if cell.column.id === 'destFolder'}
+                    {#if original.destFolder}
+                      <span class="flex items-center gap-1">
+                        <OpenFolderButton path={original.destFolder} size="xs" title="推定先フォルダを開く" />
+                        <span class="truncate text-success" title={original.destFolder}>{original.destFolder}</span>
+                      </span>
+                    {:else}
+                      <span class="text-base-content/30">-</span>
+                    {/if}
+                  {:else if cell.column.id === 'score'}
+                    <span class="font-mono">
+                      {#if original.score > 0}
+                        {Math.round(original.score * 10)}
+                      {:else}
+                        -
+                      {/if}
+                    </span>
+                  {:else if cell.column.id === 'actions'}
+                    <div class="flex gap-1">
+                      <button
+                        class="btn btn-xs btn-ghost"
+                        title="推定先をクリア"
+                        disabled={!original.destFolder}
+                        on:click|stopPropagation={() => clearDestFolder(original.filePath)}
+                      >
+                        <Icon name="close" cls="h-3 w-3" />
+                      </button>
+                      <button
+                        class="btn btn-xs btn-ghost text-error"
+                        title="削除"
+                        on:click|stopPropagation={() => clearCandidate(original.filePath)}
+                      >
+                        <Icon name="trash" cls="h-3 w-3" />
+                      </button>
+                    </div>
+                  {:else}
+                    <svelte:component
+                      this={flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    />
+                  {/if}
                 </div>
-              </td>
-            </tr>
+              {/each}
+            </div>
           {/each}
-        </tbody>
-      </table>
+        </div>
+      </div>
     </div>
 
     <!-- フッター -->
