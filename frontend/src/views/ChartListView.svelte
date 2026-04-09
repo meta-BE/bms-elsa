@@ -195,10 +195,11 @@
   })
 
   afterUpdate(() => {
-    if (charts.length > 0 && scrollElement && !widthsLocked) {
+    if (charts.length > 0 && scrollElement && !widthsLocked && scrollElement.clientWidth > 0) {
       widthsLocked = true
       requestAnimationFrame(async () => {
         const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+        if (containerWidth <= 0) { widthsLocked = false; return }
         const restored = await loadColumnWidths(
           { viewId: VIEW_ID, resizableColumnIds: RESIZABLE_IDS, fixedColumnsWidth: FIXED_WIDTH },
           containerWidth,
