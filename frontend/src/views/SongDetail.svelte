@@ -2,7 +2,7 @@
   import { createEventDispatcher, onMount } from 'svelte'
   import { GetSongDetail, UpdateSongMeta, MoveSongFolder } from '../../wailsjs/go/app/SongHandler'
   import { ListEvents } from '../../wailsjs/go/app/EventHandler'
-  import { LookupByMD5, UpdateChartMeta } from '../../wailsjs/go/app/IRHandler'
+  import { LookupByMD5 } from '../../wailsjs/go/app/IRHandler'
   import { SelectDirectory } from '../../wailsjs/go/main/App'
   import type { dto } from '../../wailsjs/go/models'
   import { modeLabel, diffLabel } from '../utils/chartLabels'
@@ -88,12 +88,6 @@
 
   function selectChart(chart: dto.ChartDTO) {
     selectedChart = chart
-  }
-
-  async function saveWorkingUrls(e: CustomEvent<{ bodyUrl: string; diffUrl: string }>) {
-    if (!selectedChart) return
-    await UpdateChartMeta(selectedChart.md5, e.detail.bodyUrl, e.detail.diffUrl)
-    if (detail) await loadDetail(detail.folderHash)
   }
 
   async function startMove() {
@@ -286,7 +280,7 @@
     <!-- 選択中の譜面の詳細情報 -->
     {#if selectedChart}
       <ChartInfoCard chart={selectedChart} />
-      <IRInfoCard md5={selectedChart.md5} ir={selectedChart} on:lookup={() => selectedChart && lookupIR(selectedChart)} on:save={saveWorkingUrls} />
+      <IRInfoCard md5={selectedChart.md5} ir={selectedChart} on:lookup={() => selectedChart && lookupIR(selectedChart)} />
     {/if}
   </div>
 {/if}

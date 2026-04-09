@@ -1,7 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
   import { GetChartDetailByMD5 } from '../../wailsjs/go/app/ChartHandler'
-  import { LookupByMD5, UpdateChartMeta } from '../../wailsjs/go/app/IRHandler'
+  import { LookupByMD5 } from '../../wailsjs/go/app/IRHandler'
   import type { dto } from '../../wailsjs/go/models'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
@@ -38,11 +38,6 @@
     await loadChart(md5, folderHash)
   }
 
-  async function saveWorkingUrls(e: CustomEvent<{ bodyUrl: string; diffUrl: string }>) {
-    if (!chart) return
-    await UpdateChartMeta(chart.md5, e.detail.bodyUrl, e.detail.diffUrl)
-    await loadChart(md5, folderHash)
-  }
 
 </script>
 
@@ -73,7 +68,7 @@
 
     {#if chart}
       <ChartInfoCard {chart} />
-      <IRInfoCard md5={chart.md5} ir={chart} on:lookup={lookupIR} on:save={saveWorkingUrls} />
+      <IRInfoCard md5={chart.md5} ir={chart} on:lookup={lookupIR} />
     {/if}
   </div>
 {/if}
