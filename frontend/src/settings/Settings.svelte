@@ -1,7 +1,7 @@
 <script lang="ts">
   import { GetConfig, SaveConfig, SelectFile } from '../../wailsjs/go/main/App'
   import { onMount, onDestroy } from 'svelte'
-  import { EventsOn } from '../../wailsjs/runtime/runtime'
+  import { EventsOn, EventsEmit } from '../../wailsjs/runtime/runtime'
   import { IsMinHashScanRunning } from '../../wailsjs/go/app/ScanHandler'
   import { IsRefreshing, RefreshProgress } from '../../wailsjs/go/app/DifficultyTableHandler'
   import { IsInferring } from '../../wailsjs/go/app/RewriteHandler'
@@ -96,6 +96,20 @@
 
   function handleClose() {
     dialog.close()
+  }
+
+  async function resetColumnWidths(viewId: string) {
+    try {
+      const cfg = await GetConfig()
+      if (cfg.columnWidths) {
+        const columnWidths = { ...cfg.columnWidths }
+        delete columnWidths[viewId]
+        await SaveConfig({ ...cfg, columnWidths })
+      }
+      EventsEmit('column-width-reset', viewId)
+    } catch (e: any) {
+      error = e?.message || 'リセットに失敗しました'
+    }
   }
 
   let offScanProgress: (() => void) | null = null
@@ -220,6 +234,18 @@
           </span>
         </div>
       </label>
+    </div>
+
+    <div class="divider text-xs text-base-content/50">カラム幅</div>
+
+    <div class="space-y-2">
+      <p class="text-sm text-base-content/70">各テーブルのカラム幅をデフォルトに戻します</p>
+      <div class="flex flex-wrap gap-2">
+        <button class="btn btn-xs btn-outline" on:click={() => resetColumnWidths('chartList')}>楽曲一覧</button>
+        <button class="btn btn-xs btn-outline" on:click={() => resetColumnWidths('songList')}>譜面一覧</button>
+        <button class="btn btn-xs btn-outline" on:click={() => resetColumnWidths('difficultyTable')}>難易度表</button>
+        <button class="btn btn-xs btn-outline" on:click={() => resetColumnWidths('diffImport')}>差分導入</button>
+      </div>
     </div>
 
     <!-- バックグラウンドタスク -->
