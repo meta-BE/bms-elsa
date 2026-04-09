@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, createEventDispatcher } from 'svelte'
+  import { onMount, afterUpdate, onDestroy, createEventDispatcher } from 'svelte'
   import {
     createSvelteTable,
     getCoreRowModel,
@@ -11,6 +11,8 @@
     type ColumnDef,
     type SortingState,
     type FilterFn,
+    type ColumnSizingState,
+    type ColumnSizingInfoState,
   } from '@tanstack/svelte-table'
   import { createVirtualizer } from '@tanstack/svelte-virtual'
   import { ListCharts } from '../../wailsjs/go/app/ChartHandler'
@@ -21,6 +23,14 @@
   import BulkFetchButton from '../components/BulkFetchButton.svelte'
   import { handleArrowNav } from '../utils/arrowNav'
   import Icon from '../components/Icon.svelte'
+  import { EventsOn } from '../../wailsjs/runtime/runtime'
+  import {
+    loadColumnWidths,
+    saveColumnWidths,
+    recalcFromRatios,
+    toRatios,
+    type ViewId,
+  } from '../utils/columnResize'
 
   const dispatch = createEventDispatcher<{
     select: { md5: string; folderHash: string }
@@ -58,9 +68,29 @@
     { accessorKey: 'artist', header: 'Artist', size: 200, meta: { flex: true } },
     { accessorKey: 'genre', header: 'Genre', size: 140, meta: { flex: true } },
     {
+      id: 'eventName',
+      header: 'Event',
+      size: 140,
+      accessorFn: (row) => row.eventName || '',
+      enableSorting: false,
+      filterFn: 'equalsString',
+      meta: { flex: true, filterType: 'select' },
+    },
+    {
+      id: 'releaseYear',
+      header: 'Year',
+      size: 60,
+      enableResizing: false,
+      accessorFn: (row) => row.releaseYear ? String(row.releaseYear) : '',
+      enableSorting: false,
+      filterFn: 'equalsString',
+      meta: { filterType: 'select', filterSort: 'desc' },
+    },
+    {
       id: 'bpm',
       header: 'BPM',
       size: 100,
+      enableResizing: false,
       accessorFn: (row) => row.minBpm,
       cell: (info) => {
         const row = info.row.original
@@ -69,27 +99,10 @@
       },
     },
     {
-      id: 'releaseYear',
-      header: 'Year',
-      size: 60,
-      accessorFn: (row) => row.releaseYear ? String(row.releaseYear) : '',
-      enableSorting: false,
-      filterFn: 'equalsString',
-      meta: { filterType: 'select', filterSort: 'desc'},
-    },
-    {
-      id: 'eventName',
-      header: 'Event',
-      size: 140,
-      accessorFn: (row) => row.eventName || '',
-      enableSorting: false,
-      filterFn: 'equalsString',
-      meta: { filterType: 'select' },
-    },
-    {
       id: 'notes',
       header: 'Notes',
       size: 80,
+      enableResizing: false,
       meta: { align: 'right' },
       accessorFn: (row) => row.notes || 0,
     },
@@ -97,17 +110,41 @@
       id: 'ir',
       header: 'IR',
       size: 40,
+      enableResizing: false,
       meta: { align: 'center' },
       accessorFn: (row) => row.hasIrMeta ? '●' : '',
     },
   ]
 
+  const VIEW_ID: ViewId = 'chartList'
+  const RESIZABLE_IDS = columns
+    .filter(c => (c.meta as { flex?: boolean })?.flex)
+    .map(c => c.id || (c as { accessorKey?: string }).accessorKey || '')
+  const FIXED_WIDTH = columns
+    .filter(c => !(c.meta as { flex?: boolean })?.flex)
+    .reduce((sum, c) => sum + (c.size || 150), 0)
+  const CONTAINER_PADDING = 16
+
+  let columnSizing: ColumnSizingState = {}
+  let columnSizingInfo: ColumnSizingInfoState = {} as ColumnSizingInfoState
+  let widthsLocked = false
+  let currentRatios: Record<string, number> = {}
+  let offResetWidths: (() => void) | null = null
+
   $: table = createSvelteTable({
     data: charts,
     columns,
-    state: { sorting, globalFilter },
+    enableColumnResizing: true,
+    columnResizeMode: 'onChange',
+    state: { sorting, globalFilter, columnSizing, columnSizingInfo },
     onSortingChange: (updater) => {
       sorting = typeof updater === 'function' ? updater(sorting) : updater
+    },
+    onColumnSizingChange: (updater) => {
+      columnSizing = typeof updater === 'function' ? updater(columnSizing) : updater
+    },
+    onColumnSizingInfoChange: (updater) => {
+      columnSizingInfo = typeof updater === 'function' ? updater(columnSizingInfo) : updater
     },
     globalFilterFn: searchFilter,
     getCoreRowModel: getCoreRowModel(),
@@ -144,7 +181,59 @@
     ListCharts().then(c => { charts = c || [] }).catch(e => {
       console.error('Failed to load charts:', e)
     }).finally(() => { loading = false })
+
+    offResetWidths = EventsOn('column-width-reset', (id: string) => {
+      if (id !== VIEW_ID) return
+      columnSizing = {}
+      currentRatios = {}
+      widthsLocked = false
+    })
   })
+
+  onDestroy(() => {
+    offResetWidths?.()
+  })
+
+  afterUpdate(() => {
+    if (charts.length > 0 && scrollElement && !widthsLocked) {
+      widthsLocked = true
+      requestAnimationFrame(async () => {
+        const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+        const restored = await loadColumnWidths(
+          { viewId: VIEW_ID, resizableColumnIds: RESIZABLE_IDS, fixedColumnsWidth: FIXED_WIDTH },
+          containerWidth,
+        )
+        if (restored) {
+          columnSizing = restored
+          currentRatios = toRatios(restored, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+          return
+        }
+        const flexCols = columns.filter(c => (c.meta as { flex?: boolean })?.flex)
+        const flexDefined = flexCols.reduce((sum, c) => sum + (c.size || 150), 0)
+        const available = Math.max(0, containerWidth - FIXED_WIDTH)
+        const newSizing: Record<string, number> = {}
+        for (const col of flexCols) {
+          const id = col.id || (col as { accessorKey?: string }).accessorKey || ''
+          newSizing[id] = Math.round(((col.size || 150) / flexDefined) * available)
+        }
+        columnSizing = newSizing
+        currentRatios = toRatios(newSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+      })
+    }
+  })
+
+  function handleResizeEnd() {
+    if (!scrollElement) return
+    const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+    currentRatios = toRatios(columnSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+    saveColumnWidths(VIEW_ID, columnSizing, RESIZABLE_IDS, FIXED_WIDTH, containerWidth)
+  }
+
+  function handleWindowResize() {
+    if (!scrollElement || !widthsLocked || Object.keys(currentRatios).length === 0) return
+    const containerWidth = scrollElement.clientWidth - CONTAINER_PADDING
+    columnSizing = recalcFromRatios(currentRatios, FIXED_WIDTH, containerWidth)
+  }
 
   function handleKeyNav(e: KeyboardEvent) {
     if (!active) return
@@ -167,7 +256,7 @@
   }
 </script>
 
-<svelte:window on:keydown={handleKeyNav} />
+<svelte:window on:keydown={handleKeyNav} on:resize={handleWindowResize} />
 
 <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
 <div class="h-full flex flex-col bg-base-100 rounded-lg border border-base-300" on:click={() => dispatch('deselect')}>
@@ -205,7 +294,7 @@
       <span class="loading loading-spinner"></span>
     </div>
   {:else}
-    <SortableHeader table={$table} />
+    <SortableHeader table={$table} onResizeEnd={handleResizeEnd} />
 
     <!-- 仮想スクロール本体 -->
     <div class="flex-1 overflow-y-scroll" bind:this={scrollElement}>
@@ -224,7 +313,7 @@
             {#each row.getVisibleCells() as cell}
               <div
                 class="px-2 truncate {cell.column.columnDef.meta?.align === 'center' ? 'text-center' : cell.column.columnDef.meta?.align === 'right' ? 'text-right' : ''}"
-                style={cell.column.columnDef.meta?.flex ? `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px` : `flex: 0 0 ${cell.column.getSize()}px`}
+                style={widthsLocked || !cell.column.columnDef.meta?.flex ? `flex: 0 0 ${cell.column.getSize()}px` : `flex: 1 1 ${cell.column.getSize()}px; min-width: ${cell.column.getSize()}px`}
               >
                 {#if cell.column.id === 'title'}
                   <div class="truncate">{cell.row.original.title}</div>
