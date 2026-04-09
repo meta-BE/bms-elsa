@@ -115,7 +115,7 @@
         {#if isFilterColumn(header.column)}
           <!-- フィルタヘッダー -->
           <div
-            class="relative"
+            class="relative min-w-0"
             style={resizeLocked || !header.column.columnDef.meta?.flex ? `flex: 0 0 ${header.getSize()}px` : `flex: 1 1 ${header.getSize()}px; min-width: ${header.getSize()}px`}
           >
             <!-- svelte-ignore a11y-click-events-have-key-events a11y-no-static-element-interactions -->
@@ -163,7 +163,7 @@
         {:else}
           <!-- ソートヘッダー -->
           <div
-            class="relative"
+            class="relative min-w-0"
             style={resizeLocked || !header.column.columnDef.meta?.flex ? `flex: 0 0 ${header.getSize()}px` : `flex: 1 1 ${header.getSize()}px; min-width: ${header.getSize()}px`}
           >
             <div
