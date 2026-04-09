@@ -19,7 +19,7 @@
   function linkify(text: string): string {
     const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     return escaped.replace(
-      /https?:\/\/(?:(?!https?:\/\/)[^\s<])+/g,
+      /https?:\/\/[^\s<]+/g,
       url => {
         const rewritten = applyRewriteRules(url, $rewriteRules)
         return `<a href="${rewritten}" target="_blank" rel="noopener noreferrer" class="link link-primary">${rewritten}</a>`
