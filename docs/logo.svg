@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 140" width="560" height="140" role="img" aria-label="BMS ELSA — Efficient Library and Storage Agent">
+  <title>BMS ELSA</title>
+  <desc>Efficient Library and Storage Agent</desc>
+  <g transform="translate(10,20)">
+    <line x1="9" y1="37" x2="91" y2="37" stroke="#0F172A" stroke-width="2" stroke-linecap="round"></line>
+    <line x1="9" y1="65" x2="51" y2="65" stroke="#0F172A" stroke-width="2" stroke-linecap="round"></line>
+    <line x1="9" y1="93" x2="91" y2="93" stroke="#0F172A" stroke-width="2" stroke-linecap="round"></line>
+    <rect x="11" y="13" width="8" height="22" rx="1.5" fill="#1E293B"></rect>
+    <rect x="21" y="15" width="8" height="20" rx="1.5" fill="#10B981"></rect>
+    <rect x="31" y="11" width="8" height="24" rx="1.5" fill="#1E293B"></rect>
+    <rect x="41" y="14" width="8" height="21" rx="1.5" fill="#1E293B"></rect>
+    <rect x="51" y="12" width="8" height="23" rx="1.5" fill="#10B981"></rect>
+    <rect x="61" y="13" width="8" height="22" rx="1.5" fill="#1E293B"></rect>
+    <rect x="71" y="15" width="8" height="20" rx="1.5" fill="#10B981"></rect>
+    <rect x="81" y="13" width="8" height="22" rx="1.5" fill="#1E293B"></rect>
+    <rect x="11" y="44" width="8" height="19" rx="1.5" fill="#1E293B"></rect>
+    <rect x="21" y="42" width="8" height="21" rx="1.5" fill="#1E293B"></rect>
+    <rect x="31" y="45" width="8" height="18" rx="1.5" fill="#10B981"></rect>
+    <rect x="41" y="43" width="8" height="20" rx="1.5" fill="#1E293B"></rect>
+    <rect x="11" y="69" width="8" height="22" rx="1.5" fill="#10B981"></rect>
+    <rect x="21" y="67" width="8" height="24" rx="1.5" fill="#1E293B"></rect>
+    <rect x="31" y="70" width="8" height="21" rx="1.5" fill="#1E293B"></rect>
+    <rect x="41" y="68" width="8" height="23" rx="1.5" fill="#10B981"></rect>
+    <rect x="51" y="71" width="8" height="20" rx="1.5" fill="#1E293B"></rect>
+    <rect x="61" y="67" width="8" height="24" rx="1.5" fill="#1E293B"></rect>
+    <rect x="71" y="69" width="8" height="22" rx="1.5" fill="#1E293B"></rect>
+    <rect x="81" y="68" width="8" height="23" rx="1.5" fill="#10B981"></rect>
+  </g>
+  <g font-family="Inter, system-ui, -apple-system, Segoe UI, sans-serif">
+    <text x="125" y="68" font-size="44" font-weight="800" fill="#0F172A" letter-spacing="-1">BMS ELSA</text>
+    <text x="125" y="98" font-size="16" font-weight="400" fill="#64748B">Efficient Library &amp; Storage Agent</text>
+  </g>
+</svg>
