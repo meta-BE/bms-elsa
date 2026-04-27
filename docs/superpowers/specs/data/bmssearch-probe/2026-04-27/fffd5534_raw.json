@@ -1,0 +1,48 @@
+{
+  "result": {
+    "variant": "raw",
+    "query": "Suffering of screw",
+    "httpCode": 200,
+    "count": 1,
+    "items": [
+      {
+        "id": "gD8lInYHkFEY8b",
+        "exhibition": {
+          "id": "EOcyqYMVpA8YbM",
+          "name": "THE BMS OF FIGHTERS ULTIMATE 2016 -Legendary Again-"
+        },
+        "genre": "Digital-J-Pop",
+        "title": "Suffering of screw",
+        "artist": "Sakamiya feat.遊左 未",
+        "subartist": "",
+        "publishedAt": "2016-09-30T00:00:00.000Z",
+        "downloads": [
+          {
+            "url": "https://dropbox.com/s/s9cs0ws9dvz9y2l/suffering_of_screw_Sakamiya_HQogg.zip?dl=1"
+          }
+        ],
+        "previews": [
+          {
+            "service": "YOUTUBE",
+            "parameter": "ze1dxK9-mw0"
+          }
+        ],
+        "relatedLinks": [
+          {
+            "url": "http://manbow.nothing.sh/event/event.cgi?action=More_def\u0026num=105\u0026event=110"
+          }
+        ],
+        "bemuseURL": "",
+        "tags": [],
+        "createdAt": "2016-10-03T21:37:03.000Z",
+        "updatedAt": "2022-03-21T10:15:48.293Z"
+      }
+    ],
+    "fetchedAt": "2026-04-28T06:37:18+09:00"
+  },
+  "sample": {
+    "MD5": "fffd5534dcc1581acbc9892e98bb71a6",
+    "Title": "Suffering of screw",
+    "Artist": "Sakamiya feat.遊左 未"
+  }
+}

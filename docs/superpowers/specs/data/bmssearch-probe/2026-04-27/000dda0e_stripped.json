@@ -1,0 +1,40 @@
+{
+  "result": {
+    "variant": "stripped",
+    "query": "ENTANGLEMENT",
+    "httpCode": 200,
+    "count": 1,
+    "items": [
+      {
+        "id": "ypKssYPo0bV9ad",
+        "exhibition": {
+          "id": "_8jcSkepgQu-JB",
+          "name": "konzertsaal - THE BMS OF FIGHTERS 2013 -"
+        },
+        "genre": "PROGRESSIVE SYSTEMATIC MUSIC",
+        "title": "ENTANGLEMENT",
+        "artist": "ABE3",
+        "subartist": "",
+        "publishedAt": "2013-09-30T00:00:00.000Z",
+        "downloads": [],
+        "previews": [
+          {
+            "service": "YOUTUBE",
+            "parameter": "963jESA7aR0"
+          }
+        ],
+        "relatedLinks": [],
+        "bemuseURL": "",
+        "tags": [],
+        "createdAt": "2019-05-13T13:37:39.000Z",
+        "updatedAt": "2021-06-12T09:47:47.833Z"
+      }
+    ],
+    "fetchedAt": "2026-04-28T06:37:16+09:00"
+  },
+  "sample": {
+    "MD5": "000dda0e735fbf97c4d2bc2267425c58",
+    "Title": "ENTANGLEMENT(EX)",
+    "Artist": "ABE3/さ"
+  }
+}

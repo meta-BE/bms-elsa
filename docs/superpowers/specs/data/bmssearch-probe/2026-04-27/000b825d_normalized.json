@@ -1,0 +1,54 @@
+{
+  "result": {
+    "variant": "normalized",
+    "query": "unstable delusional beliefs",
+    "httpCode": 200,
+    "count": 1,
+    "items": [
+      {
+        "id": "BNa270Xbk7apt9",
+        "exhibition": {
+          "id": "0FMNS6rxB5CIA8",
+          "name": "THE BMS OF FIGHTERS 21 - GO BACK 2 YOUR ROOTS -"
+        },
+        "genre": "Botanical step + Colour",
+        "title": "unstable delusional beliefs",
+        "artist": "Lamanya",
+        "subartist": "",
+        "publishedAt": "2025-10-17T00:00:00.000Z",
+        "downloads": [
+          {
+            "url": "https://drive.google.com/file/d/1Z5z2UlMjdr9UV347DD0_CTikON1NADKq/view?usp=drive_link",
+            "description": ""
+          }
+        ],
+        "previews": [
+          {
+            "service": "YOUTUBE",
+            "parameter": "QK-vlfnXN6c"
+          },
+          {
+            "service": "SOUND_CLOUD",
+            "parameter": "qfdyh54mdzgv/bof21unstable-delusional-beliefs"
+          }
+        ],
+        "relatedLinks": [
+          {
+            "url": "https://manbow.nothing.sh/event/event.cgi?action=More_def\u0026num=210\u0026event=149",
+            "description": ""
+          }
+        ],
+        "bemuseURL": "",
+        "tags": [],
+        "createdAt": "2025-11-03T08:05:07.990Z",
+        "updatedAt": "2025-11-03T08:05:07.991Z"
+      }
+    ],
+    "fetchedAt": "2026-04-28T06:37:15+09:00"
+  },
+  "sample": {
+    "MD5": "000b825d23a44c6888f191bf5569f4d4",
+    "Title": "unstable delusional beliefs",
+    "Artist": "Lamanya"
+  }
+}

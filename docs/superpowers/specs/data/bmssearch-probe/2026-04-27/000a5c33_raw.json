@@ -1,0 +1,15 @@
+{
+  "result": {
+    "variant": "raw",
+    "query": "Halcyon[LIGHT]",
+    "httpCode": 200,
+    "count": 0,
+    "items": [],
+    "fetchedAt": "2026-04-28T06:37:13+09:00"
+  },
+  "sample": {
+    "MD5": "000a5c33b9bf9327049d672b420cb287",
+    "Title": "Halcyon[LIGHT]",
+    "Artist": "xi"
+  }
+}

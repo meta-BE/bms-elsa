@@ -1,0 +1,15 @@
+{
+  "result": {
+    "variant": "raw",
+    "query": "energy night [Uchither]",
+    "httpCode": 200,
+    "count": 0,
+    "items": [],
+    "fetchedAt": "2026-04-28T06:37:17+09:00"
+  },
+  "sample": {
+    "MD5": "fffd7afaa089c0f12a3cd28389ec9a67",
+    "Title": "energy night [Uchither]",
+    "Artist": "KAH　(BGA:自動車原付　イラスト:手鞠鈴) obj;nytou"
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "result": {
+    "variant": "stripped",
+    "query": "外への鍵と躁鬱",
+    "httpCode": 200,
+    "count": 1,
+    "items": [
+      {
+        "id": "OTBGmiJxyYNyTy",
+        "exhibition": {
+          "id": "nfi3U0KeaULgiy",
+          "name": "Mega-Mor Fest!!"
+        },
+        "genre": "Metal",
+        "title": "外への鍵と躁鬱",
+        "artist": "uet",
+        "subartist": "",
+        "publishedAt": "2025-10-31T00:00:00.000Z",
+        "downloads": [
+          {
+            "url": "https://archive.org/download/mega-mor-fest/Mega-Mor_Fest.zip",
+            "description": "archive.org"
+          },
+          {
+            "url": "https://www.luzeria.net/mega_mor_fest/Mega-Mor_Fest.zip",
+            "description": "luzeria.net"
+          }
+        ],
+        "previews": [
+          {
+            "service": "YOUTUBE",
+            "parameter": "IfwUQjPFpAc"
+          },
+          {
+            "service": "SOUND_CLOUD",
+            "parameter": "beatmaniauet-1/soutu"
+          }
+        ],
+        "relatedLinks": [
+          {
+            "url": "https://mega-mor-fest.netlify.app/",
+            "description": "公式サイト"
+          }
+        ],
+        "bemuseURL": "",
+        "tags": [],
+        "createdAt": "2025-11-01T13:25:02.985Z",
+        "updatedAt": "2025-11-01T13:25:02.986Z"
+      }
+    ],
+    "fetchedAt": "2026-04-28T06:37:12+09:00"
+  },
+  "sample": {
+    "MD5": "0003e38c8c1051b6884e8ab661d8175b",
+    "Title": "外への鍵と躁鬱",
+    "Artist": "uet"
+  }
+}

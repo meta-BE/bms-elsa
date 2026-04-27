@@ -1,0 +1,15 @@
+{
+  "result": {
+    "variant": "raw",
+    "query": "ENTANGLEMENT(EX)",
+    "httpCode": 200,
+    "count": 0,
+    "items": [],
+    "fetchedAt": "2026-04-28T06:37:16+09:00"
+  },
+  "sample": {
+    "MD5": "000dda0e735fbf97c4d2bc2267425c58",
+    "Title": "ENTANGLEMENT(EX)",
+    "Artist": "ABE3/さ"
+  }
+}

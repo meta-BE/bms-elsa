@@ -1,0 +1,15 @@
+{
+  "result": {
+    "variant": "normalized",
+    "query": "aqua regia squall [f]",
+    "httpCode": 200,
+    "count": 0,
+    "items": [],
+    "fetchedAt": "2026-04-28T06:37:20+09:00"
+  },
+  "sample": {
+    "MD5": "fff439eaf47b9c8a9d2cd00f128ca902",
+    "Title": "Aqua Regia Squall [F]",
+    "Artist": "DJ owl-light vs xi"
+  }
+}

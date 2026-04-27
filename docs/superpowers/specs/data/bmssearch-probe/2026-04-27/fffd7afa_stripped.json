@@ -1,0 +1,53 @@
+{
+  "result": {
+    "variant": "stripped",
+    "query": "energy night",
+    "httpCode": 200,
+    "count": 1,
+    "items": [
+      {
+        "id": "9_QNoxwovKnl-p",
+        "exhibition": {
+          "id": "HKKkfMpQU9-A7d",
+          "name": "BOFU2017 -LEGENDA EST A MYTH-"
+        },
+        "genre": "rave tech",
+        "title": "energy night",
+        "artist": "KAH (BGA:自動車原付 イラスト:手鞠鈴)",
+        "subartist": "",
+        "publishedAt": "2017-09-29T00:00:00.000Z",
+        "downloads": [
+          {
+            "url": "https://dropbox.com/s/7ckoi9ioatkydai/energy%20night_bms.zip?dl=0"
+          }
+        ],
+        "previews": [
+          {
+            "service": "YOUTUBE",
+            "parameter": "eYXlssuDyi8"
+          },
+          {
+            "service": "SOUND_CLOUD",
+            "parameter": "kah_growsong/bofu2017energy-night"
+          }
+        ],
+        "relatedLinks": [
+          {
+            "url": "http://manbow.nothing.sh/event/event.cgi?action=More_def\u0026num=57\u0026event=116",
+            "description": "会場"
+          }
+        ],
+        "bemuseURL": "",
+        "tags": [],
+        "createdAt": "2018-03-25T21:49:42.000Z",
+        "updatedAt": "2022-01-27T06:18:55.924Z"
+      }
+    ],
+    "fetchedAt": "2026-04-28T06:37:17+09:00"
+  },
+  "sample": {
+    "MD5": "fffd7afaa089c0f12a3cd28389ec9a67",
+    "Title": "energy night [Uchither]",
+    "Artist": "KAH　(BGA:自動車原付　イラスト:手鞠鈴) obj;nytou"
+  }
+}
