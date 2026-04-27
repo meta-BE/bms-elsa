@@ -83,6 +83,9 @@ type MetaRepository interface {
 	UpdateEventReleaseYear(ctx context.Context, id int, releaseYear int) error
 	ListFoldersWithoutEvent(ctx context.Context) ([]string, error)
 	UpdateSongMetaEvent(ctx context.Context, folderHash string, eventID string, bmsSearchID string) error
+	// BMS Search 紐付け情報（bms_search_id + bms_search_source）のみを更新する。
+	// bmsID/source が空文字列の場合は NULL に更新（解除）。
+	UpdateSongMetaBMSSearch(ctx context.Context, folderHash, bmsID, source string) error
 	// IR未取得の譜面md5一覧（songdata.songベース）
 	ListUnfetchedChartMD5s(ctx context.Context) ([]string, error)
 	// 難易度表の未取得エントリmd5一覧

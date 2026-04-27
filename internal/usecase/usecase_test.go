@@ -50,11 +50,12 @@ func (m *mockSongRepo) ListMD5DuplicateFolders(ctx context.Context) ([]model.MD5
 }
 
 type mockMetaRepo struct {
-	getSongMetaFunc         func(ctx context.Context, folderHash string) (*model.SongMeta, error)
-	upsertSongMetaFunc      func(ctx context.Context, meta model.SongMeta) error
-	getChartMetaFunc        func(ctx context.Context, md5 string) (*model.ChartIRMeta, error)
-	upsertChartMetaFunc     func(ctx context.Context, meta model.ChartIRMeta) error
-	bulkUpsertChartMetaFunc func(ctx context.Context, metas []model.ChartIRMeta) error
+	getSongMetaFunc              func(ctx context.Context, folderHash string) (*model.SongMeta, error)
+	upsertSongMetaFunc           func(ctx context.Context, meta model.SongMeta) error
+	getChartMetaFunc             func(ctx context.Context, md5 string) (*model.ChartIRMeta, error)
+	upsertChartMetaFunc          func(ctx context.Context, meta model.ChartIRMeta) error
+	bulkUpsertChartMetaFunc      func(ctx context.Context, metas []model.ChartIRMeta) error
+	updateSongMetaBMSSearchFn    func(ctx context.Context, folderHash, bmsID, source string) error
 }
 
 func (m *mockMetaRepo) GetSongMeta(ctx context.Context, folderHash string) (*model.SongMeta, error) {
@@ -102,6 +103,13 @@ func (m *mockMetaRepo) ListFoldersWithoutEvent(_ context.Context) ([]string, err
 }
 
 func (m *mockMetaRepo) UpdateSongMetaEvent(_ context.Context, _ string, _ string, _ string) error {
+	return nil
+}
+
+func (m *mockMetaRepo) UpdateSongMetaBMSSearch(ctx context.Context, folderHash, bmsID, source string) error {
+	if m.updateSongMetaBMSSearchFn != nil {
+		return m.updateSongMetaBMSSearchFn(ctx, folderHash, bmsID, source)
+	}
 	return nil
 }
 
