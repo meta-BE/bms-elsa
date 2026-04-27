@@ -1,5 +1,5 @@
 <div align="center">
-    <img src="" width="500" height="auto" alt="BMS ELSA"/>
+    <img src="https://raw.githubusercontent.com/meta-BE/bms-elsa/refs/heads/main/docs/logo.svg" width="500" height="auto" alt="BMS ELSA"/>
 </div>
 
 
