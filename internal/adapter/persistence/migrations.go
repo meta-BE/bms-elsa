@@ -84,6 +84,27 @@ func RunMigrations(db *sql.DB) error {
 			updated_at  TEXT NOT NULL DEFAULT (datetime('now')),
 			UNIQUE(rule_type, pattern)
 		)`,
+		`CREATE TABLE IF NOT EXISTS bmssearch_bms_id_md5 (
+			md5         TEXT PRIMARY KEY,
+			bms_id      TEXT NOT NULL,
+			source      TEXT NOT NULL,
+			resolved_at INTEGER NOT NULL
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_bmssearch_link_bms_id ON bmssearch_bms_id_md5(bms_id)`,
+		`CREATE TABLE IF NOT EXISTS bmssearch_bms (
+			bms_id              TEXT PRIMARY KEY,
+			title               TEXT NOT NULL DEFAULT '',
+			artist              TEXT NOT NULL DEFAULT '',
+			subartist           TEXT NOT NULL DEFAULT '',
+			genre               TEXT NOT NULL DEFAULT '',
+			exhibition_id       TEXT,
+			exhibition_name     TEXT NOT NULL DEFAULT '',
+			published_at        TEXT NOT NULL DEFAULT '',
+			downloads_json      TEXT NOT NULL DEFAULT '[]',
+			previews_json       TEXT NOT NULL DEFAULT '[]',
+			related_links_json  TEXT NOT NULL DEFAULT '[]',
+			fetched_at          INTEGER NOT NULL
+		)`,
 	}
 
 	for _, stmt := range statements {
@@ -221,6 +242,20 @@ func RunMigrations(db *sql.DB) error {
 		if _, err := db.Exec(`ALTER TABLE chart_meta DROP COLUMN working_diff_url`); err != nil {
 			return fmt.Errorf("drop working_diff_url: %w", err)
 		}
+	}
+
+	// song_meta.bms_search_source カラムの追加（冪等）
+	var hasBMSSearchSource int
+	_ = db.QueryRow(`SELECT COUNT(*) FROM pragma_table_info('song_meta') WHERE name='bms_search_source'`).Scan(&hasBMSSearchSource)
+	if hasBMSSearchSource == 0 {
+		if _, err := db.Exec(`ALTER TABLE song_meta ADD COLUMN bms_search_source TEXT`); err != nil {
+			return fmt.Errorf("add bms_search_source: %w", err)
+		}
+	}
+	// bms_search_id があって bms_search_source が NULL または空のレコードにバックフィル（毎回実行）
+	// 既存の bms_search_id 入りレコードはすべて公式 md5 ヒット起因なので 'official' で埋める
+	if _, err := db.Exec(`UPDATE song_meta SET bms_search_source = 'official' WHERE bms_search_id IS NOT NULL AND (bms_search_source IS NULL OR bms_search_source = '')`); err != nil {
+		return fmt.Errorf("backfill bms_search_source: %w", err)
 	}
 
 	return nil
