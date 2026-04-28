@@ -708,6 +708,51 @@ func (r *SongdataReader) FindChartFoldersByBodyURL(ctx context.Context, bodyURL 
 	return candidates, rows.Err()
 }
 
+// FindFolderInfoByMD5 は md5 からフォルダ情報を解決する。
+// 戻り値: (folderHash, フォルダ内全md5, title, artist, found, error)
+// md5 が songdata に存在しない場合、found=false を返す。
+func (r *SongdataReader) FindFolderInfoByMD5(ctx context.Context, md5 string) (string, []string, string, string, bool, error) {
+	row := r.db.QueryRowContext(ctx, `SELECT folder FROM songdata.song WHERE md5 = ? LIMIT 1`, md5)
+	var folder string
+	if err := row.Scan(&folder); err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil, "", "", false, nil
+		}
+		return "", nil, "", "", false, fmt.Errorf("FindFolderInfoByMD5 query: %w", err)
+	}
+	song, err := r.GetSongByFolder(ctx, folder)
+	if err != nil {
+		return "", nil, "", "", false, fmt.Errorf("FindFolderInfoByMD5 GetSongByFolder: %w", err)
+	}
+	if song == nil {
+		return "", nil, "", "", false, nil
+	}
+	md5s := make([]string, len(song.Charts))
+	for i, c := range song.Charts {
+		md5s[i] = c.MD5
+	}
+	return folder, md5s, song.Title, song.Artist, true, nil
+}
+
+// FindOrphanInfoByMD5 は未所持 md5 について difficulty_table_entry から title/artist を解決する。
+// title が空（NULL 含む）の場合は found=false を返す。
+func (r *SongdataReader) FindOrphanInfoByMD5(ctx context.Context, md5 string) (string, string, bool, error) {
+	row := r.db.QueryRowContext(ctx,
+		`SELECT COALESCE(title, ''), COALESCE(artist, '')
+		 FROM difficulty_table_entry WHERE md5 = ? LIMIT 1`, md5)
+	var title, artist string
+	if err := row.Scan(&title, &artist); err != nil {
+		if err == sql.ErrNoRows {
+			return "", "", false, nil
+		}
+		return "", "", false, fmt.Errorf("FindOrphanInfoByMD5 query: %w", err)
+	}
+	if title == "" {
+		return "", "", false, nil
+	}
+	return title, artist, true, nil
+}
+
 func (r *SongdataReader) FindChartFoldersByArtist(ctx context.Context, artist string) ([]model.InstallCandidate, error) {
 	if artist == "" {
 		return nil, nil
