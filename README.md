@@ -11,6 +11,10 @@
 
 **[ダウンロード](https://github.com/meta-BE/bms-elsa/releases/latest)** — 最新版のZIPファイル
 
+<div align="center">
+    <img src="https://raw.githubusercontent.com/meta-BE/bms-elsa/refs/heads/main/docs/elsa_0-10-1.png" width="800" height="auto" alt="BMS ELSA スクリーンショット"/>
+</div>
+
 ## 機能
 
 - 5タブ構成：楽曲一覧・譜面一覧・難易度表・重複検知・差分導入
