@@ -171,6 +171,94 @@ func TestResolveForFolder_BothFail(t *testing.T) {
 	}
 }
 
+// TestResolveForFolder_StrippedFallbackHit: raw で候補ゼロ・stripped で採用ヒットするケース
+func TestResolveForFolder_StrippedFallbackHit(t *testing.T) {
+	callCount := 0
+	var calledTitles []string
+
+	bmsClient := &fakeBMSClient{
+		patternFn: func(_ context.Context, _ string) (*gateway.BMSSearchPattern, error) { return nil, nil },
+		bmsFn: func(_ context.Context, id string) (*gateway.BMSSearchBMS, error) {
+			return &gateway.BMSSearchBMS{ID: id, Title: "Good Song", Artist: "Artist"}, nil
+		},
+		searchFn: func(_ context.Context, title string, _ int) ([]gateway.BMSSearchBMS, error) {
+			callCount++
+			calledTitles = append(calledTitles, title)
+			if callCount == 1 {
+				// 1回目: raw タイトル → 候補ゼロ
+				return nil, nil
+			}
+			// 2回目: stripped タイトル → ヒット
+			return []gateway.BMSSearchBMS{
+				{ID: "bms-stripped", Title: "Good Song", Artist: "Artist"},
+			}, nil
+		},
+	}
+	bmssearchRepo := newFakeBMSSearchRepo()
+	metaRepo := &mockMetaRepo{
+		updateSongMetaBMSSearchFn: func(_ context.Context, _, _, _ string) error { return nil },
+	}
+
+	// "Good Song [ANOTHER]" → stripped = "Good Song"
+	rawTitle := "Good Song [ANOTHER]"
+	resolver := usecase.NewBMSSearchResolver(bmsClient, bmssearchRepo, metaRepo)
+	bmsID, source, err := resolver.ResolveForFolder(context.Background(), "folder1", []string{"md5a"}, rawTitle, "Artist")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bmsID != "bms-stripped" {
+		t.Errorf("got bmsID=%q, want %q", bmsID, "bms-stripped")
+	}
+	if source != model.BMSSearchSourceUnofficial {
+		t.Errorf("got source=%q, want unofficial", source)
+	}
+	if callCount != 2 {
+		t.Errorf("SearchBMSesByTitle called %d times, want 2", callCount)
+	}
+	if len(calledTitles) < 2 || calledTitles[0] != rawTitle {
+		t.Errorf("1st search title = %q, want %q", calledTitles[0], rawTitle)
+	}
+	if len(calledTitles) < 2 || calledTitles[1] != "Good Song" {
+		t.Errorf("2nd search title = %q, want %q", calledTitles[1], "Good Song")
+	}
+	// unofficial として保存されていること
+	if l := bmssearchRepo.links["md5a"]; l == nil || l.Source != model.BMSSearchSourceUnofficial {
+		t.Errorf("link[md5a] = %+v, want unofficial", l)
+	}
+}
+
+// TestResolveForFolder_StrippedSkipWhenSameAsRaw: 末尾装飾なし → stripped == raw → API は1回のみ
+func TestResolveForFolder_StrippedSkipWhenSameAsRaw(t *testing.T) {
+	callCount := 0
+
+	bmsClient := &fakeBMSClient{
+		patternFn: func(_ context.Context, _ string) (*gateway.BMSSearchPattern, error) { return nil, nil },
+		bmsFn:     func(_ context.Context, _ string) (*gateway.BMSSearchBMS, error) { return nil, nil },
+		searchFn: func(_ context.Context, _ string, _ int) ([]gateway.BMSSearchBMS, error) {
+			callCount++
+			// スコア不足な候補のみ返す（採用されない）
+			return []gateway.BMSSearchBMS{
+				{ID: "bms-z", Title: "Totally Different", Artist: "Other"},
+			}, nil
+		},
+	}
+	bmssearchRepo := newFakeBMSSearchRepo()
+	metaRepo := &mockMetaRepo{}
+
+	// 末尾装飾なし → StripTrailingDecorations("Plain Title") == "Plain Title"
+	resolver := usecase.NewBMSSearchResolver(bmsClient, bmssearchRepo, metaRepo)
+	bmsID, source, err := resolver.ResolveForFolder(context.Background(), "folder1", []string{"md5a"}, "Plain Title", "Artist")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if bmsID != "" || source != "" {
+		t.Errorf("got bmsID=%q source=%q, want empty", bmsID, source)
+	}
+	if callCount != 1 {
+		t.Errorf("SearchBMSesByTitle called %d times, want 1 (stripped skip)", callCount)
+	}
+}
+
 func TestResolveForOrphanMD5_OfficialHit(t *testing.T) {
 	bmsClient := &fakeBMSClient{
 		patternFn: func(_ context.Context, _ string) (*gateway.BMSSearchPattern, error) {

@@ -120,12 +120,42 @@ func (r *BMSSearchResolver) tryOfficial(ctx context.Context, md5s []string) (str
 	return "", false, nil
 }
 
-// tryFallback はテキスト検索で候補を取得しスコアリング採用する
+// tryFallback はテキスト検索で候補を取得しスコアリング採用する。
+// raw タイトルで試行し、採用できなければ末尾装飾剥離後タイトルで再試行（raw → stripped の2段階）。
+// スコアリングのクエリには常に元の title/artist を使用する。
 func (r *BMSSearchResolver) tryFallback(ctx context.Context, title, artist string) (string, bool, error) {
 	if title == "" {
 		return "", false, nil
 	}
-	cands, err := r.bmsClient.SearchBMSesByTitle(ctx, title, fallbackSearchLimit)
+
+	// 第1段階: raw タイトルで検索
+	bmsID, ok, err := r.searchAndPick(ctx, title, title, artist)
+	if err != nil {
+		return "", false, err
+	}
+	if ok {
+		return bmsID, true, nil
+	}
+
+	// 第2段階: stripped タイトルで再検索（raw と同じ場合はスキップ）
+	stripped := StripTrailingDecorations(title)
+	if stripped == "" || stripped == title {
+		return "", false, nil
+	}
+	bmsID, ok, err = r.searchAndPick(ctx, stripped, title, artist)
+	if err != nil {
+		return "", false, err
+	}
+	if ok {
+		return bmsID, true, nil
+	}
+
+	return "", false, nil
+}
+
+// searchAndPick は searchTitle で API 検索し、queryTitle/queryArtist でスコアリング採用する
+func (r *BMSSearchResolver) searchAndPick(ctx context.Context, searchTitle, queryTitle, queryArtist string) (string, bool, error) {
+	cands, err := r.bmsClient.SearchBMSesByTitle(ctx, searchTitle, fallbackSearchLimit)
 	if err != nil {
 		return "", false, err
 	}
@@ -136,7 +166,7 @@ func (r *BMSSearchResolver) tryFallback(ctx context.Context, title, artist strin
 	for i, c := range cands {
 		refs[i] = ScoreCandidateRef{Title: c.Title, Artist: c.Artist}
 	}
-	idx, ok := PickBestCandidate(refs, title, artist, fallbackScoreThreshold)
+	idx, ok := PickBestCandidate(refs, queryTitle, queryArtist, fallbackScoreThreshold)
 	if !ok {
 		return "", false, nil
 	}
