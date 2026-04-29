@@ -48,6 +48,7 @@ func main() {
 			app.ScanHandler,
 			app.DiffImportHandler,
 			app.DuplicateHandler,
+			app.BMSSearchHandler,
 		},
 	})
 
