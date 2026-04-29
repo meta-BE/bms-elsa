@@ -101,7 +101,9 @@ func (a *App) Init() error {
 	a.IRHandler = internalapp.NewIRHandler(lookupIR, bulkFetchIR, elsaRepo)
 
 	bmsSearchClient := gateway.NewBMSSearchClient()
-	syncBMSSearch := usecase.NewSyncBMSSearchUseCase(bmsSearchClient, elsaRepo)
+	bmssearchRepo := persistence.NewBMSSearchRepository(db)
+	bmsSearchResolver := usecase.NewBMSSearchResolver(bmsSearchClient, bmssearchRepo, elsaRepo)
+	syncBMSSearch := usecase.NewSyncBMSSearchUseCase(bmsSearchResolver, bmssearchRepo, elsaRepo)
 	a.EventHandler = internalapp.NewEventHandler(bmsSearchClient, syncBMSSearch, elsaRepo, songdataReader)
 
 	a.RewriteHandler = internalapp.NewRewriteHandler(elsaRepo)
