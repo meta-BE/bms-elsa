@@ -7,9 +7,12 @@ import (
 	"github.com/meta-BE/bms-elsa/internal/domain/model"
 )
 
-// FolderMD5sResolver はフォルダに含まれる md5 一覧を返す
+// FolderMD5sResolver はフォルダに含まれる md5 一覧、および md5 から所属フォルダ情報を返す
 type FolderMD5sResolver interface {
 	ListMD5sByFolder(ctx context.Context, folderHash string) ([]string, error)
+	// FindFolderInfoByMD5 は md5 が所属する楽曲フォルダ情報を返す。
+	// 戻り値: folderHash, フォルダ内全 md5, 楽曲タイトル, 楽曲アーティスト, 所持されているか
+	FindFolderInfoByMD5(ctx context.Context, md5 string) (string, []string, string, string, bool, error)
 }
 
 type UnlinkBMSSearchUseCase struct {
@@ -49,8 +52,17 @@ func (u *UnlinkBMSSearchUseCase) UnlinkByFolder(ctx context.Context, folderHash 
 	return nil
 }
 
-// UnlinkByMD5 は未所持 md5 単位の解除
+// UnlinkByMD5 は md5 単位の解除。
+// md5 が所持譜面に属する場合は UnlinkByFolder と同等の処理（song_meta クリア + フォルダ全 md5 のリンク削除）を行い、
+// 未所持の場合は当該 md5 のリンクのみ削除する。
 func (u *UnlinkBMSSearchUseCase) UnlinkByMD5(ctx context.Context, md5 string) error {
+	folderHash, _, _, _, owned, err := u.folderResolver.FindFolderInfoByMD5(ctx, md5)
+	if err != nil {
+		return fmt.Errorf("UnlinkByMD5 FindFolderInfoByMD5: %w", err)
+	}
+	if owned {
+		return u.UnlinkByFolder(ctx, folderHash)
+	}
 	if err := u.bmssearchRepo.DeleteLinkByMD5(ctx, md5); err != nil {
 		return fmt.Errorf("UnlinkByMD5 DeleteLinkByMD5: %w", err)
 	}
