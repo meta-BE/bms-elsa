@@ -93,3 +93,4 @@
 ## 改善
 - [ ] BPM検知の改善（songdata.dbのminbpm/maxbpmにギミックBPMが含まれるケースへの対応）
 - [ ] 詳細画面の各カードUIを最小化可能に（ペイン×カード種別ごとに開閉状態を保存、最小化ボタンは左上）
+- [ ] `make release-note` コマンド追加（次回リリース範囲のコミット (`feat:`/`fix:`) からリリースノートを生成し `docs/release-notes/vX.Y.Z.md` を作成、`gh release edit` で本文反映するところまで自動化）
