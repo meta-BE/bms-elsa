@@ -3,6 +3,7 @@
   import type { dto } from '../../wailsjs/go/models'
   import { rewriteRules } from '../stores/rewriteRules'
   import { applyRewriteRules } from '../lib/urlRewrite'
+  import { formatDateYMD } from '../utils/date'
   import Icon from './Icon.svelte'
 
   export let info: dto.BMSSearchInfoDTO | null = null
@@ -62,31 +63,33 @@
   </div>
   {#if hasInfo && info}
     <div class="text-xs space-y-1">
+      <p>
       {#if info.title}
-        <p><span class="font-semibold">タイトル:</span> {info.title}</p>
+        <span class="font-semibold">タイトル:</span> {info.title} /
       {/if}
       {#if info.artist}
-        <p><span class="font-semibold">アーティスト:</span> {info.artist}</p>
+        <span class="font-semibold">アーティスト:</span> {info.artist} /
       {/if}
       {#if info.subArtist}
-        <p><span class="font-semibold">サブアーティスト:</span> {info.subArtist}</p>
+        <span class="font-semibold">サブアーティスト:</span> {info.subArtist} /
       {/if}
       {#if info.genre}
-        <p><span class="font-semibold">ジャンル:</span> {info.genre}</p>
+        <span class="font-semibold">ジャンル:</span> {info.genre} /
       {/if}
+      {#if info.publishedAt}
+        <span class="font-semibold">公開日:</span> {formatDateYMD(info.publishedAt)}
+      {/if}
+      </p>
+      <p>
       {#if info.exhibitionName}
-        <p>
           <span class="font-semibold">イベント:</span>
           {#if info.exhibitionId}
             <a href="https://bmssearch.net/exhibitions/{info.exhibitionId}" target="_blank" rel="noopener noreferrer" class="link link-primary">{info.exhibitionName}</a>
           {:else}
             {info.exhibitionName}
           {/if}
-        </p>
       {/if}
-      {#if info.publishedAt}
-        <p><span class="font-semibold">公開日:</span> {info.publishedAt}</p>
-      {/if}
+      </p>
       {#if info.downloads?.length}
         <div>
           <span class="font-semibold">DLリンク:</span>
@@ -103,13 +106,10 @@
       {#if info.previews?.length}
         <div>
           <span class="font-semibold">プレビュー:</span>
-          <ul class="ml-4 list-disc">
-            {#each info.previews as p}
-              <li>
-                <a href={previewUrl(p)} target="_blank" rel="noopener noreferrer" class="link link-primary">{p.service}: {previewUrl(p)}</a>
-              </li>
+            {#each info.previews as p, i}
+              <a href={previewUrl(p)} target="_blank" rel="noopener noreferrer" class="link link-primary">{p.service}</a>
+              {#if i !== info.previews.length - 1} /&nbsp;{/if}
             {/each}
-          </ul>
         </div>
       {/if}
       {#if info.relatedLinks?.length}
