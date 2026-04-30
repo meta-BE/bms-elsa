@@ -26,10 +26,10 @@ func TestUnlinkByFolder(t *testing.T) {
 		{MD5: "m9", BMSID: "z", Source: model.BMSSearchSourceOfficial, ResolvedAt: now},
 	})
 
-	var clearedFolder, clearedBmsID, clearedSource string
+	var clearedFolder string
 	metaRepo := &mockMetaRepo{
-		updateSongMetaBMSSearchFn: func(_ context.Context, fh, bmsID, src string) error {
-			clearedFolder, clearedBmsID, clearedSource = fh, bmsID, src
+		clearSongMetaBMSSearchFn: func(_ context.Context, fh string) error {
+			clearedFolder = fh
 			return nil
 		},
 	}
@@ -41,8 +41,8 @@ func TestUnlinkByFolder(t *testing.T) {
 	if err := uc.UnlinkByFolder(context.Background(), "folder1"); err != nil {
 		t.Fatal(err)
 	}
-	if clearedFolder != "folder1" || clearedBmsID != "" || clearedSource != "" {
-		t.Errorf("metaRepo args wrong: %q %q %q", clearedFolder, clearedBmsID, clearedSource)
+	if clearedFolder != "folder1" {
+		t.Errorf("metaRepo folderHash wrong: %q", clearedFolder)
 	}
 	if bmssearchRepo.links["m1"] != nil || bmssearchRepo.links["m2"] != nil {
 		t.Errorf("links not deleted")

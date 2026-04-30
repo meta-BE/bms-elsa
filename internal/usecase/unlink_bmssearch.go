@@ -33,8 +33,8 @@ func NewUnlinkBMSSearchUseCase(
 // UnlinkByFolder は楽曲フォルダ単位の解除（song_meta.bms_search_id/source を NULL にし、
 // フォルダ内全 md5 の bmssearch_bms_id_md5 を DELETE）
 func (u *UnlinkBMSSearchUseCase) UnlinkByFolder(ctx context.Context, folderHash string) error {
-	if err := u.metaRepo.UpdateSongMetaBMSSearch(ctx, folderHash, "", ""); err != nil {
-		return fmt.Errorf("UnlinkByFolder UpdateSongMetaBMSSearch: %w", err)
+	if err := u.metaRepo.ClearSongMetaBMSSearch(ctx, folderHash); err != nil {
+		return fmt.Errorf("UnlinkByFolder ClearSongMetaBMSSearch: %w", err)
 	}
 	md5s, err := u.folderResolver.ListMD5sByFolder(ctx, folderHash)
 	if err != nil {

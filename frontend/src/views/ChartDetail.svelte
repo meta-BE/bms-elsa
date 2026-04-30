@@ -98,8 +98,6 @@
     {#if chart}
       <ChartInfoCard {chart} />
       <BMSSearchInfoCard
-        {md5}
-        {folderHash}
         info={bmsSearchInfo}
         loading={bmsSearchLoading}
         on:lookup={lookupBMSSearch}

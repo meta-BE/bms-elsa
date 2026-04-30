@@ -5,8 +5,6 @@
   import { applyRewriteRules } from '../lib/urlRewrite'
   import Icon from './Icon.svelte'
 
-  export let md5: string
-  export let folderHash: string = ''
   export let info: dto.BMSSearchInfoDTO | null = null
   export let loading = false
 

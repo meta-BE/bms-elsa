@@ -189,8 +189,8 @@ func TestUpdateSongMetaBMSSearch(t *testing.T) {
 		t.Errorf("BMSSearchSource = %v, want official", m.BMSSearchSource)
 	}
 
-	// 解除（空文字列 → NULL）
-	if err := repo.UpdateSongMetaBMSSearch(ctx, "folder1", "", ""); err != nil {
+	// 解除（ClearSongMetaBMSSearch → NULL）
+	if err := repo.ClearSongMetaBMSSearch(ctx, "folder1"); err != nil {
 		t.Fatal(err)
 	}
 	m, _ = repo.GetSongMeta(ctx, "folder1")
@@ -199,6 +199,24 @@ func TestUpdateSongMetaBMSSearch(t *testing.T) {
 	}
 	if m.BMSSearchSource != nil {
 		t.Errorf("BMSSearchSource after unlink = %v, want nil", *m.BMSSearchSource)
+	}
+}
+
+func TestClearSongMetaBMSSearch_NoOpWhenMissing(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	// 存在しない folderHash に対して ClearSongMetaBMSSearch を呼んでも空行が INSERT されないことを確認
+	if err := repo.ClearSongMetaBMSSearch(ctx, "ghost-folder"); err != nil {
+		t.Fatalf("ClearSongMetaBMSSearch failed: %v", err)
+	}
+
+	m, err := repo.GetSongMeta(ctx, "ghost-folder")
+	if err != nil {
+		t.Fatalf("GetSongMeta failed: %v", err)
+	}
+	if m != nil {
+		t.Errorf("期待: 行なし（nil）、実際: %+v", m)
 	}
 }
 

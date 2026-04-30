@@ -273,6 +273,20 @@ func (r *ElsaRepository) UpdateSongMetaBMSSearch(ctx context.Context, folderHash
 	return err
 }
 
+// ClearSongMetaBMSSearch は song_meta.bms_search_id と bms_search_source を NULL にする（解除）。
+// 行が存在しない場合は no-op（INSERT しない）。
+func (r *ElsaRepository) ClearSongMetaBMSSearch(ctx context.Context, folderHash string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE song_meta SET
+		   bms_search_id     = NULL,
+		   bms_search_source = NULL,
+		   updated_at        = datetime('now')
+		 WHERE folder_hash = ?`,
+		folderHash,
+	)
+	return err
+}
+
 func (r *ElsaRepository) UpdateSongMetaEvent(ctx context.Context, folderHash string, eventID string, bmsSearchID string) error {
 	_, err := r.db.ExecContext(ctx,
 		`INSERT INTO song_meta (folder_hash, event_id, bms_search_id, bms_search_source)

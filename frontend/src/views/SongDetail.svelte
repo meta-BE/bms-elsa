@@ -258,8 +258,6 @@
     <!-- BMS Search 情報（楽曲レベル） -->
     {#if detail.charts.length > 0}
       <BMSSearchInfoCard
-        md5={detail.charts[0].md5}
-        folderHash={detail.folderHash}
         info={bmsSearchInfo}
         loading={bmsSearchLoading}
         on:lookup={lookupBMSSearch}

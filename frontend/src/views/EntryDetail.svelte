@@ -44,16 +44,16 @@
       if (!chart) {
         irMeta = await GetChartMetaByMD5(hash)
       }
+      try {
+        bmsSearchInfo = await GetBMSSearchInfoByMD5(hash)
+      } catch (e) {
+        console.error('Failed to load BMS Search info:', e)
+        bmsSearchInfo = null
+      }
     } catch (e) {
       console.error('Failed to load entry detail:', e)
     } finally {
       loading = false
-    }
-    try {
-      bmsSearchInfo = await GetBMSSearchInfoByMD5(hash)
-    } catch (e) {
-      console.error('Failed to load BMS Search info:', e)
-      bmsSearchInfo = null
     }
   }
 
@@ -143,7 +143,6 @@
     <!-- IR情報（導入済・未導入共通） -->
     <IRInfoCard {md5} {ir} on:lookup={lookupIR} />
     <BMSSearchInfoCard
-      {md5}
       info={bmsSearchInfo}
       loading={bmsSearchLoading}
       on:lookup={lookupBMSSearch}

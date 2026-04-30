@@ -56,6 +56,7 @@ type mockMetaRepo struct {
 	upsertChartMetaFunc          func(ctx context.Context, meta model.ChartIRMeta) error
 	bulkUpsertChartMetaFunc      func(ctx context.Context, metas []model.ChartIRMeta) error
 	updateSongMetaBMSSearchFn    func(ctx context.Context, folderHash, bmsID, source string) error
+	clearSongMetaBMSSearchFn     func(ctx context.Context, folderHash string) error
 }
 
 func (m *mockMetaRepo) GetSongMeta(ctx context.Context, folderHash string) (*model.SongMeta, error) {
@@ -109,6 +110,13 @@ func (m *mockMetaRepo) UpdateSongMetaEvent(_ context.Context, _ string, _ string
 func (m *mockMetaRepo) UpdateSongMetaBMSSearch(ctx context.Context, folderHash, bmsID, source string) error {
 	if m.updateSongMetaBMSSearchFn != nil {
 		return m.updateSongMetaBMSSearchFn(ctx, folderHash, bmsID, source)
+	}
+	return nil
+}
+
+func (m *mockMetaRepo) ClearSongMetaBMSSearch(ctx context.Context, folderHash string) error {
+	if m.clearSongMetaBMSSearchFn != nil {
+		return m.clearSongMetaBMSSearchFn(ctx, folderHash)
 	}
 	return nil
 }

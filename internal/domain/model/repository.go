@@ -86,6 +86,9 @@ type MetaRepository interface {
 	// BMS Search 紐付け情報（bms_search_id + bms_search_source）のみを更新する。
 	// bmsID/source が空文字列の場合は NULL に更新（解除）。
 	UpdateSongMetaBMSSearch(ctx context.Context, folderHash, bmsID, source string) error
+	// bms_search_id と bms_search_source を NULL にする（解除専用）。
+	// 行が存在しない場合は no-op（INSERT しない）。
+	ClearSongMetaBMSSearch(ctx context.Context, folderHash string) error
 	// IR未取得の譜面md5一覧（songdata.songベース）
 	ListUnfetchedChartMD5s(ctx context.Context) ([]string, error)
 	// 難易度表の未取得エントリmd5一覧
