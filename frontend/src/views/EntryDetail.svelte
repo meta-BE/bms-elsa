@@ -4,6 +4,12 @@
   import { GetDifficultyTableEntry } from '../../wailsjs/go/app/DifficultyTableHandler'
   import { LookupByMD5 } from '../../wailsjs/go/app/IRHandler'
   import type { dto } from '../../wailsjs/go/models'
+  import BMSSearchInfoCard from '../components/BMSSearchInfoCard.svelte'
+  import {
+    GetBMSSearchInfoByMD5,
+    LookupBMSSearchByMD5,
+    UnlinkBMSSearchByMD5,
+  } from '../../wailsjs/go/app/BMSSearchHandler'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
   import InstallCandidateCard from '../components/InstallCandidateCard.svelte'
@@ -19,6 +25,8 @@
   let chart: dto.ChartDTO | null = null
   let irMeta: dto.ChartIRMetaDTO | null = null
   let loading = false
+  let bmsSearchInfo: dto.BMSSearchInfoDTO | null = null
+  let bmsSearchLoading = false
 
   $: if (md5 && tableID) loadEntry(md5, tableID)
 
@@ -41,6 +49,12 @@
     } finally {
       loading = false
     }
+    try {
+      bmsSearchInfo = await GetBMSSearchInfoByMD5(hash)
+    } catch (e) {
+      console.error('Failed to load BMS Search info:', e)
+      bmsSearchInfo = null
+    }
   }
 
   async function lookupIR() {
@@ -48,6 +62,19 @@
     await loadEntry(md5, tableID)
   }
 
+  async function lookupBMSSearch() {
+    bmsSearchLoading = true
+    try {
+      bmsSearchInfo = await LookupBMSSearchByMD5(md5)
+    } finally {
+      bmsSearchLoading = false
+    }
+  }
+
+  async function unlinkBMSSearch() {
+    await UnlinkBMSSearchByMD5(md5)
+    bmsSearchInfo = await GetBMSSearchInfoByMD5(md5)
+  }
 
 </script>
 
@@ -115,5 +142,12 @@
 
     <!-- IR情報（導入済・未導入共通） -->
     <IRInfoCard {md5} {ir} on:lookup={lookupIR} />
+    <BMSSearchInfoCard
+      {md5}
+      info={bmsSearchInfo}
+      loading={bmsSearchLoading}
+      on:lookup={lookupBMSSearch}
+      on:unlink={unlinkBMSSearch}
+    />
   </div>
 {/if}

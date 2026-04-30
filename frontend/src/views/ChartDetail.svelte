@@ -3,6 +3,12 @@
   import { GetChartDetailByMD5 } from '../../wailsjs/go/app/ChartHandler'
   import { LookupByMD5 } from '../../wailsjs/go/app/IRHandler'
   import type { dto } from '../../wailsjs/go/models'
+  import BMSSearchInfoCard from '../components/BMSSearchInfoCard.svelte'
+  import {
+    GetBMSSearchInfoByMD5,
+    LookupBMSSearchByMD5,
+    UnlinkBMSSearchByFolder,
+  } from '../../wailsjs/go/app/BMSSearchHandler'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
@@ -15,6 +21,8 @@
 
   let chart: dto.ChartDTO | null = null
   let loading = false
+  let bmsSearchInfo: dto.BMSSearchInfoDTO | null = null
+  let bmsSearchLoading = false
 
   $: chartKey = md5 + ':' + folderHash
   $: if (chartKey) loadChart(md5, folderHash)
@@ -24,6 +32,12 @@
     chart = null
     try {
       chart = await GetChartDetailByMD5(hash, folder)
+      try {
+        bmsSearchInfo = await GetBMSSearchInfoByMD5(hash)
+      } catch (e) {
+        console.error('Failed to load BMS Search info:', e)
+        bmsSearchInfo = null
+      }
     } catch (e) {
       console.error('Failed to load chart detail:', e)
       chart = null
@@ -36,6 +50,21 @@
     if (!chart) return
     await LookupByMD5(chart.md5, chart.sha256)
     await loadChart(md5, folderHash)
+  }
+
+  async function lookupBMSSearch() {
+    bmsSearchLoading = true
+    try {
+      bmsSearchInfo = await LookupBMSSearchByMD5(md5)
+    } finally {
+      bmsSearchLoading = false
+    }
+  }
+
+  async function unlinkBMSSearch() {
+    if (!folderHash) return
+    await UnlinkBMSSearchByFolder(folderHash)
+    bmsSearchInfo = await GetBMSSearchInfoByMD5(md5)
   }
 
 
@@ -68,6 +97,14 @@
 
     {#if chart}
       <ChartInfoCard {chart} />
+      <BMSSearchInfoCard
+        {md5}
+        {folderHash}
+        info={bmsSearchInfo}
+        loading={bmsSearchLoading}
+        on:lookup={lookupBMSSearch}
+        on:unlink={unlinkBMSSearch}
+      />
       <IRInfoCard md5={chart.md5} ir={chart} on:lookup={lookupIR} />
     {/if}
   </div>

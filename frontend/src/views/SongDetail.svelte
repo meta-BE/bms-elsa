@@ -3,9 +3,15 @@
   import { GetSongDetail, UpdateSongMeta, MoveSongFolder } from '../../wailsjs/go/app/SongHandler'
   import { ListEvents } from '../../wailsjs/go/app/EventHandler'
   import { LookupByMD5 } from '../../wailsjs/go/app/IRHandler'
+  import {
+    GetBMSSearchInfoByMD5,
+    LookupBMSSearchByMD5,
+    UnlinkBMSSearchByFolder,
+  } from '../../wailsjs/go/app/BMSSearchHandler'
   import { SelectDirectory } from '../../wailsjs/go/main/App'
   import type { dto } from '../../wailsjs/go/models'
   import { modeLabel, diffLabel } from '../utils/chartLabels'
+  import BMSSearchInfoCard from '../components/BMSSearchInfoCard.svelte'
   import ChartInfoCard from '../components/ChartInfoCard.svelte'
   import IRInfoCard from '../components/IRInfoCard.svelte'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
@@ -24,6 +30,8 @@
   let detail: dto.SongDetailDTO | null = null
   let selectedChart: dto.ChartDTO | null = null
   let loading = false
+  let bmsSearchInfo: dto.BMSSearchInfoDTO | null = null
+  let bmsSearchLoading = false
 
   let editReleaseYear = ''
 
@@ -53,6 +61,17 @@
     try {
       detail = await GetSongDetail(hash)
       selectedChart = null
+      // BMS Search 情報の並列取得（DB 読みのみ）
+      if (detail?.charts?.[0]?.md5) {
+        try {
+          bmsSearchInfo = await GetBMSSearchInfoByMD5(detail.charts[0].md5)
+        } catch (e) {
+          console.error('Failed to load BMS Search info:', e)
+          bmsSearchInfo = null
+        }
+      } else {
+        bmsSearchInfo = null
+      }
       if (detail) {
         eventSearchText = detail.eventName || ''
         editReleaseYear = detail.releaseYear ? String(detail.releaseYear) : ''
@@ -125,6 +144,22 @@
   function closeResult() {
     resultDialog.close()
     dispatch('moved', { folderHash: folderHash })
+  }
+
+  async function lookupBMSSearch() {
+    if (!detail?.charts?.[0]?.md5) return
+    bmsSearchLoading = true
+    try {
+      bmsSearchInfo = await LookupBMSSearchByMD5(detail.charts[0].md5)
+    } finally {
+      bmsSearchLoading = false
+    }
+  }
+
+  async function unlinkBMSSearch() {
+    if (!detail) return
+    await UnlinkBMSSearchByFolder(detail.folderHash)
+    bmsSearchInfo = await GetBMSSearchInfoByMD5(detail.charts[0]?.md5 ?? '')
   }
 
 </script>
@@ -219,6 +254,18 @@
         {/if}
       </div>
     </div>
+
+    <!-- BMS Search 情報（楽曲レベル） -->
+    {#if detail.charts.length > 0}
+      <BMSSearchInfoCard
+        md5={detail.charts[0].md5}
+        folderHash={detail.folderHash}
+        info={bmsSearchInfo}
+        loading={bmsSearchLoading}
+        on:lookup={lookupBMSSearch}
+        on:unlink={unlinkBMSSearch}
+      />
+    {/if}
 
     <!-- 譜面一覧 -->
     <div class="bg-base-200 rounded-lg p-3">
