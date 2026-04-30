@@ -1,0 +1,50 @@
+{
+  "result": {
+    "variant": "raw",
+    "query": "セクシー・セクシー・ダイナマイト",
+    "httpCode": 200,
+    "count": 1,
+    "items": [
+      {
+        "id": "px_3WeHYyaGON_",
+        "exhibition": {
+          "id": "WL5nSp5CajyAuw",
+          "name": "THE BMS OF FIGHTERS : TT -Sonata for the 20th Ceremony-"
+        },
+        "genre": "ムーディーユーロビート",
+        "title": "セクシー・セクシー・ダイナマイト",
+        "artist": "kei_iwata / Gt. stuv / KeiuO + 内村徹",
+        "subartist": "",
+        "publishedAt": "2024-10-13T00:00:00.000Z",
+        "downloads": [
+          {
+            "url": "https://drive.google.com/file/d/1GW3nNDg2U3G478z5iSVrMYd9GZXbK0kG/view?usp=sharing",
+            "description": ""
+          }
+        ],
+        "previews": [
+          {
+            "service": "YOUTUBE",
+            "parameter": "m-WR_PG6ISM"
+          }
+        ],
+        "relatedLinks": [
+          {
+            "url": "https://manbow.nothing.sh/event/event.cgi?action=More_def\u0026num=17\u0026event=146",
+            "description": ""
+          }
+        ],
+        "bemuseURL": "",
+        "tags": [],
+        "createdAt": "2024-10-14T03:37:51.828Z",
+        "updatedAt": "2024-10-14T03:37:51.828Z"
+      }
+    ],
+    "fetchedAt": "2026-04-28T06:37:21+09:00"
+  },
+  "sample": {
+    "MD5": "ffe87cf859a9c17c14df5851935c81ba",
+    "Title": "セクシー・セクシー・ダイナマイト",
+    "Artist": "kei_iwata / Gt. stuv / KeiuO + 内村徹"
+  }
+}

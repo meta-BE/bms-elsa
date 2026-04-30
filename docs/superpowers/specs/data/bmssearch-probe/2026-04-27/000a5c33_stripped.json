@@ -1,0 +1,79 @@
+{
+  "result": {
+    "variant": "stripped",
+    "query": "Halcyon",
+    "httpCode": 200,
+    "count": 2,
+    "items": [
+      {
+        "id": "z7Js3L62oKy2_A",
+        "exhibition": {
+          "id": "NgZGiMinE-eKGS",
+          "name": "ノンジャンル - 無制限・個人戦BMSイベント"
+        },
+        "genre": "R\u0026B",
+        "title": "Halcyon -MY INTERPRETATION-",
+        "artist": "Remixed by BACO feat.えみゅう (Original : xi)",
+        "subartist": "",
+        "publishedAt": "2012-05-20T00:00:00.000Z",
+        "downloads": [],
+        "previews": [
+          {
+            "service": "YOUTUBE",
+            "parameter": "J8wLc8XBYEA"
+          }
+        ],
+        "relatedLinks": [
+          {
+            "url": "http://manbow.nothing.sh/event/event.cgi?action=More_def\u0026num=56\u0026event=78"
+          }
+        ],
+        "bemuseURL": "",
+        "tags": [],
+        "createdAt": "2021-05-23T17:48:40.000Z",
+        "updatedAt": "2021-06-12T09:49:48.745Z"
+      },
+      {
+        "id": "5956ef5L9bCLX9",
+        "exhibition": {
+          "id": "R4XpsJbYChNRXM",
+          "name": "THE BMS OF FIGHTERS 2010 - The Evolution of War -"
+        },
+        "genre": "RENAISSANCE HARDCORE",
+        "title": "Halcyon",
+        "artist": "xi / yama_ko",
+        "subartist": "",
+        "publishedAt": "2010-09-17T00:00:00.000Z",
+        "downloads": [
+          {
+            "url": "http://uploader.bms.ms/data/bof2010sr10xl2g/xi_halcyon_bms_ogg.zip"
+          }
+        ],
+        "previews": [
+          {
+            "service": "YOUTUBE",
+            "parameter": "OhTu5zT3nQ4"
+          }
+        ],
+        "relatedLinks": [
+          {
+            "url": "http://manbow.nothing.sh/event/event.cgi?action=More_def\u0026num=237\u0026event=65"
+          }
+        ],
+        "bemuseURL": "",
+        "tags": [
+          "BOF優勝曲",
+          "イベント優勝"
+        ],
+        "createdAt": "2019-09-16T17:24:07.000Z",
+        "updatedAt": "2021-06-12T09:47:35.689Z"
+      }
+    ],
+    "fetchedAt": "2026-04-28T06:37:14+09:00"
+  },
+  "sample": {
+    "MD5": "000a5c33b9bf9327049d672b420cb287",
+    "Title": "Halcyon[LIGHT]",
+    "Artist": "xi"
+  }
+}

@@ -34,6 +34,7 @@ type App struct {
 	ScanHandler            *internalapp.ScanHandler
 	DiffImportHandler      *internalapp.DiffImportHandler
 	DuplicateHandler       *internalapp.DuplicateHandler
+	BMSSearchHandler       *internalapp.BMSSearchHandler
 	elsaRepo               *persistence.ElsaRepository
 }
 
@@ -101,8 +102,14 @@ func (a *App) Init() error {
 	a.IRHandler = internalapp.NewIRHandler(lookupIR, bulkFetchIR, elsaRepo)
 
 	bmsSearchClient := gateway.NewBMSSearchClient()
-	syncBMSSearch := usecase.NewSyncBMSSearchUseCase(bmsSearchClient, elsaRepo)
+	bmssearchRepo := persistence.NewBMSSearchRepository(db)
+	bmsSearchResolver := usecase.NewBMSSearchResolver(bmsSearchClient, bmssearchRepo, elsaRepo)
+	syncBMSSearch := usecase.NewSyncBMSSearchUseCase(bmsSearchResolver, bmssearchRepo, elsaRepo)
 	a.EventHandler = internalapp.NewEventHandler(bmsSearchClient, syncBMSSearch, elsaRepo, songdataReader)
+
+	lookupBMSSearch := usecase.NewLookupBMSSearchUseCase(bmsSearchResolver, songdataReader, bmssearchRepo)
+	unlinkBMSSearch := usecase.NewUnlinkBMSSearchUseCase(bmssearchRepo, elsaRepo, songdataReader)
+	a.BMSSearchHandler = internalapp.NewBMSSearchHandler(lookupBMSSearch, unlinkBMSSearch, bmssearchRepo, elsaRepo, songdataReader)
 
 	a.RewriteHandler = internalapp.NewRewriteHandler(elsaRepo)
 
@@ -131,6 +138,7 @@ func (a *App) startup(ctx context.Context) {
 	a.ScanHandler.SetContext(ctx)
 	a.DiffImportHandler.SetContext(ctx)
 	a.DuplicateHandler.SetContext(ctx)
+	a.BMSSearchHandler.SetContext(ctx)
 
 	// バックグラウンドタスクを並列起動
 	a.ScanHandler.StartMinHashScan(func() {

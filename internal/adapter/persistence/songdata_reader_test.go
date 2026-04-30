@@ -405,6 +405,140 @@ func TestUpdateWavMinhash(t *testing.T) {
 	}
 }
 
+func TestFindFolderInfoByMD5_Found(t *testing.T) {
+	reader, _ := setupSongdataReader(t)
+	ctx := context.Background()
+
+	// songdata.db の先頭1件から実在 md5 を取得
+	opts := model.ListOptions{Page: 1, PageSize: 1}
+	songs, _, err := reader.ListSongs(ctx, opts)
+	if err != nil || len(songs) == 0 {
+		t.Fatal("前提: ListSongs で楽曲が取得できること")
+	}
+	song, err := reader.GetSongByFolder(ctx, songs[0].FolderHash)
+	if err != nil || song == nil || len(song.Charts) == 0 {
+		t.Fatal("前提: GetSongByFolder で譜面が取得できること")
+	}
+	md5 := song.Charts[0].MD5
+
+	folder, md5s, title, artist, found, err := reader.FindFolderInfoByMD5(ctx, md5)
+	if err != nil {
+		t.Fatalf("FindFolderInfoByMD5 failed: %v", err)
+	}
+	if !found {
+		t.Fatal("found = false, want true")
+	}
+	if folder == "" {
+		t.Error("folder is empty")
+	}
+	if len(md5s) == 0 {
+		t.Error("md5s is empty")
+	}
+	if title == "" {
+		t.Error("title is empty")
+	}
+	// artist は空文字の楽曲もあり得るため必須チェックしない
+	_ = artist
+}
+
+func TestFindFolderInfoByMD5_NotFound(t *testing.T) {
+	reader, _ := setupSongdataReader(t)
+	ctx := context.Background()
+
+	folder, md5s, title, artist, found, err := reader.FindFolderInfoByMD5(ctx, "nonexistent_md5_xxxxx")
+	if err != nil {
+		t.Fatalf("FindFolderInfoByMD5 error: %v", err)
+	}
+	if found {
+		t.Error("found = true, want false")
+	}
+	if folder != "" || len(md5s) != 0 || title != "" || artist != "" {
+		t.Error("戻り値はすべてゼロ値であること")
+	}
+}
+
+func TestFindOrphanInfoByMD5_Found(t *testing.T) {
+	reader, db := setupSongdataReader(t)
+	ctx := context.Background()
+
+	// difficulty_table と difficulty_table_entry にデータを挿入
+	var tableID int64
+	err := db.QueryRowContext(ctx, `
+		INSERT INTO difficulty_table(url, header_url, data_url, name, symbol)
+		VALUES ('http://t.example.com','http://t.example.com/h','http://t.example.com/b','TestTable','T')
+		RETURNING id`,
+	).Scan(&tableID)
+	if err != nil {
+		t.Fatalf("difficulty_table INSERT failed: %v", err)
+	}
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO difficulty_table_entry(table_id, md5, level, title, artist)
+		VALUES (?, 'orphan_md5_001', '9', 'Orphan Song', 'Orphan Artist')`, tableID)
+	if err != nil {
+		t.Fatalf("difficulty_table_entry INSERT failed: %v", err)
+	}
+
+	title, artist, found, err := reader.FindOrphanInfoByMD5(ctx, "orphan_md5_001")
+	if err != nil {
+		t.Fatalf("FindOrphanInfoByMD5 failed: %v", err)
+	}
+	if !found {
+		t.Fatal("found = false, want true")
+	}
+	if title != "Orphan Song" {
+		t.Errorf("title = %q, want %q", title, "Orphan Song")
+	}
+	if artist != "Orphan Artist" {
+		t.Errorf("artist = %q, want %q", artist, "Orphan Artist")
+	}
+}
+
+func TestFindOrphanInfoByMD5_NotFound(t *testing.T) {
+	reader, _ := setupSongdataReader(t)
+	ctx := context.Background()
+
+	title, artist, found, err := reader.FindOrphanInfoByMD5(ctx, "nonexistent_md5_yyy")
+	if err != nil {
+		t.Fatalf("FindOrphanInfoByMD5 error: %v", err)
+	}
+	if found {
+		t.Error("found = true, want false")
+	}
+	if title != "" || artist != "" {
+		t.Error("戻り値はすべてゼロ値であること")
+	}
+}
+
+func TestFindOrphanInfoByMD5_EmptyTitle(t *testing.T) {
+	reader, db := setupSongdataReader(t)
+	ctx := context.Background()
+
+	// title が NULL のエントリは found=false として扱う
+	var tableID int64
+	err := db.QueryRowContext(ctx, `
+		INSERT INTO difficulty_table(url, header_url, data_url, name, symbol)
+		VALUES ('http://t2.example.com','http://t2.example.com/h','http://t2.example.com/b','TestTable2','T2')
+		RETURNING id`,
+	).Scan(&tableID)
+	if err != nil {
+		t.Fatalf("difficulty_table INSERT failed: %v", err)
+	}
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO difficulty_table_entry(table_id, md5, level, title, artist)
+		VALUES (?, 'empty_title_md5_002', '9', NULL, 'Some Artist')`, tableID)
+	if err != nil {
+		t.Fatalf("difficulty_table_entry INSERT failed: %v", err)
+	}
+
+	_, _, found, err := reader.FindOrphanInfoByMD5(ctx, "empty_title_md5_002")
+	if err != nil {
+		t.Fatalf("FindOrphanInfoByMD5 error: %v", err)
+	}
+	if found {
+		t.Error("title が NULL の場合は found=false であること")
+	}
+}
+
 // songTitles はデバッグ用にSongのタイトル一覧を返す
 func songTitles(songs []model.Song) []string {
 	titles := make([]string, len(songs))

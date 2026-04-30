@@ -24,12 +24,12 @@ func NewElsaRepository(db *sql.DB) *ElsaRepository {
 
 func (r *ElsaRepository) GetSongMeta(ctx context.Context, folderHash string) (*model.SongMeta, error) {
 	row := r.db.QueryRowContext(ctx,
-		`SELECT folder_hash, release_year, event_id, bms_search_id FROM song_meta WHERE folder_hash = ?`,
+		`SELECT folder_hash, release_year, event_id, bms_search_id, bms_search_source FROM song_meta WHERE folder_hash = ?`,
 		folderHash,
 	)
 
 	var m model.SongMeta
-	if err := row.Scan(&m.FolderHash, &m.ReleaseYear, &m.EventID, &m.BMSSearchID); err != nil {
+	if err := row.Scan(&m.FolderHash, &m.ReleaseYear, &m.EventID, &m.BMSSearchID, &m.BMSSearchSource); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -40,14 +40,15 @@ func (r *ElsaRepository) GetSongMeta(ctx context.Context, folderHash string) (*m
 
 func (r *ElsaRepository) UpsertSongMeta(ctx context.Context, meta model.SongMeta) error {
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO song_meta (folder_hash, release_year, event_id, bms_search_id)
-		 VALUES (?, ?, ?, ?)
+		`INSERT INTO song_meta (folder_hash, release_year, event_id, bms_search_id, bms_search_source)
+		 VALUES (?, ?, ?, ?, ?)
 		 ON CONFLICT(folder_hash) DO UPDATE SET
-		   release_year  = excluded.release_year,
-		   event_id      = excluded.event_id,
-		   bms_search_id = excluded.bms_search_id,
-		   updated_at    = datetime('now')`,
-		meta.FolderHash, meta.ReleaseYear, meta.EventID, meta.BMSSearchID,
+		   release_year      = excluded.release_year,
+		   event_id          = excluded.event_id,
+		   bms_search_id     = excluded.bms_search_id,
+		   bms_search_source = excluded.bms_search_source,
+		   updated_at        = datetime('now')`,
+		meta.FolderHash, meta.ReleaseYear, meta.EventID, meta.BMSSearchID, meta.BMSSearchSource,
 	)
 	return err
 }
@@ -250,14 +251,51 @@ func (r *ElsaRepository) ListFoldersWithoutEvent(ctx context.Context) ([]string,
 	return folders, rows.Err()
 }
 
-func (r *ElsaRepository) UpdateSongMetaEvent(ctx context.Context, folderHash string, eventID string, bmsSearchID string) error {
+// UpdateSongMetaBMSSearch は song_meta.bms_search_id と bms_search_source のみを更新する。
+// 空文字列が渡されたフィールドは NULL になる（解除）。
+func (r *ElsaRepository) UpdateSongMetaBMSSearch(ctx context.Context, folderHash, bmsID, source string) error {
+	var bmsIDParam, sourceParam any
+	if bmsID != "" {
+		bmsIDParam = bmsID
+	}
+	if source != "" {
+		sourceParam = source
+	}
 	_, err := r.db.ExecContext(ctx,
-		`INSERT INTO song_meta (folder_hash, event_id, bms_search_id)
+		`INSERT INTO song_meta (folder_hash, bms_search_id, bms_search_source)
 		 VALUES (?, ?, ?)
 		 ON CONFLICT(folder_hash) DO UPDATE SET
-		   event_id      = excluded.event_id,
-		   bms_search_id = excluded.bms_search_id,
-		   updated_at    = datetime('now')`,
+		   bms_search_id     = excluded.bms_search_id,
+		   bms_search_source = excluded.bms_search_source,
+		   updated_at        = datetime('now')`,
+		folderHash, bmsIDParam, sourceParam,
+	)
+	return err
+}
+
+// ClearSongMetaBMSSearch は song_meta.bms_search_id と bms_search_source を NULL にする（解除）。
+// 行が存在しない場合は no-op（INSERT しない）。
+func (r *ElsaRepository) ClearSongMetaBMSSearch(ctx context.Context, folderHash string) error {
+	_, err := r.db.ExecContext(ctx,
+		`UPDATE song_meta SET
+		   bms_search_id     = NULL,
+		   bms_search_source = NULL,
+		   updated_at        = datetime('now')
+		 WHERE folder_hash = ?`,
+		folderHash,
+	)
+	return err
+}
+
+func (r *ElsaRepository) UpdateSongMetaEvent(ctx context.Context, folderHash string, eventID string, bmsSearchID string) error {
+	_, err := r.db.ExecContext(ctx,
+		`INSERT INTO song_meta (folder_hash, event_id, bms_search_id, bms_search_source)
+		 VALUES (?, ?, ?, 'official')
+		 ON CONFLICT(folder_hash) DO UPDATE SET
+		   event_id          = excluded.event_id,
+		   bms_search_id     = excluded.bms_search_id,
+		   bms_search_source = 'official',
+		   updated_at        = datetime('now')`,
 		folderHash, eventID, bmsSearchID,
 	)
 	return err

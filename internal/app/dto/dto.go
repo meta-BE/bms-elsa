@@ -221,6 +221,69 @@ type MoveSongFolderResultDTO struct {
 	FileCount int    `json:"fileCount"`
 }
 
+// BMSSearchInfoDTO は詳細画面の BMS Search 情報カードに渡すデータ
+type BMSSearchInfoDTO struct {
+	HasInfo        bool                   `json:"hasInfo"`
+	BMSID          string                 `json:"bmsId,omitempty"`
+	Source         string                 `json:"source,omitempty"`
+	Title          string                 `json:"title,omitempty"`
+	Artist         string                 `json:"artist,omitempty"`
+	SubArtist      string                 `json:"subArtist,omitempty"`
+	Genre          string                 `json:"genre,omitempty"`
+	ExhibitionID   string                 `json:"exhibitionId,omitempty"`
+	ExhibitionName string                 `json:"exhibitionName,omitempty"`
+	PublishedAt    string                 `json:"publishedAt,omitempty"`
+	Downloads      []BMSSearchURLEntryDTO `json:"downloads,omitempty"`
+	Previews       []BMSSearchPreviewDTO  `json:"previews,omitempty"`
+	RelatedLinks   []BMSSearchURLEntryDTO `json:"relatedLinks,omitempty"`
+}
+
+type BMSSearchURLEntryDTO struct {
+	URL         string `json:"url"`
+	Description string `json:"description"`
+}
+
+type BMSSearchPreviewDTO struct {
+	Service   string `json:"service"`
+	Parameter string `json:"parameter"`
+}
+
+func BMSSearchBMSToDTO(b model.BMSSearchBMS, source string) *BMSSearchInfoDTO {
+	d := &BMSSearchInfoDTO{
+		HasInfo:        true,
+		BMSID:          b.BMSID,
+		Source:         source,
+		Title:          b.Title,
+		Artist:         b.Artist,
+		SubArtist:      b.SubArtist,
+		Genre:          b.Genre,
+		ExhibitionName: b.ExhibitionName,
+		PublishedAt:    b.PublishedAt,
+	}
+	if b.ExhibitionID != nil {
+		d.ExhibitionID = *b.ExhibitionID
+	}
+	if len(b.Downloads) > 0 {
+		d.Downloads = make([]BMSSearchURLEntryDTO, len(b.Downloads))
+		for i, e := range b.Downloads {
+			d.Downloads[i] = BMSSearchURLEntryDTO{URL: e.URL, Description: e.Description}
+		}
+	}
+	if len(b.Previews) > 0 {
+		d.Previews = make([]BMSSearchPreviewDTO, len(b.Previews))
+		for i, p := range b.Previews {
+			d.Previews[i] = BMSSearchPreviewDTO{Service: p.Service, Parameter: p.Parameter}
+		}
+	}
+	if len(b.RelatedLinks) > 0 {
+		d.RelatedLinks = make([]BMSSearchURLEntryDTO, len(b.RelatedLinks))
+		for i, e := range b.RelatedLinks {
+			d.RelatedLinks[i] = BMSSearchURLEntryDTO{URL: e.URL, Description: e.Description}
+		}
+	}
+	return d
+}
+
 func ChartIRMetaToDTO(m model.ChartIRMeta) ChartIRMetaDTO {
 	hasIR := m.FetchedAt != nil
 	d := ChartIRMetaDTO{

@@ -1,0 +1,52 @@
+{
+  "result": {
+    "variant": "stripped",
+    "query": "Apocaliptix",
+    "httpCode": 200,
+    "count": 1,
+    "items": [
+      {
+        "id": "BNBkW64dhEItdk",
+        "exhibition": {
+          "id": "jJYHWLoeWSycET",
+          "name": "BOFXV - THE BMS OF FIGHTERS eXtreme Violence -"
+        },
+        "genre": "Necromancy",
+        "title": "Apocaliptix",
+        "artist": "Juggernaut.",
+        "subartist": "",
+        "publishedAt": "2019-10-06T00:00:00.000Z",
+        "downloads": [
+          {
+            "url": "https://dropbox.com/s/lazoztyb50db0rw/[Juggernaut.]%20Apocaliptix_wav.zip?dl=1"
+          }
+        ],
+        "previews": [
+          {
+            "service": "YOUTUBE",
+            "parameter": "lvoihtQEQew"
+          },
+          {
+            "service": "SOUND_CLOUD",
+            "parameter": "jgnt/apocaliptix"
+          }
+        ],
+        "relatedLinks": [
+          {
+            "url": "http://manbow.nothing.sh/event/event.cgi?action=More_def\u0026num=233\u0026event=127"
+          }
+        ],
+        "bemuseURL": "",
+        "tags": [],
+        "createdAt": "2019-10-19T18:42:37.000Z",
+        "updatedAt": "2021-06-12T09:49:48.748Z"
+      }
+    ],
+    "fetchedAt": "2026-04-28T06:37:20+09:00"
+  },
+  "sample": {
+    "MD5": "fffcdd50280873a3a6a8efb584b5454b",
+    "Title": "Apocaliptix [Doomsayer]",
+    "Artist": "Juggernaut."
+  }
+}

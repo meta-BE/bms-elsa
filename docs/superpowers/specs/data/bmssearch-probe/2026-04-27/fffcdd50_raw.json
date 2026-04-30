@@ -1,0 +1,15 @@
+{
+  "result": {
+    "variant": "raw",
+    "query": "Apocaliptix [Doomsayer]",
+    "httpCode": 200,
+    "count": 0,
+    "items": [],
+    "fetchedAt": "2026-04-28T06:37:19+09:00"
+  },
+  "sample": {
+    "MD5": "fffcdd50280873a3a6a8efb584b5454b",
+    "Title": "Apocaliptix [Doomsayer]",
+    "Artist": "Juggernaut."
+  }
+}

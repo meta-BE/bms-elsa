@@ -55,10 +55,11 @@ type Event struct {
 
 // SongMeta は楽曲レベルの追加メタデータ
 type SongMeta struct {
-	FolderHash  string
-	ReleaseYear *int
-	EventID     *string
-	BMSSearchID *string
+	FolderHash      string
+	ReleaseYear     *int
+	EventID         *string
+	BMSSearchID     *string
+	BMSSearchSource *string
 }
 
 // ChartIRMeta はLR2IRメタデータ

@@ -80,6 +80,13 @@ export const icons = {
     strokeWidth: 1.5,
     paths: [{ d: 'M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9' }],
   },
+  // heroicons v2: 24/outline/magnifying-glass
+  search: {
+    viewBox: '0 0 24 24',
+    type: 'stroke',
+    strokeWidth: 1.5,
+    paths: [{ d: 'm21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z' }],
+  },
 } as const
 
 export type IconName = keyof typeof icons

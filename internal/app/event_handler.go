@@ -130,12 +130,21 @@ func (h *EventHandler) StartBMSSearchSync() error {
 		return err
 	}
 
-	md5sByFolder, err := h.songdataReader.ListMD5sGroupedByFolder(h.ctx, folders)
-	if err != nil {
-		h.mu.Lock()
-		h.running = false
-		h.mu.Unlock()
-		return err
+	md5sByFolder := map[string][]string{}
+	titleByFolder := map[string]string{}
+	artistByFolder := map[string]string{}
+	for _, folder := range folders {
+		s, _ := h.songdataReader.GetSongByFolder(h.ctx, folder)
+		if s == nil {
+			continue
+		}
+		md5s := make([]string, len(s.Charts))
+		for i, c := range s.Charts {
+			md5s[i] = c.MD5
+		}
+		md5sByFolder[folder] = md5s
+		titleByFolder[folder] = s.Title
+		artistByFolder[folder] = s.Artist
 	}
 
 	ctx, cancel := context.WithCancel(h.ctx)
@@ -151,7 +160,7 @@ func (h *EventHandler) StartBMSSearchSync() error {
 			h.mu.Unlock()
 		}()
 
-		result, _ := h.syncBMSSearch.Execute(ctx, folders, md5sByFolder, func(p usecase.SyncBMSSearchProgress) {
+		result, _ := h.syncBMSSearch.Execute(ctx, folders, md5sByFolder, titleByFolder, artistByFolder, func(p usecase.SyncBMSSearchProgress) {
 			wailsRuntime.EventsEmit(h.ctx, "bmssearch:sync-progress", map[string]int{
 				"current": p.Current,
 				"total":   p.Total,

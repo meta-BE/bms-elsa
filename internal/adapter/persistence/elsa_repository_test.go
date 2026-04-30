@@ -170,6 +170,56 @@ func TestBulkUpsertChartMeta(t *testing.T) {
 }
 
 
+func TestUpdateSongMetaBMSSearch(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	// 設定
+	if err := repo.UpdateSongMetaBMSSearch(ctx, "folder1", "bms-1", "official"); err != nil {
+		t.Fatal(err)
+	}
+	m, err := repo.GetSongMeta(ctx, "folder1")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if m == nil || m.BMSSearchID == nil || *m.BMSSearchID != "bms-1" {
+		t.Errorf("BMSSearchID = %v, want bms-1", m)
+	}
+	if m.BMSSearchSource == nil || *m.BMSSearchSource != "official" {
+		t.Errorf("BMSSearchSource = %v, want official", m.BMSSearchSource)
+	}
+
+	// 解除（ClearSongMetaBMSSearch → NULL）
+	if err := repo.ClearSongMetaBMSSearch(ctx, "folder1"); err != nil {
+		t.Fatal(err)
+	}
+	m, _ = repo.GetSongMeta(ctx, "folder1")
+	if m.BMSSearchID != nil {
+		t.Errorf("BMSSearchID after unlink = %v, want nil", *m.BMSSearchID)
+	}
+	if m.BMSSearchSource != nil {
+		t.Errorf("BMSSearchSource after unlink = %v, want nil", *m.BMSSearchSource)
+	}
+}
+
+func TestClearSongMetaBMSSearch_NoOpWhenMissing(t *testing.T) {
+	repo := setupRepo(t)
+	ctx := context.Background()
+
+	// 存在しない folderHash に対して ClearSongMetaBMSSearch を呼んでも空行が INSERT されないことを確認
+	if err := repo.ClearSongMetaBMSSearch(ctx, "ghost-folder"); err != nil {
+		t.Fatalf("ClearSongMetaBMSSearch failed: %v", err)
+	}
+
+	m, err := repo.GetSongMeta(ctx, "ghost-folder")
+	if err != nil {
+		t.Fatalf("GetSongMeta failed: %v", err)
+	}
+	if m != nil {
+		t.Errorf("期待: 行なし（nil）、実際: %+v", m)
+	}
+}
+
 func TestUpsertChartMeta_Update(t *testing.T) {
 	repo := setupRepo(t)
 	ctx := context.Background()

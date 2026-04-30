@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 )
@@ -25,9 +26,26 @@ type BMSSearchPattern struct {
 }
 
 type BMSSearchBMS struct {
-	ID          string               `json:"id"`
-	Exhibition  *BMSSearchExhibition `json:"exhibition"`
-	PublishedAt string               `json:"publishedAt"`
+	ID           string               `json:"id"`
+	Title        string               `json:"title"`
+	Artist       string               `json:"artist"`
+	SubArtist    string               `json:"subartist"`
+	Genre        string               `json:"genre"`
+	Exhibition   *BMSSearchExhibition `json:"exhibition"`
+	PublishedAt  string               `json:"publishedAt"`
+	Downloads    []BMSSearchURLEntry  `json:"downloads"`
+	Previews     []BMSSearchPreview   `json:"previews"`
+	RelatedLinks []BMSSearchURLEntry  `json:"relatedLinks"`
+}
+
+type BMSSearchURLEntry struct {
+	URL         string `json:"url"`
+	Description string `json:"description"`
+}
+
+type BMSSearchPreview struct {
+	Service   string `json:"service"`
+	Parameter string `json:"parameter"`
 }
 
 type BMSSearchExhibition struct {
@@ -132,6 +150,42 @@ func (c *BMSSearchClient) LookupBMS(ctx context.Context, bmsID string) (*BMSSear
 		return nil, fmt.Errorf("BMS Search BMS parse: %w", err)
 	}
 	return &bms, nil
+}
+
+// SearchBMSesByTitle はテキストでフォールバック検索を行う。
+// 公式 md5 ヒットしなかったときに使用する。limit は通常 20。
+func (c *BMSSearchClient) SearchBMSesByTitle(ctx context.Context, title string, limit int) ([]BMSSearchBMS, error) {
+	c.rateLimit()
+	q := url.Values{}
+	q.Set("title", title)
+	q.Set("limit", fmt.Sprintf("%d", limit))
+	q.Set("orderBy", "PUBLISHED")
+	q.Set("orderDirection", "DESC")
+	u := fmt.Sprintf("%s/bmses/search?%s", c.baseURL, q.Encode())
+	req, err := http.NewRequestWithContext(ctx, "GET", u, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("BMS Search search: HTTP %d for %s", resp.StatusCode, u)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	var arr []BMSSearchBMS
+	if err := json.Unmarshal(body, &arr); err != nil {
+		return nil, fmt.Errorf("BMS Search search parse: %w", err)
+	}
+	return arr, nil
 }
 
 func (c *BMSSearchClient) FetchAllExhibitions(ctx context.Context) ([]BMSSearchExhibitionDetail, error) {

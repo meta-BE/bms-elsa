@@ -5,7 +5,6 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/meta-BE/bms-elsa/internal/adapter/gateway"
 	"github.com/meta-BE/bms-elsa/internal/domain/model"
 )
 
@@ -23,30 +22,34 @@ type SyncBMSSearchResult struct {
 }
 
 type SyncBMSSearchUseCase struct {
-	bmsClient *gateway.BMSSearchClient
-	metaRepo  model.MetaRepository
+	resolver      *BMSSearchResolver
+	bmssearchRepo model.BMSSearchRepository
+	metaRepo      model.MetaRepository
 }
 
 func NewSyncBMSSearchUseCase(
-	bmsClient *gateway.BMSSearchClient,
+	resolver *BMSSearchResolver,
+	bmssearchRepo model.BMSSearchRepository,
 	metaRepo model.MetaRepository,
 ) *SyncBMSSearchUseCase {
-	return &SyncBMSSearchUseCase{bmsClient: bmsClient, metaRepo: metaRepo}
+	return &SyncBMSSearchUseCase{
+		resolver:      resolver,
+		bmssearchRepo: bmssearchRepo,
+		metaRepo:      metaRepo,
+	}
 }
 
 func (u *SyncBMSSearchUseCase) Execute(
 	ctx context.Context,
 	folders []string,
 	md5sByFolder map[string][]string,
+	titleByFolder map[string]string,
+	artistByFolder map[string]string,
 	progressFn func(SyncBMSSearchProgress),
 ) (*SyncBMSSearchResult, error) {
 	total := len(folders)
 	var synced, notFound atomic.Int64
 	var completed atomic.Int64
-
-	// BMS詳細のキャッシュ（並列安全）
-	var bmsCacheMu sync.Mutex
-	bmsCache := make(map[string]*gateway.BMSSearchBMS)
 
 	sem := make(chan struct{}, 3)
 	var wg sync.WaitGroup
@@ -66,8 +69,7 @@ func (u *SyncBMSSearchUseCase) Execute(
 		go func(fh string) {
 			defer func() { <-sem; wg.Done() }()
 
-			md5s := md5sByFolder[fh]
-			ok := u.syncFolder(ctx, fh, md5s, bmsCache, &bmsCacheMu)
+			ok := u.syncFolder(ctx, fh, md5sByFolder[fh], titleByFolder[fh], artistByFolder[fh])
 			if ok {
 				synced.Add(1)
 			} else {
@@ -91,49 +93,21 @@ func (u *SyncBMSSearchUseCase) syncFolder(
 	ctx context.Context,
 	folderHash string,
 	md5s []string,
-	bmsCache map[string]*gateway.BMSSearchBMS,
-	bmsCacheMu *sync.Mutex,
+	title, artist string,
 ) bool {
-	for _, md5 := range md5s {
-		pattern, err := u.bmsClient.LookupPatternByMD5(ctx, md5)
-		if err != nil || pattern == nil {
-			continue
-		}
-
-		bmsID := pattern.BMS.ID
-
-		// キャッシュ確認（並列安全）
-		bmsCacheMu.Lock()
-		bms, cached := bmsCache[bmsID]
-		bmsCacheMu.Unlock()
-
-		if !cached {
-			bms, err = u.bmsClient.LookupBMS(ctx, bmsID)
-			if err != nil {
-				continue
-			}
-			bmsCacheMu.Lock()
-			bmsCache[bmsID] = bms
-			bmsCacheMu.Unlock()
-		}
-		if bms == nil {
-			continue
-		}
-
-		if bms.Exhibition != nil {
-			event, err := u.metaRepo.GetEventByBMSSearchID(ctx, bms.Exhibition.ID)
-			if err == nil && event != nil {
-				u.metaRepo.UpdateSongMetaEvent(ctx, folderHash, bms.Exhibition.ID, bmsID)
-				return true
-			}
-		}
-
-		// exhibitionがなくてもbms_search_idは保存
-		u.metaRepo.UpsertSongMeta(ctx, model.SongMeta{
-			FolderHash:  folderHash,
-			BMSSearchID: &bmsID,
-		})
+	bmsID, _, err := u.resolver.ResolveForFolder(ctx, folderHash, md5s, title, artist)
+	if err != nil || bmsID == "" {
+		return false
+	}
+	// exhibition_id があり、かつローカル event テーブルに対応 event があれば event_id も更新
+	bms, err := u.bmssearchRepo.GetBMSByID(ctx, bmsID)
+	if err != nil || bms == nil || bms.ExhibitionID == nil {
 		return true
 	}
-	return false
+	event, err := u.metaRepo.GetEventByBMSSearchID(ctx, *bms.ExhibitionID)
+	if err != nil || event == nil {
+		return true
+	}
+	_ = u.metaRepo.UpdateSongMetaEvent(ctx, folderHash, *bms.ExhibitionID, bmsID)
+	return true
 }
