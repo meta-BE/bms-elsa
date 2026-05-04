@@ -228,6 +228,7 @@ type Config struct {
 	SongdataDBPath string                        `json:"songdataDBPath"`
 	FileLog        bool                          `json:"fileLog"`
 	ColumnWidths   map[string]map[string]float64 `json:"columnWidths,omitempty"`
+	CardCollapsed  map[string]map[string]bool    `json:"cardCollapsed,omitempty"`
 }
 
 // loadConfig は実行ファイルと同じディレクトリの config.json を読み込む。
