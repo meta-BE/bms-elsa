@@ -87,6 +87,20 @@ export const icons = {
     strokeWidth: 1.5,
     paths: [{ d: 'm21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z' }],
   },
+  // heroicons v2: 24/outline/chevron-right
+  chevronRight: {
+    viewBox: '0 0 24 24',
+    type: 'stroke',
+    strokeWidth: 1.5,
+    paths: [{ d: 'M8.25 4.5l7.5 7.5-7.5 7.5' }],
+  },
+  // heroicons v2: 24/outline/chevron-down
+  chevronDown: {
+    viewBox: '0 0 24 24',
+    type: 'stroke',
+    strokeWidth: 1.5,
+    paths: [{ d: 'm19.5 8.25-7.5 7.5-7.5-7.5' }],
+  },
 } as const
 
 export type IconName = keyof typeof icons
