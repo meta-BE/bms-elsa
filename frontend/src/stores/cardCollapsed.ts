@@ -14,7 +14,7 @@ export async function initCardCollapsed(): Promise<void> {
   if (initialized) return
   initialized = true
   const cfg = await GetConfig()
-  cardCollapsed.set(((cfg as any).cardCollapsed as CollapsedMap | undefined) ?? {})
+  cardCollapsed.set(((cfg as { cardCollapsed?: CollapsedMap }).cardCollapsed) ?? {})
 }
 
 // paneId × cardId の最小化状態をトグルし、config.json へ即時保存する。
@@ -36,5 +36,5 @@ export async function toggleCard(paneId: PaneId, cardId: CardId): Promise<void> 
     return updated
   })
   const cfg = await GetConfig()
-  await SaveConfig({ ...cfg, cardCollapsed: get(cardCollapsed) } as any)
+  await SaveConfig({ ...cfg, cardCollapsed: get(cardCollapsed) } as typeof cfg & { cardCollapsed: CollapsedMap })
 }
