@@ -96,7 +96,7 @@
     </div>
 
     {#if chart}
-      <ChartInfoCard {chart} />
+      <ChartInfoCard {chart} paneId="chart" />
       <BMSSearchInfoCard
         info={bmsSearchInfo}
         loading={bmsSearchLoading}

@@ -1,12 +1,15 @@
 <script lang="ts">
   import type { dto } from '../../wailsjs/go/models'
+  import type { PaneId } from '../stores/cardCollapsed'
   import { modeLabel, diffLabel } from '../utils/chartLabels'
+  import CollapsibleCard from './CollapsibleCard.svelte'
 
   export let chart: dto.ChartDTO
+  export let paneId: PaneId
 </script>
 
-<div class="bg-base-200 rounded-lg p-3">
-  <h3 class="text-sm font-semibold mb-2">譜面情報</h3>
+<CollapsibleCard {paneId} cardId="chartInfo">
+  <span slot="title">譜面情報</span>
   <div class="text-xs space-y-1">
     <div class="flex items-center gap-4">
       <span><span class="font-semibold">Mode:</span> {modeLabel(chart.mode)}</span>
@@ -37,4 +40,4 @@
       </p>
     {/if}
   </div>
-</div>
+</CollapsibleCard>

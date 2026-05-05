@@ -132,7 +132,7 @@
 
     <!-- 譜面メタデータ（導入済の場合のみ） -->
     {#if chart}
-      <ChartInfoCard {chart} />
+      <ChartInfoCard {chart} paneId="entry" />
     {/if}
 
     <!-- 導入先推定（未導入の場合のみ） -->
