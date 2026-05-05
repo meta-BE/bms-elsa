@@ -137,7 +137,7 @@
 
     <!-- 導入先推定（未導入の場合のみ） -->
     {#if !chart}
-      <InstallCandidateCard {md5} {tableID} />
+      <InstallCandidateCard {md5} {tableID} paneId="entry" />
     {/if}
 
     <!-- IR情報（導入済・未導入共通） -->
