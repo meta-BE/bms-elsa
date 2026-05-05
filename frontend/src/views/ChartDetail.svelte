@@ -103,7 +103,7 @@
         on:lookup={lookupBMSSearch}
         on:unlink={unlinkBMSSearch}
       />
-      <IRInfoCard md5={chart.md5} ir={chart} on:lookup={lookupIR} />
+      <IRInfoCard md5={chart.md5} ir={chart} paneId="chart" on:lookup={lookupIR} />
     {/if}
   </div>
 {/if}

@@ -325,7 +325,7 @@
     <!-- 選択中の譜面の詳細情報 -->
     {#if selectedChart}
       <ChartInfoCard chart={selectedChart} paneId="song" />
-      <IRInfoCard md5={selectedChart.md5} ir={selectedChart} on:lookup={() => selectedChart && lookupIR(selectedChart)} />
+      <IRInfoCard md5={selectedChart.md5} ir={selectedChart} paneId="song" on:lookup={() => selectedChart && lookupIR(selectedChart)} />
     {/if}
   </div>
 {/if}

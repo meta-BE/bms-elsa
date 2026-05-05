@@ -2,6 +2,8 @@
   import { createEventDispatcher } from 'svelte'
   import { rewriteRules } from '../stores/rewriteRules'
   import { applyRewriteRules } from '../lib/urlRewrite'
+  import type { PaneId } from '../stores/cardCollapsed'
+  import CollapsibleCard from './CollapsibleCard.svelte'
 
   const dispatch = createEventDispatcher<{
     lookup: void
@@ -15,6 +17,7 @@
     lr2irDiffUrl?: string
     lr2irNotes?: string
   } | null = null
+  export let paneId: PaneId
 
   function linkify(text: string): string {
     const escaped = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -28,11 +31,9 @@
   }
 </script>
 
-<div class="bg-base-200 rounded-lg p-3">
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="text-sm font-semibold"><a href="http://www.dream-pro.info/~lavalse/LR2IR/search.cgi?mode=ranking&bmsmd5={md5}" target="_blank" rel="noopener noreferrer" class="link link-primary">LR2IR情報</a></h3>
-    <button class="btn btn-ghost btn-xs" on:click={() => dispatch('lookup')}>IR取得</button>
-  </div>
+<CollapsibleCard {paneId} cardId="irInfo">
+  <a slot="title" href="http://www.dream-pro.info/~lavalse/LR2IR/search.cgi?mode=ranking&bmsmd5={md5}" target="_blank" rel="noopener noreferrer" class="link link-primary">LR2IR情報</a>
+  <button slot="actions" class="btn btn-ghost btn-xs" on:click={() => dispatch('lookup')}>IR取得</button>
   {#if ir?.hasIrMeta}
     <div class="text-xs space-y-1">
       {#if ir.lr2irTags}
@@ -57,4 +58,4 @@
   {:else}
     <p class="text-xs text-base-content/50">IR情報がありません。「IR取得」ボタンで取得してください。</p>
   {/if}
-</div>
+</CollapsibleCard>

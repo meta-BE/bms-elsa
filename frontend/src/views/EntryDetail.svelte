@@ -141,7 +141,7 @@
     {/if}
 
     <!-- IR情報（導入済・未導入共通） -->
-    <IRInfoCard {md5} {ir} on:lookup={lookupIR} />
+    <IRInfoCard {md5} {ir} paneId="entry" on:lookup={lookupIR} />
     <BMSSearchInfoCard
       info={bmsSearchInfo}
       loading={bmsSearchLoading}
