@@ -206,6 +206,7 @@
     const target = e.target as HTMLSelectElement
     const id = Number(target.value)
     selectedTableId = id
+    $table.getColumn('level')?.setFilterValue(undefined)
     dispatch('deselect')
     await loadEntries(id)
   }
