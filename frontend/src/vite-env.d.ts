@@ -9,7 +9,7 @@ declare module '@tanstack/table-core' {
     flex?: boolean
     align?: 'left' | 'center' | 'right'
     filterType?: string
-    filterSort?: 'asc' | 'desc'
+    filterSort?: 'asc' | 'desc' | 'numericFirst'
     filterOptions?: string[]
   }
 }

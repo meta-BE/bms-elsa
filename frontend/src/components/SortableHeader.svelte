@@ -27,13 +27,25 @@
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function getFilterOptions(column: Column<any, unknown>): string[] {
-    const meta = column.columnDef.meta as { filterOptions?: string[]; filterSort?: 'asc' | 'desc' } | undefined
+    const meta = column.columnDef.meta as { filterOptions?: string[]; filterSort?: 'asc' | 'desc' | 'numericFirst' } | undefined
     if (meta?.filterOptions) return meta.filterOptions
     try {
       const values = column.getFacetedUniqueValues()
       const opts = Array.from(values.keys())
         .filter((v) => v != null && v !== '')
         .map(String)
+      if (meta?.filterSort === 'numericFirst') {
+        return opts.sort((a, b) => {
+          const an = Number(a)
+          const bn = Number(b)
+          const aIsNum = !isNaN(an) && a.trim() !== ''
+          const bIsNum = !isNaN(bn) && b.trim() !== ''
+          if (aIsNum && bIsNum) return an - bn
+          if (aIsNum) return -1
+          if (bIsNum) return 1
+          return a.localeCompare(b)
+        })
+      }
       return meta?.filterSort === 'desc' ? opts.sort().reverse() : opts.sort()
     } catch {
       return []
