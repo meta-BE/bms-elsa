@@ -145,6 +145,7 @@
     <BMSSearchInfoCard
       info={bmsSearchInfo}
       loading={bmsSearchLoading}
+      paneId="entry"
       on:lookup={lookupBMSSearch}
       on:unlink={unlinkBMSSearch}
     />

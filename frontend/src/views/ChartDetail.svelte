@@ -100,6 +100,7 @@
       <BMSSearchInfoCard
         info={bmsSearchInfo}
         loading={bmsSearchLoading}
+        paneId="chart"
         on:lookup={lookupBMSSearch}
         on:unlink={unlinkBMSSearch}
       />

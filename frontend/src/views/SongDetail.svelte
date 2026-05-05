@@ -260,6 +260,7 @@
       <BMSSearchInfoCard
         info={bmsSearchInfo}
         loading={bmsSearchLoading}
+        paneId="song"
         on:lookup={lookupBMSSearch}
         on:unlink={unlinkBMSSearch}
       />
