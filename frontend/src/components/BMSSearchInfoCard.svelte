@@ -4,10 +4,13 @@
   import { rewriteRules } from '../stores/rewriteRules'
   import { applyRewriteRules } from '../lib/urlRewrite'
   import { formatDateYMD } from '../utils/date'
+  import type { PaneId } from '../stores/cardCollapsed'
   import Icon from './Icon.svelte'
+  import CollapsibleCard from './CollapsibleCard.svelte'
 
   export let info: dto.BMSSearchInfoDTO | null = null
   export let loading = false
+  export let paneId: PaneId
 
   const dispatch = createEventDispatcher<{
     lookup: void
@@ -33,33 +36,31 @@
   }
 </script>
 
-<div class="bg-base-200 rounded-lg p-3">
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="text-sm font-semibold flex items-center gap-1">
-      {#if info?.bmsId}
-        <a href="https://bmssearch.net/bmses/{info.bmsId}" target="_blank" rel="noopener noreferrer" class="link link-primary">BMS Search情報</a>
+<CollapsibleCard {paneId} cardId="bmsSearch">
+  <span slot="title" class="flex items-center gap-1">
+    {#if info?.bmsId}
+      <a href="https://bmssearch.net/bmses/{info.bmsId}" target="_blank" rel="noopener noreferrer" class="link link-primary">BMS Search情報</a>
+    {:else}
+      BMS Search情報
+    {/if}
+    {#if info?.source === 'unofficial'}
+      <!-- テキスト検索による自動推定紐付けの場合に警告アイコンを表示 -->
+      <span class="tooltip tooltip-right" data-tip="テキスト検索により自動推定された紐付けです">
+        <Icon name="search" cls="h-3.5 w-3.5 text-warning" />
+      </span>
+    {/if}
+  </span>
+  <div slot="actions" class="flex items-center gap-1">
+    <button class="btn btn-ghost btn-xs" disabled={loading} on:click={() => dispatch('lookup')}>
+      {#if loading}
+        <span class="loading loading-spinner loading-xs"></span>
       {:else}
-        BMS Search情報
+        取得
       {/if}
-      {#if info?.source === 'unofficial'}
-        <!-- テキスト検索による自動推定紐付けの場合に警告アイコンを表示 -->
-        <span class="tooltip tooltip-right" data-tip="テキスト検索により自動推定された紐付けです">
-          <Icon name="search" cls="h-3.5 w-3.5 text-warning" />
-        </span>
-      {/if}
-    </h3>
-    <div class="flex items-center gap-1">
-      <button class="btn btn-ghost btn-xs" disabled={loading} on:click={() => dispatch('lookup')}>
-        {#if loading}
-          <span class="loading loading-spinner loading-xs"></span>
-        {:else}
-          取得
-        {/if}
-      </button>
-      {#if hasInfo}
-        <button class="btn btn-ghost btn-xs" on:click={() => dispatch('unlink')}>解除</button>
-      {/if}
-    </div>
+    </button>
+    {#if hasInfo}
+      <button class="btn btn-ghost btn-xs" on:click={() => dispatch('unlink')}>解除</button>
+    {/if}
   </div>
   {#if hasInfo && info}
     <div class="text-xs space-y-1">
@@ -129,4 +130,4 @@
   {:else}
     <p class="text-xs text-base-content/50">BMS Search情報がありません。「取得」ボタンで取得してください。</p>
   {/if}
-</div>
+</CollapsibleCard>

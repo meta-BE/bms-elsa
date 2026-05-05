@@ -132,19 +132,20 @@
 
     <!-- 譜面メタデータ（導入済の場合のみ） -->
     {#if chart}
-      <ChartInfoCard {chart} />
+      <ChartInfoCard {chart} paneId="entry" />
     {/if}
 
     <!-- 導入先推定（未導入の場合のみ） -->
     {#if !chart}
-      <InstallCandidateCard {md5} {tableID} />
+      <InstallCandidateCard {md5} {tableID} paneId="entry" />
     {/if}
 
     <!-- IR情報（導入済・未導入共通） -->
-    <IRInfoCard {md5} {ir} on:lookup={lookupIR} />
+    <IRInfoCard {md5} {ir} paneId="entry" on:lookup={lookupIR} />
     <BMSSearchInfoCard
       info={bmsSearchInfo}
       loading={bmsSearchLoading}
+      paneId="entry"
       on:lookup={lookupBMSSearch}
       on:unlink={unlinkBMSSearch}
     />

@@ -1,9 +1,12 @@
 <script lang="ts">
   import { EstimateInstallLocation } from '../../wailsjs/go/app/DifficultyTableHandler'
+  import type { PaneId } from '../stores/cardCollapsed'
   import OpenFolderButton from './OpenFolderButton.svelte'
+  import CollapsibleCard from './CollapsibleCard.svelte'
 
   export let md5: string
   export let tableID: number
+  export let paneId: PaneId
 
   type Candidate = {
     folderPath: string
@@ -41,9 +44,8 @@
   }
 </script>
 
-<div class="bg-base-200 rounded-lg p-3">
-  <h3 class="text-sm font-semibold mb-2">導入先の推定</h3>
-
+<CollapsibleCard {paneId} cardId="installCandidate">
+  <span slot="title">導入先の推定</span>
   {#if loading}
     <div class="flex justify-center py-2">
       <span class="loading loading-spinner loading-sm"></span>
@@ -68,4 +70,4 @@
       {/each}
     </div>
   {/if}
-</div>
+</CollapsibleCard>

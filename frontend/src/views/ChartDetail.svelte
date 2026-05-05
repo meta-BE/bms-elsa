@@ -96,14 +96,15 @@
     </div>
 
     {#if chart}
-      <ChartInfoCard {chart} />
+      <ChartInfoCard {chart} paneId="chart" />
       <BMSSearchInfoCard
         info={bmsSearchInfo}
         loading={bmsSearchLoading}
+        paneId="chart"
         on:lookup={lookupBMSSearch}
         on:unlink={unlinkBMSSearch}
       />
-      <IRInfoCard md5={chart.md5} ir={chart} on:lookup={lookupIR} />
+      <IRInfoCard md5={chart.md5} ir={chart} paneId="chart" on:lookup={lookupIR} />
     {/if}
   </div>
 {/if}
