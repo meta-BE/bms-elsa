@@ -5,6 +5,7 @@
     getCoreRowModel,
     getSortedRowModel,
     getFilteredRowModel,
+    getFacetedUniqueValues,
     type ColumnDef,
     type SortingState,
     type TableOptions,
@@ -58,13 +59,10 @@
       accessorKey: 'level',
       header: 'Level',
       size: 70,
-      meta: { align: 'right' },
+      meta: { align: 'right', filterType: 'select', filterSort: 'numericFirst' },
       enableResizing: false,
-      sortingFn: (rowA, rowB, columnId) => {
-        const a = Number(rowA.getValue(columnId)) || 0
-        const b = Number(rowB.getValue(columnId)) || 0
-        return a - b
-      },
+      enableSorting: false,
+      filterFn: 'equalsString',
     },
     { accessorKey: 'title', header: 'Title', size: 300, meta: { flex: true } },
     { accessorKey: 'artist', header: 'Artist', size: 200, meta: { flex: true } },
@@ -135,6 +133,7 @@
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
   })
 
   const table = createSvelteTable(options)
