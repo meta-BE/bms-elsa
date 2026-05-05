@@ -16,6 +16,7 @@
   import { OpenURL } from '../wailsjs/go/main/App'
   import { OnFileDrop } from '../wailsjs/runtime/runtime'
   import { rewriteRules } from './stores/rewriteRules'
+  import { initCardCollapsed } from './stores/cardCollapsed'
   import { ListRewriteRules } from '../wailsjs/go/app/RewriteHandler'
   import Icon from './components/Icon.svelte'
   import { onMount } from 'svelte'
@@ -140,6 +141,8 @@
     ListRewriteRules().then(rules => {
       rewriteRules.set(rules ?? [])
     })
+
+    initCardCollapsed()
 
     document.addEventListener('click', (e) => {
       const anchor = (e.target as Element).closest('a[href]')
