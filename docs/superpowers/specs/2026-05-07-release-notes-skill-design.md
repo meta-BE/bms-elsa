@@ -159,11 +159,14 @@ description: |
   GitHub Releases の body にリリースノートを生成・更新する。
   「リリースノート作成して」「v0.11.2 のリリースノートを作って」
   「最新リリースのノートを更新」などの指示があった場合に使用。
+model: claude-sonnet-4-6
 allowed-tools:
   - Bash
   - Write
 ---
 ```
+
+> 軽量かつ重要性の低い処理のため、利用モデルを Sonnet に固定する。
 
 ### 本文セクション
 
