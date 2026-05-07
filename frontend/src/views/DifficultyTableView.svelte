@@ -287,6 +287,7 @@
     if (tables.length === 0) {
       selectedTableId = null
       entries = []
+      $table.getColumn('level')?.setFilterValue(undefined)
       applyFilter()
       return
     }
@@ -295,6 +296,7 @@
       selectedTableId = prevId
     } else {
       selectedTableId = tables[0].id
+      $table.getColumn('level')?.setFilterValue(undefined)
     }
     await loadEntries(selectedTableId!)
   }
