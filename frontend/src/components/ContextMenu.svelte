@@ -10,10 +10,22 @@
   }
 
   let menuEl: HTMLDivElement
+  let originalParent: HTMLElement | null = null
   let x = 0
   let y = 0
   let linkItems: MenuItem[] = []
   let editItems: MenuItem[] = []
+
+  // 開いている modal dialog のうち最後（top）のものを取得。
+  // showModal() で開いた dialog のサブツリーは modal による inert 圏外になるため、
+  // popover をその子に移して表示することでイベントを受け取れるようにする。
+  function topmostOpenDialog(): HTMLDialogElement | null {
+    const dialogs = Array.from(document.querySelectorAll('dialog[open]')) as HTMLDialogElement[]
+    for (let i = dialogs.length - 1; i >= 0; i--) {
+      if (dialogs[i].matches(':modal')) return dialogs[i]
+    }
+    return null
+  }
 
   // メニュークリック時にはフォーカスが移動済みのため、事前に保存する
   let savedTarget: HTMLInputElement | HTMLTextAreaElement | null = null
@@ -186,6 +198,16 @@
     if (menuEl?.matches(':popover-open')) {
       menuEl.hidePopover()
     }
+
+    // showModal() で開いた dialog は外側を inert 化するが、WKWebView では top layer の
+    // popover もそのブロッキングに巻き込まれてイベントを受け取れない。
+    // 対象 dialog のサブツリー（=inert 圏外）に menuEl を移して表示することで回避する。
+    const host = topmostOpenDialog()
+    const targetParent: HTMLElement = host ?? originalParent ?? document.body
+    if (menuEl.parentElement !== targetParent) {
+      targetParent.appendChild(menuEl)
+    }
+
     await tick()
     menuEl.showPopover()
   }
@@ -193,6 +215,10 @@
   function close() {
     if (menuEl?.matches(':popover-open')) {
       menuEl.hidePopover()
+    }
+    // dialog の子に移していた場合は元の親に戻す
+    if (originalParent && menuEl && menuEl.parentElement !== originalParent) {
+      originalParent.appendChild(menuEl)
     }
   }
 
@@ -212,6 +238,7 @@
   // 全リスナーをdocument captureフェーズで登録
   // （showModal() top layer内のイベントも確実にキャッチするため）
   onMount(() => {
+    originalParent = menuEl?.parentElement ?? null
     document.addEventListener('mousedown', handleMouseDown, true)
     document.addEventListener('mousedown', handleGlobalMouseDown, true)
     document.addEventListener('contextmenu', handleContextMenu, true)
