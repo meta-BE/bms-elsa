@@ -14,6 +14,8 @@ allowed-tools:
 
 GitHub Releases の body に、コミットログから生成したリリースノート（`## 新機能` / `## バグ修正` / `## その他の変更`）を埋めるスキル。
 
+タグさえ存在すれば生成パートは進められる設計とし、Release 未作成 (CI ビルド中など) のときも待ち時間中にコミット範囲取得・分類・文章生成を完了させる。
+
 ## 引数
 
 - 引数なし → 最新 GitHub Release を対象
@@ -30,25 +32,45 @@ GitHub Releases の body に、コミットログから生成したリリース�
 gh release list --limit 1 --json tagName --jq '.[0].tagName'
 ```
 
-### 2. 対象リリース存在確認
+### 2. 対象タグ存在確認 + リリース状態判定
+
+タグの有無を git で先に確認する（Release 未作成でも生成は進められる）：
 
 ```bash
-gh release view <tag>
+git rev-parse --verify "<tag>" 2>/dev/null
 ```
 
-リリースが存在しない場合は「リリース <tag> が見つかりません」と表示して停止する。
+タグが存在しない場合は「タグ <tag> が見つかりません」と表示して停止する。
+
+タグ存在後、Release 状態を確認する（この時点ではブロックしない）：
+
+```bash
+gh release view <tag> --json tagName,body 2>/dev/null
+```
+
+| 結果 | 扱い |
+|---|---|
+| Release 存在 | `body` を保持し §7 で上書き判定に使う。状態フラグ `release_pending=false` |
+| Release 未作成 | 状態フラグ `release_pending=true` を立て、生成は続行。§8 で待機/作成判断 |
+
+`release_pending=true` のとき、tag push に紐づく workflow が in_progress なら run URL をユーザーに提示しておく：
+
+```bash
+gh run list --event=push --limit 5 \
+  --json status,databaseId,headBranch,url \
+  --jq '.[] | select(.headBranch=="<tag>" and .status=="in_progress")'
+```
 
 ### 3. 前バージョン解決
 
-GitHub Releases の `publishedAt` 順で1つ前のリリースを「前バージョン」とする：
+git tag を真実とする（Release 公開状況に依存させない）：
 
 ```bash
-gh release list --limit 100 --json tagName,publishedAt \
-  --jq 'sort_by(.publishedAt)'
+git tag --list 'v*' --sort=-version:refname
 ```
 
-- 上記の配列で対象タグの直前のエントリを採用する
-- 対象が最古リリースの場合、前バージョン = リポジトリ最初のコミット：
+- このリストで対象タグの直後（= semver で 1 つ古い）を「前バージョン」とする
+- 対象が最古のタグなら、前バージョン = リポジトリ最初のコミット：
 
 ```bash
 git rev-list --max-parents=0 HEAD | head -1
@@ -118,11 +140,8 @@ gh release view <prev_tag> --json body --jq .body
 
 ### 7. 上書き確認
 
-```bash
-gh release view <tag> --json body --jq .body
-```
-
-- 既存 body が空文字列（または空白・改行のみ）の場合 → 無確認で進む
+- §2 で `release_pending=true` だった場合 → 上書き確認はスキップして §8 の作成パスへ
+- §2 で取得した既存 body が空文字列（または空白・改行のみ）の場合 → 無確認で進む
 - 何か入っている場合：
   - 既存 body と生成した新しい body をユーザーに表示する
   - 「上書きしますか？」と問い、明示的な承認（「はい」「ok」など）を待つ
@@ -130,15 +149,31 @@ gh release view <tag> --json body --jq .body
 
 ### 8. リリース更新
 
-承認後（または既存 body が空の場合）：
+承認後（または既存 body が空、または Release 未作成）：
 
-1. 生成テキストを一時ファイル `/tmp/release-notes-<tag>.md` に書き出す（`Write` ツール）
-   - `/tmp/` への書き込みがブロックされた場合は `save-temp-file` スキルへ誘導する
-2. リリース更新：
+1. 生成テキストを一時ファイル `.96kudye/tmp/<YYMMDD>_release-notes-<tag>.md` に書き出す（`Write` ツール）
+   - YYMMDD は環境情報の "Today's date" から取得する（推測禁止）
+   - ディレクトリが無ければ作成する
+   - 書き込みがブロックされた場合は `save-temp-file` スキルへ誘導する
 
-```bash
-gh release edit <tag> --notes-file /tmp/release-notes-<tag>.md
-```
+2. Release 状態で分岐：
+
+   **Release 存在 (`release_pending=false`)**:
+   ```bash
+   gh release edit <tag> --notes-file <file>
+   ```
+
+   **Release 未作成 (`release_pending=true`)**:
+   - tag push 起点の CI run が in_progress なら待機オプションを提示し、ユーザー承認後に待機 → `gh release edit` を実行：
+     ```bash
+     gh run watch <run_id> --exit-status
+     gh release edit <tag> --notes-file <file>
+     ```
+   - CI が存在しない／既に失敗している場合は `gh release create` で先行作成（CI が後から同タグの Release を上書きしないか要確認）：
+     ```bash
+     gh release create <tag> --notes-file <file>
+     ```
+   - 判断がつかない場合はユーザーへ手動対応を促して停止する
 
 3. 更新後、URL を取得してユーザーに通知する：
 
@@ -152,5 +187,6 @@ gh release view <tag> --json url --jq .url
 |---|---|
 | `gh` 未認証 | `gh auth login` を促すメッセージを表示して停止 |
 | 対象タグなし | エラーメッセージで停止 |
+| タグはあるが Release 未作成（CI 進行中） | run URL を提示。`gh run watch` で待機 → `gh release edit` を提案、または `gh release create` で先行作成を選択肢として提示 |
 | 対象範囲にユーザー向けコミット 0 件 | 「ユーザー向けの変更がありません」と通知して停止（空更新しない） |
-| `/tmp/` への書き込みブロック | `save-temp-file` スキルへ誘導 |
+| `.96kudye/tmp/` への書き込みブロック | `save-temp-file` スキルへ誘導 |
