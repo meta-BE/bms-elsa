@@ -12,6 +12,10 @@ import (
 //go:embed all:frontend/dist
 var assets embed.FS
 
+// version はビルド時に -ldflags "-X main.version=..." で上書きする。
+// wails dev など ldflags 未注入時は "dev" のままになる。
+var version = "dev"
+
 func main() {
 	// macOSで.appバンドル起動時にLANGが未設定だとpbcopy/pbpasteが文字化けする (wails#4132)
 	if os.Getenv("LANG") == "" {
@@ -26,7 +30,7 @@ func main() {
 	}
 
 	err := wails.Run(&options.App{
-		Title:  "BMS ELSA",
+		Title:  "BMS ELSA " + version,
 		Width:  1280,
 		Height: 800,
 		AssetServer: &assetserver.Options{
