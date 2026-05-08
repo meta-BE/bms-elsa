@@ -26,7 +26,7 @@ jobs:
         run: go install github.com/wailsapp/wails/v2/cmd/wails@v2.11.0
 
       - name: Build
-        run: wails build -platform windows/amd64
+        run: wails build -platform windows/amd64 -ldflags "-X main.version=${{ github.ref_name }}"
 
       - name: Copy manual as manual.txt
         run: Copy-Item docs/manual.md build/bin/manual.txt
