@@ -28,6 +28,23 @@ jobs:
       - name: Build
         run: wails build -platform windows/amd64 -ldflags "-X main.version=${{ github.ref_name }}"
 
+      - name: Rename exe (idempotent)
+        shell: pwsh
+        run: |
+          if (Test-Path build/bin/bms-elsa.exe) {
+            Write-Host "exe already named correctly"
+          } elseif (Test-Path build/bin/bms-elsa-windows-amd64.exe) {
+            Rename-Item -Path build/bin/bms-elsa-windows-amd64.exe -NewName bms-elsa.exe
+          } else {
+            $alt = Get-ChildItem -Path build/bin/*.exe | Select-Object -First 1
+            if ($alt) {
+              Rename-Item -Path $alt.FullName -NewName bms-elsa.exe
+            } else {
+              Write-Error "No exe found in build/bin"
+              exit 1
+            }
+          }
+
       - name: Copy manual as manual.txt
         run: Copy-Item docs/manual.md build/bin/manual.txt
 
