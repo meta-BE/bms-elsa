@@ -77,8 +77,8 @@ func TestMinHash_SameSongHighSimilarity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	egoSig := bms.ComputeMinHash(egoParsed.WAVFiles)
-	fixSig := bms.ComputeMinHash(fixParsed.WAVFiles)
+	egoSig := bms.ComputeMinHash(egoParsed.WAVRefCounts)
+	fixSig := bms.ComputeMinHash(fixParsed.WAVRefCounts)
 	sim := egoSig.Similarity(fixSig)
 
 	t.Logf("Dstorv [Ego] vs [false_fix] similarity: %.4f", sim)
@@ -100,8 +100,8 @@ func TestMinHash_DifferentSongLowSimilarity(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	dstorvSig := bms.ComputeMinHash(dstorvParsed.WAVFiles)
-	randomSig := bms.ComputeMinHash(randomParsed.WAVFiles)
+	dstorvSig := bms.ComputeMinHash(dstorvParsed.WAVRefCounts)
+	randomSig := bms.ComputeMinHash(randomParsed.WAVRefCounts)
 	sim := dstorvSig.Similarity(randomSig)
 
 	t.Logf("Dstorv vs Random similarity: %.4f", sim)
@@ -125,7 +125,7 @@ func TestMinHash_SerializeRoundtrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	sig := bms.ComputeMinHash(parsed.WAVFiles)
+	sig := bms.ComputeMinHash(parsed.WAVRefCounts)
 
 	// シリアライズ→デシリアライズ
 	blob := sig.Bytes()
@@ -349,5 +349,43 @@ func TestParseBMSFile_WAVRefCounts_RandomBlockSelectsIfOne(t *testing.T) {
 	}
 	if got := parsed.WAVRefCounts["skipped"]; got != 0 {
 		t.Errorf("WAVRefCounts[\"skipped\"] = %d, want 0 (#IF 2 must be skipped)", got)
+	}
+}
+
+func TestComputeMinHash_SameBasenamesDifferentCountsLowerSimilarity(t *testing.T) {
+	// 同じ basename 集合でも、参照回数階層 (バケット) が大きく違えば類似度は下がる。
+	// バケット閾値: 1, 2, 4, 8, 16, 32, 64
+	light := map[string]int{
+		"00": 1, "01": 1, "02": 1, "03": 1, "04": 1,
+	}
+	heavy := map[string]int{
+		"00": 64, "01": 64, "02": 64, "03": 64, "04": 64,
+	}
+	lightSig := bms.ComputeMinHash(light)
+	heavySig := bms.ComputeMinHash(heavy)
+	sim := lightSig.Similarity(heavySig)
+	t.Logf("same basenames, count=1 vs count=64 similarity: %.4f", sim)
+	if sim >= 0.5 {
+		t.Errorf("different count buckets should produce sim < 0.5, got %.4f", sim)
+	}
+}
+
+func TestComputeMinHash_SameBasenamesSimilarCountsHighSimilarity(t *testing.T) {
+	// 同じ basename 集合 + 同じバケット帯なら類似度は 1.0。
+	a := map[string]int{"kick": 5, "snare": 5, "bgm": 5}
+	b := map[string]int{"kick": 6, "snare": 6, "bgm": 6}
+	sim := bms.ComputeMinHash(a).Similarity(bms.ComputeMinHash(b))
+	if sim != 1.0 {
+		t.Errorf("same buckets should produce sim == 1.0, got %.4f", sim)
+	}
+}
+
+func TestComputeMinHash_BasenameOnlyContribution(t *testing.T) {
+	// 参照回数が 0 (未参照だが定義はある) でも basename 単独要素は集合に入る。
+	a := map[string]int{"kick": 0, "snare": 0}
+	b := map[string]int{"kick": 0, "snare": 0}
+	sim := bms.ComputeMinHash(a).Similarity(bms.ComputeMinHash(b))
+	if sim != 1.0 {
+		t.Errorf("identical zero-count maps should produce sim == 1.0, got %.4f", sim)
 	}
 }

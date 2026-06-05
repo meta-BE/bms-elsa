@@ -61,7 +61,7 @@ func (u *ScanMinHashUseCase) Execute(ctx context.Context, targets []model.ChartS
 			continue
 		}
 
-		sig := bms.ComputeMinHash(parsed.WAVFiles)
+		sig := bms.ComputeMinHash(parsed.WAVRefCounts)
 		if err := u.metaRepo.UpdateWavMinhash(ctx, tgt.MD5, sig.Bytes()); err != nil {
 			fmt.Fprintf(os.Stderr, "scan: db error %s: %v\n", tgt.MD5, err)
 			result.Failed++
