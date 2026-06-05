@@ -258,6 +258,24 @@ func RunMigrations(db *sql.DB) error {
 		return fmt.Errorf("backfill bms_search_source: %w", err)
 	}
 
+	// wav_minhash アルゴリズム v2 への移行: 旧署名をクリアして再計算待ちにする
+	// user_version 管理:
+	//   0 = データマイグレーション未適用 (v1 wav_minhash 残存の可能性あり)
+	//   1 = 予約 (未使用)
+	//   2 = v2 wav_minhash 適用済み
+	var userVersion int
+	if err := db.QueryRow(`PRAGMA user_version`).Scan(&userVersion); err != nil {
+		return fmt.Errorf("read user_version: %w", err)
+	}
+	if userVersion < 2 {
+		if _, err := db.Exec(`UPDATE chart_meta SET wav_minhash = NULL WHERE wav_minhash IS NOT NULL`); err != nil {
+			return fmt.Errorf("clear legacy wav_minhash: %w", err)
+		}
+		if _, err := db.Exec(`PRAGMA user_version = 2`); err != nil {
+			return fmt.Errorf("bump user_version: %w", err)
+		}
+	}
+
 	return nil
 }
 
@@ -287,7 +305,7 @@ func seedEvents(db *sql.DB) error {
 		}
 
 		// bms_search_idが空文字列の場合はNULLとして挿入
-		var searchIDParam interface{}
+		var searchIDParam any
 		if bmsSearchID != "" {
 			searchIDParam = bmsSearchID
 		}

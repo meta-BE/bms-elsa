@@ -75,7 +75,7 @@ func TestScore(t *testing.T) {
 
 func TestScoreWithMinHash(t *testing.T) {
 	// 同一 MinHash 署名を作成（Jaccard = 1.0）
-	sig := bms.ComputeMinHash([]string{"bgm01", "kick", "snare"})
+	sig := bms.ComputeMinHash(map[string]int{"bgm01": 0, "kick": 0, "snare": 0})
 	mh := sig.Bytes()
 
 	a := testSong{"FREEDOM", "xi", "ARROW", 100, 200, mh}
@@ -89,8 +89,8 @@ func TestScoreWithMinHash(t *testing.T) {
 }
 
 func TestScoreWithDifferentMinHash(t *testing.T) {
-	sigA := bms.ComputeMinHash([]string{"bgm01", "kick", "snare"})
-	sigB := bms.ComputeMinHash([]string{"piano", "bass", "hihat"})
+	sigA := bms.ComputeMinHash(map[string]int{"bgm01": 0, "kick": 0, "snare": 0})
+	sigB := bms.ComputeMinHash(map[string]int{"piano": 0, "bass": 0, "hihat": 0})
 
 	a := testSong{"SongA", "ArtistA", "Genre", 120, 120, sigA.Bytes()}
 	b := testSong{"SongA", "ArtistA", "Genre", 120, 120, sigB.Bytes()}
@@ -104,7 +104,7 @@ func TestScoreWithDifferentMinHash(t *testing.T) {
 }
 
 func TestScoreWithOneMinHashMissing(t *testing.T) {
-	sig := bms.ComputeMinHash([]string{"bgm01", "kick"})
+	sig := bms.ComputeMinHash(map[string]int{"bgm01": 0, "kick": 0})
 
 	a := testSong{"Song", "Artist", "Genre", 120, 120, sig.Bytes()}
 	b := testSong{"Song", "Artist", "Genre", 120, 120, nil}

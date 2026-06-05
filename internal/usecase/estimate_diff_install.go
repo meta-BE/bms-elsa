@@ -87,7 +87,7 @@ func (u *EstimateDiffInstallUseCase) EstimateOne(ctx context.Context, filePath s
 	scores := make(map[string]*folderScore)
 
 	// Step 1: WAV MinHash類似度検索
-	sig := bms.ComputeMinHash(parsed.WAVFiles)
+	sig := bms.ComputeMinHash(parsed.WAVRefCounts)
 	match, err := u.metaRepo.FindMostSimilarByMinHash(ctx, sig.Bytes(), 0.0)
 	if err != nil {
 		return nil, err
