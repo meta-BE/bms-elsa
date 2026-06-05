@@ -115,3 +115,101 @@ func TestRunMigrations_BMSSearchSourceBackfill(t *testing.T) {
 		t.Errorf("expected bms_search_source='official', got %v", src)
 	}
 }
+
+func TestRunMigrations_WavMinhashV2Clear(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	// 初回マイグレーションでテーブル一式を作成
+	if err := persistence.RunMigrations(db); err != nil {
+		t.Fatal(err)
+	}
+
+	// v2 マイグレーション以前の状態をシミュレート: user_version=0 に戻し、
+	// chart_meta に旧形式 wav_minhash を 1 件入れる
+	if _, err := db.Exec(`PRAGMA user_version = 0`); err != nil {
+		t.Fatal(err)
+	}
+	legacy := make([]byte, 256)
+	for i := range legacy {
+		legacy[i] = byte(i)
+	}
+	if _, err := db.Exec(
+		`INSERT INTO chart_meta (md5, wav_minhash) VALUES ('aabbcc', ?)`,
+		legacy,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// 再度マイグレーションを走らせると v2 移行が適用される
+	if err := persistence.RunMigrations(db); err != nil {
+		t.Fatalf("RunMigrations failed: %v", err)
+	}
+
+	// wav_minhash が NULL になっていること
+	var stored sql.NullString
+	if err := db.QueryRow(
+		`SELECT wav_minhash FROM chart_meta WHERE md5 = 'aabbcc'`,
+	).Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if stored.Valid {
+		t.Errorf("wav_minhash should be NULL after v2 migration, got %v", stored)
+	}
+
+	// user_version が 2 になっていること
+	var uv int
+	if err := db.QueryRow(`PRAGMA user_version`).Scan(&uv); err != nil {
+		t.Fatal(err)
+	}
+	if uv != 2 {
+		t.Errorf("user_version should be 2, got %d", uv)
+	}
+}
+
+func TestRunMigrations_WavMinhashV2Idempotent(t *testing.T) {
+	db, err := sql.Open("sqlite", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	if err := persistence.RunMigrations(db); err != nil {
+		t.Fatal(err)
+	}
+
+	// v2 マイグレーション後の状態で wav_minhash 入りレコードを追加
+	freshSig := make([]byte, 256)
+	for i := range freshSig {
+		freshSig[i] = byte(255 - i)
+	}
+	if _, err := db.Exec(
+		`INSERT INTO chart_meta (md5, wav_minhash) VALUES ('ddeeff', ?)`,
+		freshSig,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// 2 回目のマイグレーション: user_version はすでに 2 なのでクリアされてはいけない
+	if err := persistence.RunMigrations(db); err != nil {
+		t.Fatal(err)
+	}
+
+	var stored []byte
+	if err := db.QueryRow(
+		`SELECT wav_minhash FROM chart_meta WHERE md5 = 'ddeeff'`,
+	).Scan(&stored); err != nil {
+		t.Fatal(err)
+	}
+	if len(stored) != 256 {
+		t.Fatalf("wav_minhash should be preserved (256 bytes), got %d", len(stored))
+	}
+	for i, b := range stored {
+		if b != byte(255-i) {
+			t.Fatalf("byte %d: expected %d, got %d", i, byte(255-i), b)
+		}
+	}
+}
