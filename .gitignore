@@ -1,4 +1,8 @@
 build/bin
+build/*.exe
+build/*.log
+build/*.backup
+build/validate-out*/
 node_modules
 frontend/dist
 frontend/wailsjs
@@ -12,3 +16,5 @@ testdata/*/
 !testdata/*/*.bme
 !testdata/*/*.bml
 .superpowers/*
+/validate-minhash
+cmd/prefetch-ir/*.updated.csv
