@@ -539,6 +539,59 @@ func TestFindOrphanInfoByMD5_EmptyTitle(t *testing.T) {
 	}
 }
 
+func TestListChartPathsByMD5_Duplicate(t *testing.T) {
+	reader, db := setupSongdataReader(t)
+	ctx := context.Background()
+
+	// testdata から「同一md5が複数行」存在するmd5を1つ取得（空md5は除外）
+	var md5 string
+	var cnt int
+	err := db.QueryRowContext(ctx, `
+		SELECT md5, COUNT(*) c FROM songdata.song
+		WHERE md5 != '' GROUP BY md5 HAVING c > 1 ORDER BY c DESC, md5 LIMIT 1`,
+	).Scan(&md5, &cnt)
+	if err != nil {
+		t.Fatalf("前提: 重複md5の取得に失敗: %v", err)
+	}
+
+	paths, err := reader.ListChartPathsByMD5(ctx, md5)
+	if err != nil {
+		t.Fatalf("ListChartPathsByMD5 failed: %v", err)
+	}
+
+	// 重複件数ぶんのパスが返ること
+	if len(paths) != cnt {
+		t.Errorf("len(paths) = %d, want %d", len(paths), cnt)
+	}
+
+	// 各パスが非空であること
+	for i, p := range paths {
+		if p == "" {
+			t.Errorf("paths[%d] is empty", i)
+		}
+	}
+
+	// ORDER BY path で昇順ソートされていること
+	for i := 1; i < len(paths); i++ {
+		if paths[i-1] > paths[i] {
+			t.Errorf("paths not sorted: %q > %q", paths[i-1], paths[i])
+		}
+	}
+}
+
+func TestListChartPathsByMD5_NotFound(t *testing.T) {
+	reader, _ := setupSongdataReader(t)
+	ctx := context.Background()
+
+	paths, err := reader.ListChartPathsByMD5(ctx, "nonexistent_md5_zzz")
+	if err != nil {
+		t.Fatalf("ListChartPathsByMD5 error: %v", err)
+	}
+	if len(paths) != 0 {
+		t.Errorf("len(paths) = %d, want 0", len(paths))
+	}
+}
+
 // songTitles はデバッグ用にSongのタイトル一覧を返す
 func songTitles(songs []model.Song) []string {
 	titles := make([]string, len(songs))

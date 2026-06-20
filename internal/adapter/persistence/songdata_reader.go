@@ -630,6 +630,26 @@ func (r *SongdataReader) GetChartByMD5(ctx context.Context, md5, folderHash stri
 	return &c, nil
 }
 
+// ListChartPathsByMD5 は指定md5を持つ全譜面のパスを返す（重複時の全パス列挙用）
+func (r *SongdataReader) ListChartPathsByMD5(ctx context.Context, md5 string) ([]string, error) {
+	rows, err := r.db.QueryContext(ctx,
+		`SELECT path FROM songdata.song WHERE md5 = ? ORDER BY path`, md5)
+	if err != nil {
+		return nil, fmt.Errorf("ListChartPathsByMD5 query: %w", err)
+	}
+	defer rows.Close()
+
+	var paths []string
+	for rows.Next() {
+		var p string
+		if err := rows.Scan(&p); err != nil {
+			return nil, fmt.Errorf("ListChartPathsByMD5 scan: %w", err)
+		}
+		paths = append(paths, p)
+	}
+	return paths, rows.Err()
+}
+
 func (r *SongdataReader) FindChartFoldersByTitle(ctx context.Context, title string) ([]model.InstallCandidate, error) {
 	if title == "" {
 		return nil, nil
