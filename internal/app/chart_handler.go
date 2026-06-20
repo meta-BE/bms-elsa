@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"os"
 
 	"github.com/meta-BE/bms-elsa/internal/adapter/persistence"
 	"github.com/meta-BE/bms-elsa/internal/app/dto"
@@ -85,4 +86,13 @@ func (h *ChartHandler) GetChartMetaByMD5(md5 string) (*dto.ChartIRMetaDTO, error
 // ListChartPathsByMD5 は指定md5を持つ全譜面のパスを返す（難易度表詳細の重複時表示用）
 func (h *ChartHandler) ListChartPathsByMD5(md5 string) ([]string, error) {
 	return h.songReader.ListChartPathsByMD5(h.ctx, md5)
+}
+
+// DeleteChartFile は指定パスのBMSファイルを削除する。
+// ファイルが既に存在しない場合は何もせず成功扱いとする。
+func (h *ChartHandler) DeleteChartFile(path string) error {
+	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
