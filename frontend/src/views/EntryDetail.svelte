@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetChartDetailByMD5, GetChartMetaByMD5, ListChartPathsByMD5 } from '../../wailsjs/go/app/ChartHandler'
+  import { GetChartDetailByMD5, GetChartMetaByMD5, ListChartPathsByMD5, DeleteChartFile } from '../../wailsjs/go/app/ChartHandler'
   import { GetDifficultyTableEntry } from '../../wailsjs/go/app/DifficultyTableHandler'
   import { LookupByMD5 } from '../../wailsjs/go/app/IRHandler'
   import type { dto } from '../../wailsjs/go/models'
@@ -15,6 +15,7 @@
   import InstallCandidateCard from '../components/InstallCandidateCard.svelte'
   import OpenFolderButton from '../components/OpenFolderButton.svelte'
   import Icon from '../components/Icon.svelte'
+  import AlertModal from '../components/AlertModal.svelte'
 
   const dispatch = createEventDispatcher<{ close: void }>()
 
@@ -28,6 +29,11 @@
   let bmsSearchInfo: dto.BMSSearchInfoDTO | null = null
   let bmsSearchLoading = false
   let dupPaths: string[] = []
+  // ファイル削除
+  let deleteDialog: HTMLDialogElement
+  let mouseDownOnBackdrop = false
+  let pendingDeletePath = ''
+  let alertModal: AlertModal
 
   $: if (md5 && tableID) loadEntry(md5, tableID)
 
@@ -86,6 +92,27 @@
     bmsSearchInfo = await GetBMSSearchInfoByMD5(md5)
   }
 
+  function requestDelete(path: string) {
+    pendingDeletePath = path
+    deleteDialog.showModal()
+  }
+
+  async function executeDelete() {
+    const path = pendingDeletePath
+    deleteDialog.close()
+    try {
+      await DeleteChartFile(path)
+    } catch (err) {
+      alertModal.open(String(err))
+    } finally {
+      pendingDeletePath = ''
+    }
+  }
+
+  function cancelDelete() {
+    deleteDialog.close()
+    pendingDeletePath = ''
+  }
 </script>
 
 {#if loading}
@@ -148,9 +175,16 @@
         <div class="text-sm font-semibold mb-2">ファイルパス一覧 ({dupPaths.length}件)</div>
         <div class="space-y-1">
           {#each dupPaths as p}
-            <div class="text-xs text-base-content/70 break-all flex items-center gap-1">
+            <div class="text-xs text-base-content/70 flex items-center gap-1">
               <OpenFolderButton path={p} size="xs" title="フォルダを開く" />
-              <span>{p}</span>
+              <span class="flex-1 break-all">{p}</span>
+              <button
+                class="btn btn-ghost btn-xs shrink-0"
+                title="ファイルを削除"
+                on:click={() => requestDelete(p)}
+              >
+                <Icon name="trash" cls="h-3 w-3" />
+              </button>
             </div>
           {/each}
         </div>
@@ -178,3 +212,22 @@
     />
   </div>
 {/if}
+
+<!-- svelte-ignore a11y-click-events-have-key-events a11y-no-noninteractive-element-interactions -->
+<dialog bind:this={deleteDialog} class="modal"
+  on:mousedown|self={() => mouseDownOnBackdrop = true}
+  on:click|self={() => { if (mouseDownOnBackdrop) cancelDelete(); mouseDownOnBackdrop = false }}>
+  <div class="modal-box max-w-2xl">
+    <h3 class="text-lg font-bold mb-4">ファイル削除の確認</h3>
+    <div class="space-y-2 text-sm">
+      <p>このファイルを完全に削除します。元に戻せません。</p>
+      <div class="bg-base-200 rounded p-3 break-all">{pendingDeletePath}</div>
+    </div>
+    <div class="modal-action">
+      <button class="btn" on:click={cancelDelete}>キャンセル</button>
+      <button class="btn btn-error" on:click={executeDelete}>削除</button>
+    </div>
+  </div>
+</dialog>
+
+<AlertModal bind:this={alertModal} />
