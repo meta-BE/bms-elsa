@@ -44,7 +44,7 @@
       entryData = await GetDifficultyTableEntry(tid, hash)
       if (entryData?.status === 'duplicate') {
         try {
-          dupPaths = await ListChartPathsByMD5(hash)
+          dupPaths = (await ListChartPathsByMD5(hash)) ?? []
         } catch (e) {
           console.error('Failed to load duplicate paths:', e)
           dupPaths = []
