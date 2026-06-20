@@ -100,6 +100,7 @@
   async function executeDelete() {
     const path = pendingDeletePath
     deleteDialog.close()
+    // 仕様上、削除後の一覧再読込・除去は行わない（削除済みパスは表示に残る）
     try {
       await DeleteChartFile(path)
     } catch (err) {
