@@ -81,3 +81,8 @@ func (h *ChartHandler) GetChartMetaByMD5(md5 string) (*dto.ChartIRMetaDTO, error
 	result := dto.ChartIRMetaToDTO(*meta)
 	return &result, nil
 }
+
+// ListChartPathsByMD5 は指定md5を持つ全譜面のパスを返す（難易度表詳細の重複時表示用）
+func (h *ChartHandler) ListChartPathsByMD5(md5 string) ([]string, error) {
+	return h.songReader.ListChartPathsByMD5(h.ctx, md5)
+}
