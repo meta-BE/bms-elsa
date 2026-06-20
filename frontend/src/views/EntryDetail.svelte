@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte'
-  import { GetChartDetailByMD5, GetChartMetaByMD5 } from '../../wailsjs/go/app/ChartHandler'
+  import { GetChartDetailByMD5, GetChartMetaByMD5, ListChartPathsByMD5 } from '../../wailsjs/go/app/ChartHandler'
   import { GetDifficultyTableEntry } from '../../wailsjs/go/app/DifficultyTableHandler'
   import { LookupByMD5 } from '../../wailsjs/go/app/IRHandler'
   import type { dto } from '../../wailsjs/go/models'
@@ -27,6 +27,7 @@
   let loading = false
   let bmsSearchInfo: dto.BMSSearchInfoDTO | null = null
   let bmsSearchLoading = false
+  let dupPaths: string[] = []
 
   $: if (md5 && tableID) loadEntry(md5, tableID)
 
@@ -38,8 +39,17 @@
     entryData = null
     chart = null
     irMeta = null
+    dupPaths = []
     try {
       entryData = await GetDifficultyTableEntry(tid, hash)
+      if (entryData?.status === 'duplicate') {
+        try {
+          dupPaths = await ListChartPathsByMD5(hash)
+        } catch (e) {
+          console.error('Failed to load duplicate paths:', e)
+          dupPaths = []
+        }
+      }
       chart = await GetChartDetailByMD5(hash, '')
       if (!chart) {
         irMeta = await GetChartMetaByMD5(hash)
@@ -102,7 +112,9 @@
           </div>
         </div>
         <div class="flex items-center shrink-0 ml-2">
-          <OpenFolderButton path={chart?.path} title="インストール先フォルダを開く" />
+          {#if entryData.status !== 'duplicate'}
+            <OpenFolderButton path={chart?.path} title="インストール先フォルダを開く" />
+          {/if}
           <button
             class="btn btn-ghost btn-xs"
             on:click={() => dispatch('close')}
@@ -129,6 +141,21 @@
         </div>
       {/if}
     </div>
+
+    <!-- ファイルパス一覧（重複時のみ） -->
+    {#if entryData.status === 'duplicate' && dupPaths.length > 0}
+      <div class="bg-base-200 rounded-lg p-3">
+        <div class="text-sm font-semibold mb-2">ファイルパス一覧 ({dupPaths.length}件)</div>
+        <div class="space-y-1">
+          {#each dupPaths as p}
+            <div class="text-xs text-base-content/70 break-all flex items-center gap-1">
+              <OpenFolderButton path={p} size="xs" title="フォルダを開く" />
+              <span>{p}</span>
+            </div>
+          {/each}
+        </div>
+      </div>
+    {/if}
 
     <!-- 譜面メタデータ（導入済の場合のみ） -->
     {#if chart}
